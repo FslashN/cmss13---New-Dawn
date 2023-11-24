@@ -292,3 +292,23 @@
 	var/obj/item/clothing/mask/facehugger/child = new(T)
 	child.hivenumber = hugger_hive
 	INVOKE_ASYNC(child, TYPE_PROC_REF(/obj/item/clothing/mask/facehugger, leap_at_nearest_target))
+
+///////////////Techweb Railgun//////////////
+
+/datum/ammo/bullet/sniper/railgun
+	name = "railgun bullet"
+	damage_falloff = 0
+	flags_ammo_behavior = AMMO_BALLISTIC|AMMO_SNIPER|AMMO_IGNORE_COVER
+	accurate_range_min = 4
+	accuracy = HIT_ACCURACY_TIER_8
+	accurate_range = 32
+	max_range = 32
+	scatter = 0
+	damage = 3*100
+	penetration= ARMOR_PENETRATION_TIER_10
+	shell_speed = AMMO_SPEED_TIER_6
+	damage_falloff = 0
+
+/datum/ammo/bullet/sniper/railgun/on_hit_mob(mob/M, _unused)
+	if (isxeno(M))
+		M.apply_effect(1, SLOW)

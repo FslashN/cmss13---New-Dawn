@@ -1,17 +1,20 @@
+//-------------------------------------------------------
+
+//Most smgs manufactured in the future feature an auto-ejector. Antiques and cheapo garbage guns do not have one. The ammo counter is only specific to some guns.
 
 /obj/item/weapon/gun/smg
 	reload_sound = 'sound/weapons/handling/smg_reload.ogg'
 	unload_sound = 'sound/weapons/handling/smg_unload.ogg'
 	cocked_sound = 'sound/weapons/gun_cocked2.ogg'
-
 	fire_sound = 'sound/weapons/gun_m39.ogg'
+	projectile_casing = PROJECTILE_CASING_BULLET
 	force = 5
 	w_class = SIZE_LARGE
 	movement_onehanded_acc_penalty_mult = 4
 	aim_slowdown = SLOWDOWN_ADS_QUICK
 	wield_delay = WIELD_DELAY_VERY_FAST
 	attachable_allowed = list(
-		/obj/item/attachable/suppressor,			
+		/obj/item/attachable/suppressor,
 		/obj/item/attachable/reddot,
 		/obj/item/attachable/reflex,
 		/obj/item/attachable/flashlight,
@@ -24,16 +27,21 @@
 
 /obj/item/weapon/gun/smg/Initialize(mapload, spawn_empty)
 	. = ..()
-	if(current_mag && current_mag.current_rounds > 0)
-		load_into_chamber()
+	ready_in_chamber()
 
 /obj/item/weapon/gun/smg/unique_action(mob/user)
-	cock(user)
+	cycle_chamber(user)
 
 /obj/item/weapon/gun/smg/set_gun_config_values()
 	..()
 	movement_onehanded_acc_penalty_mult = 4
 	fa_max_scatter = SCATTER_AMOUNT_TIER_5
+
+/obj/item/weapon/gun/smg/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = TRUE)
+	. = ..()
+
+/obj/item/weapon/gun/smg/load_into_chamber(mob/user, manual_cock_only = TRUE)
+	. = ..()
 
 //-------------------------------------------------------
 //M39 SMG
@@ -44,13 +52,15 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m39"
 	item_state = "m39"
+
 	flags_equip_slot = SLOT_BACK
 	current_mag = /obj/item/ammo_magazine/smg/m39
+	projectile_casing = PROJECTILE_CASING_CASELESS
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/reddot,
 		/obj/item/attachable/reflex,
-		/obj/item/attachable/angledgrip,	
+		/obj/item/attachable/angledgrip,
 		/obj/item/attachable/verticalgrip,
 		/obj/item/attachable/flashlight/grip,
 		/obj/item/attachable/stock/smg,
@@ -72,6 +82,7 @@
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	starting_attachment_types = list(/obj/item/attachable/stock/smg/collapsible)
 	map_specific_decoration = TRUE
+	pixel_width_offset = -2
 
 /obj/item/weapon/gun/smg/m39/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 20,"rail_x" = 14, "rail_y" = 22, "under_x" = 21, "under_y" = 16, "stock_x" = 24, "stock_y" = 15)
@@ -90,6 +101,9 @@
 	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 	fa_max_scatter = SCATTER_AMOUNT_TIER_10 + 0.5
 
+
+/obj/item/weapon/gun/smg/m39/racked/Initialize(mapload, spawn_empty = TRUE)
+	. = ..()
 
 /obj/item/weapon/gun/smg/m39/training
 	current_mag = /obj/item/ammo_magazine/smg/m39/rubber
@@ -222,8 +236,9 @@
 		/obj/item/attachable/burstfire_assembly,
 		)
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
 	aim_slowdown = SLOWDOWN_ADS_NONE
+	pixel_width_offset = -2
 
 
 /obj/item/weapon/gun/smg/mp27/set_gun_attachment_offsets()
@@ -256,7 +271,7 @@
 
 	fire_sound = 'sound/weapons/smg_heavy.ogg'
 	current_mag = /obj/item/ammo_magazine/smg/ppsh
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ANTIQUE
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ANTIQUE|GUN_NO_SAFETY_SWITCH //Prototype copy, so no safety.
 	var/jammed = FALSE
 
 /obj/item/weapon/gun/smg/ppsh/set_gun_attachment_offsets()
@@ -305,7 +320,7 @@
 			to_chat(user, SPAN_GREEN("You succesfully unjam \the [src]!"))
 			playsound(src, 'sound/weapons/handling/gun_jam_rack_success.ogg', 50, FALSE)
 			jammed = FALSE
-			cock_cooldown += 1 SECONDS //so they dont accidentally cock a bullet away
+			cycle_chamber_cooldown += 1 SECONDS //so they dont accidentally cock a bullet away
 			balloon_alert(user, "*unjammed!*")
 		else
 			to_chat(user, SPAN_NOTICE("You start wildly racking the bolt back and forth attempting to unjam \the [src]!"))
@@ -363,6 +378,7 @@
 		/obj/item/attachable/extended_barrel,
 		/obj/item/attachable/magnetic_harness,
 	)
+	pixel_width_offset = -1
 
 /obj/item/weapon/gun/smg/pps43/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 20,"rail_x" = 20, "rail_y" = 24, "under_x" = 25, "under_y" = 17, "stock_x" = 26, "stock_y" = 15)
@@ -395,7 +411,7 @@
 
 	fire_sound = 'sound/weapons/smg_heavy.ogg'
 	current_mag = /obj/item/ammo_magazine/smg/bizon
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER //Roughly the same as the USCM
 	wield_delay = WIELD_DELAY_MIN
 	aim_slowdown = SLOWDOWN_ADS_QUICK_MINUS
 
@@ -450,6 +466,7 @@
 		)
 	wield_delay = WIELD_DELAY_NONE
 	aim_slowdown = SLOWDOWN_ADS_NONE
+	pixel_width_offset = -3
 
 /obj/item/weapon/gun/smg/mac15/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 20,"rail_x" = 16, "rail_y" = 22, "under_x" = 22, "under_y" = 16, "stock_x" = 22, "stock_y" = 16)
@@ -482,7 +499,10 @@
 	flags_equip_slot = SLOT_WAIST
 	fire_sound = 'sound/weapons/gun_uzi.ogg'
 	current_mag = /obj/item/ammo_magazine/smg/uzi
-	flags_gun_features = GUN_ANTIQUE|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED //|GUN_HAS_FULL_AUTO|GUN_FULL_AUTO_ON|GUN_FULL_AUTO_ONLY commented out until better fullauto code
+	start_semiauto = FALSE
+	start_automatic = TRUE
+
+	flags_gun_features = GUN_ANTIQUE|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor, // Barrel
@@ -499,6 +519,7 @@
 	wield_delay = WIELD_DELAY_MIN
 	aim_slowdown = SLOWDOWN_ADS_QUICK
 	var/jammed = FALSE
+	pixel_width_offset = -5
 
 /obj/item/weapon/gun/smg/uzi/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 12, "rail_y" = 22, "under_x" = 22, "under_y" = 16, "stock_x" = 22, "stock_y" = 16)
@@ -541,7 +562,7 @@
 			to_chat(user, SPAN_GREEN("You succesfully unjam \the [src]!"))
 			playsound(src, 'sound/weapons/handling/gun_jam_rack_success.ogg', 35, TRUE)
 			jammed = FALSE
-			cock_cooldown += 1 SECONDS //so they dont accidentally cock a bullet away
+			cycle_chamber_cooldown += 1 SECONDS //so they dont accidentally cock a bullet away
 			balloon_alert(user, "*unjammed!*")
 		else
 			to_chat(user, SPAN_NOTICE("You start wildly racking the bolt back and forth attempting to unjam \the [src]!"))
@@ -580,7 +601,7 @@
 		/obj/item/attachable/extended_barrel,
 	)
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
+	flags_gun_features = GUN_CAN_POINTBLANK
 
 /obj/item/weapon/gun/smg/fp9000/handle_starting_attachment()
 	..()
@@ -623,6 +644,9 @@
 		/obj/item/attachable/lasersight,
 	)
 
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
+
+
 /obj/item/weapon/gun/smg/fp9000/pmc/set_gun_config_values()
 	..()
 	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_4
@@ -637,8 +661,9 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "nailgun"
 	item_state = "nailgun"
-	current_mag = /obj/item/ammo_magazine/smg/nailgun
 
+	current_mag = /obj/item/ammo_magazine/smg/nailgun
+	projectile_casing = PROJECTILE_CASING_CASELESS
 	reload_sound = 'sound/weapons/handling/smg_reload.ogg'
 	unload_sound = 'sound/weapons/handling/smg_unload.ogg'
 	cocked_sound = 'sound/weapons/gun_cocked2.ogg'
@@ -651,8 +676,7 @@
 	wield_delay = WIELD_DELAY_VERY_FAST
 	attachable_allowed = list()
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
-	gun_category = GUN_CATEGORY_SMG
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH //Why wasn't wasn't an unusual design originally? I do believe nail guns have tip safety, so realistically, you shouldn't be able to fire them at people in the first place.
 	civilian_usable_override = TRUE
 	start_automatic = FALSE
 	var/nailing_speed = 2 SECONDS //Time to apply a sheet for patching. Also haha name. Try to keep sync with soundbyte duration
@@ -668,6 +692,20 @@
 	scatter_unwielded = SCATTER_AMOUNT_TIER_5
 	damage_mult = BASE_BULLET_DAMAGE_MULT
 	recoil_unwielded = RECOIL_AMOUNT_TIER_5
+
+//Want to reset these. Doesn't care about chambering behavior.
+/obj/item/weapon/gun/smg/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = FALSE)
+	. = ..()
+
+/obj/item/weapon/gun/smg/load_into_chamber(mob/user, manual_cock_only = FALSE)
+	. = ..()
+
+//We're making our own reload proc because we're chads.
+/obj/item/weapon/gun/reload(mob/user, obj/item/ammo_magazine/magazine, reload_override = TRUE)
+	. = ..() //We override to restore normal reloading behavior.
+
+/obj/item/weapon/gun/unload(mob/user, reload_override = TRUE)
+	. = ..()
 
 /obj/item/weapon/gun/smg/nailgun/unique_action(mob/user)
 	return //Yeah no.

@@ -32,6 +32,7 @@ They're all essentially identical when it comes to getting the job done.
 	var/base_mag_item //the default mag item (inhand) state.
 	var/transfer_handful_amount = 8 //amount of bullets to transfer, 5 for 12g, 9 for 45-70
 	var/handful_state = "bullet" //used for generating handfuls from boxes and setting their sprite when loading/unloading
+	var/used_casings = 0
 
 	/// If this and ammo_band_icon aren't null, run update_ammo_band(). Is the color of the band, such as green on AP.
 	var/ammo_band_color
@@ -167,12 +168,12 @@ They're all essentially identical when it comes to getting the job done.
 	return rounds_to_reload // Returns the amount of ammo it reloaded
 
 //This will attempt to place the ammo in the user's hand if possible.
-/obj/item/ammo_magazine/proc/create_handful(mob/user, transfer_amount, obj_name = src)
+/obj/item/ammo_magazine/proc/create_handful(mob/user, transfer_amount, obj_name = src, ammo_override)
 	var/amount_to_transfer
 	if (current_rounds > 0)
 		var/obj/item/ammo_magazine/handful/new_handful = new /obj/item/ammo_magazine/handful
 		amount_to_transfer = transfer_amount ? min(current_rounds, transfer_amount) : min(current_rounds, transfer_handful_amount)
-		new_handful.generate_handful(default_ammo, caliber, transfer_handful_amount, amount_to_transfer, gun_type)
+		new_handful.generate_handful(ammo_override ? ammo_override : default_ammo, caliber, transfer_handful_amount, amount_to_transfer, gun_type)
 		current_rounds -= amount_to_transfer
 		if(!istype(src, /obj/item/ammo_magazine/internal) && !istype(src, /obj/item/ammo_magazine/shotgun)) //if we are shotgun or revolver or whatever not using normal mag system
 			playsound(loc, pick('sound/weapons/handling/mag_refill_1.ogg', 'sound/weapons/handling/mag_refill_2.ogg', 'sound/weapons/handling/mag_refill_3.ogg'), 25, 1)
@@ -305,8 +306,8 @@ the icon_state to look like more casings are hitting the ground.
 There are 8 directions, 8 bullets are possible so after that it tries to grab the next
 icon_state while reseting the direction. After 16 casings, it just ignores new
 ones. At that point there are too many anyway. Shells and bullets leave different
-items, so they do not intersect. This is far more efficient than using Bl*nd() or
-Turn() or Shift() as there is virtually no overhead. ~N
+items, so they do not intersect. This is far more efficient than using Blend() or
+Turn() or Shift() as there is virtually no overhead other than generating a few more items.. ~N
 */
 /obj/item/ammo_casing
 	name = "spent casing"
@@ -359,13 +360,8 @@ Turn() or Shift() as there is virtually no overhead. ~N
 	name = "spent shell"
 	icon_state = "shell"
 
-/obj/item/ammo_box/magazine/lever_action/xm88
-	name = "\improper .458 bullets box (.458 x 300)"
-	icon_state = "base_458"
-	overlay_ammo_type = "_blank"
-	overlay_gun_type = "_458"
-	overlay_content = "_458"
-	magazine_type = /obj/item/ammo_magazine/handful/lever_action/xm88
-
-/obj/item/ammo_box/magazine/lever_action/xm88/empty
-	empty = TRUE
+/obj/item/ammo_casing/twobore
+	name = "spent twobore shell"
+	icon_state = "twobore"
+	max_casings = 8
+	number_of_states = 3 //I don't want to be making these all day.

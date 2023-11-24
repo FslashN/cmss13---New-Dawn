@@ -11,9 +11,10 @@
 	fire_sound = 'sound/weapons/gun_minigun.ogg'
 	cocked_sound = 'sound/weapons/gun_minigun_cocked.ogg'
 	current_mag = /obj/item/ammo_magazine/minigun
+	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	w_class = SIZE_HUGE
 	force = 20
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER|GUN_RECOIL_BUILDUP|GUN_CAN_POINTBLANK
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER|GUN_RECOIL_BUILDUP|GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
 	gun_category = GUN_CATEGORY_HEAVY
 	start_semiauto = FALSE
 	start_automatic = TRUE
@@ -52,14 +53,13 @@
 /obj/item/weapon/gun/minigun/upp/able_to_fire(mob/living/user)
 	. = ..()
 	if(!. || !istype(user)) //Let's check all that other stuff first.
-		return 0
+		return FALSE
 	if(!skillcheck(user, SKILL_FIREARMS, SKILL_FIREARMS_TRAINED))
 		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return 0
+		return FALSE
 	if(!skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_UPP)
 		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return 0
-
+		return FALSE
 
 //M60
 /obj/item/weapon/gun/m60
@@ -72,6 +72,7 @@
 	fire_sound = 'sound/weapons/gun_m60.ogg'
 	cocked_sound = 'sound/weapons/gun_m60_cocked.ogg'
 	current_mag = /obj/item/ammo_magazine/m60
+	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	w_class = SIZE_LARGE
 	force = 25
 	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_CAN_POINTBLANK
@@ -169,11 +170,12 @@
 	fire_sound = 'sound/weapons/gun_mg.ogg'
 	cocked_sound = 'sound/weapons/gun_m60_cocked.ogg'
 	current_mag = /obj/item/ammo_magazine/pkp
+	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	w_class = SIZE_LARGE
 	force = 30 //the image of a upp machinegunner beating someone to death with a gpmg makes me laugh
 	start_semiauto = FALSE
 	start_automatic = TRUE
-	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_CAN_POINTBLANK|GUN_AUTO_EJECTOR|GUN_SPECIALIST|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_CAN_POINTBLANK|GUN_SPECIALIST|GUN_AMMO_COUNTER
 	gun_category = GUN_CATEGORY_HEAVY
 	attachable_allowed = list(
 		/obj/item/attachable/pkpbarrel,
@@ -289,3 +291,114 @@
 /obj/effect/syringe_gun_dummy/Initialize()
 	create_reagents(15)
 	. = ..()
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+//Sigh. Why is this in here.
+/obj/item/weapon/gun/rifle/techweb_railgun
+	name = "\improper Railgun"
+	desc = "A poggers hellbliterator"
+	icon_state = "m42a"
+	item_state = "m42a"
+	unacidable = TRUE
+	indestructible = 1
+
+	fire_sound = 'sound/weapons/gun_sniper.ogg'
+	current_mag = /obj/item/ammo_magazine/techweb_railgun
+	force = 12
+	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
+	zoomdevicename = "scope"
+	attachable_allowed = list()
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
+	map_specific_decoration = TRUE
+	actions_types = list(/datum/action/item_action/techweb_railgun_start_charge, /datum/action/item_action/techweb_railgun_abort_charge)
+
+	// Hellpullverizer ready or not??
+	var/charged = FALSE
+
+/obj/item/weapon/gun/rifle/techweb_railgun/set_bullet_traits()
+	LAZYADD(traits_to_give, list(
+		BULLET_TRAIT_ENTRY(/datum/element/bullet_trait_iff)
+	))
+
+/obj/item/weapon/gun/rifle/techweb_railgun/able_to_fire()
+	return charged
+
+/obj/item/weapon/gun/rifle/techweb_railgun/proc/start_charging(user)
+	if (charged)
+		to_chat(user, SPAN_WARNING("Your railgun is already charged."))
+		return
+
+	to_chat(user, SPAN_WARNING("You start charging your railgun."))
+	if (!do_after(user, 8 SECONDS, INTERRUPT_ALL, BUSY_ICON_HOSTILE))
+		to_chat(user, SPAN_WARNING("You stop charging your railgun."))
+		return
+
+	to_chat(user, SPAN_WARNING("You finish charging your railgun."))
+
+	charged = TRUE
+	return
+
+/obj/item/weapon/gun/rifle/techweb_railgun/on_enter_storage()
+	if (charged)
+		abort_charge()
+	. = ..()
+
+/obj/item/weapon/gun/rifle/techweb_railgun/proc/abort_charge(user)
+	if (!charged)
+		return
+	charged = FALSE
+	if (user)
+		to_chat(user, SPAN_WARNING("You depower your railgun to store it."))
+	return
+
+/obj/item/weapon/gun/rifle/techweb_railgun/handle_starting_attachment()
+	..()
+	var/obj/item/attachable/scope/S = new(src)
+	S.hidden = TRUE
+	S.flags_attach_features &= ~ATTACH_REMOVABLE
+	S.Attach(src)
+	update_attachable(S.slot)
+
+/obj/item/weapon/gun/rifle/techweb_railgun/set_gun_config_values()
+	..()
+	set_fire_delay(FIRE_DELAY_TIER_6*5)
+	set_burst_amount(BURST_AMOUNT_TIER_1)
+	accuracy_mult = BASE_ACCURACY_MULT * 3 //you HAVE to be able to hit
+	scatter = SCATTER_AMOUNT_TIER_8
+	damage_mult = BASE_BULLET_DAMAGE_MULT
+	recoil = RECOIL_AMOUNT_TIER_5
+
+/obj/item/weapon/gun/rifle/techweb_railgun/unique_action(mob/user)
+	if (in_chamber)
+		to_chat(user, SPAN_WARNING("There's already a round chambered!"))
+		return
+
+	var/result = load_into_chamber()
+	if (result)
+		to_chat(user, SPAN_WARNING("You run the bolt on [src], chambering a round!"))
+	else
+		to_chat(user, SPAN_WARNING("You run the bolt on [src], but it's out of rounds!"))
+
+// normally, ready_in_chamber gets called by this proc. However, it never gets called because we override.
+// so we don't need to override ready_in_chamber, which is what makes the bullet and puts it in the chamber var.
+/obj/item/weapon/gun/rifle/techweb_railgun/reload_into_chamber(mob/user)
+	charged = FALSE
+	in_chamber = null // blackpilled again
+	return null
+
+/datum/action/item_action/techweb_railgun_start_charge
+	name = "Start Charging"
+
+/datum/action/item_action/techweb_railgun_start_charge/action_activate()
+	if (target)
+		var/obj/item/weapon/gun/rifle/techweb_railgun/TR = target
+		TR.start_charging(owner)
+
+/datum/action/item_action/techweb_railgun_abort_charge
+	name = "Abort Charge"
+
+/datum/action/item_action/techweb_railgun_abort_charge/action_activate()
+	if (target)
+		var/obj/item/weapon/gun/rifle/techweb_railgun/TR = target
+		TR.abort_charge(owner)

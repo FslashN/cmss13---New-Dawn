@@ -806,7 +806,7 @@
 	var/spikes = 12
 	var/max_spikes = 12
 	var/last_regen
-	flags_gun_features = GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	flags_item = ITEM_PREDATOR|TWOHANDED
 
 /obj/item/weapon/gun/launcher/spike/process()
@@ -840,13 +840,11 @@
 		BULLET_TRAIT_ENTRY_ID("breaching", /datum/element/bullet_trait_damage_boost, 25, GLOB.damage_boost_breaching)
 	))
 
-/obj/item/weapon/gun/launcher/spike/get_examine_text(mob/user)
-	if(isyautja(user))
-		. = ..()
-		. += SPAN_NOTICE("It currently has <b>[spikes]/[max_spikes]</b> spikes.")
-	else
-		. = list()
-		. += SPAN_NOTICE("Looks like some kind of...mechanical donut.")
+/obj/item/weapon/gun/launcher/spike/get_examine_text(mob/user) //This overrides the whole thing.
+	if(!isyautja(user)) . = list( SPAN_NOTICE("Looks like some kind of...mechanical donut.") )
+
+/obj/item/weapon/gun/launcher/spike/get_additional_gun_examine_text(mob/user)
+	. += ..() + SPAN_NOTICE("It currently has <b>[spikes]/[max_spikes]</b> spikes.")
 
 /obj/item/weapon/gun/launcher/spike/update_icon()
 	..()
@@ -905,7 +903,7 @@
 	w_class = SIZE_HUGE
 	var/charge_time = 0
 	var/last_regen = 0
-	flags_gun_features = GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	flags_item = ITEM_PREDATOR|TWOHANDED
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/Initialize(mapload, spawn_empty)
@@ -938,12 +936,10 @@
 
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/get_examine_text(mob/user)
-	if(isyautja(user))
-		. = ..()
-		. += SPAN_NOTICE("It currently has <b>[charge_time]/100</b> charge.")
-	else
-		. = list()
-		. += SPAN_NOTICE("This thing looks like an alien rifle of some kind. Strange.")
+	if(!isyautja(user)) . = list( SPAN_NOTICE("This thing looks like an alien rifle of some kind. Strange.") )
+
+/obj/item/weapon/gun/energy/yautja/plasmarifle/get_additional_gun_examine_text(mob/user)
+	. = ..() + SPAN_NOTICE("It currently has <b>[charge_time]/100</b> charge.")
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/update_icon()
 	if(last_regen < charge_time + 20 || last_regen > charge_time || charge_time > 95)
@@ -1002,7 +998,7 @@
 	var/shot_cost = 1
 	/// standard (sc = 1) or incendiary (sc = 5)
 	var/mode = FIRE_MODE_STANDARD
-	flags_gun_features = GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	flags_item = ITEM_PREDATOR|IGNITING_ITEM|TWOHANDED
 
 	heat_source = 1500 // Plasma Pistols fire burning hot bounbs of plasma. Makes sense they're hot
@@ -1039,18 +1035,13 @@
 	damage_mult = BASE_BULLET_DAMAGE_MULT
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/get_examine_text(mob/user)
-	if(isyautja(user))
-		. = ..()
-		. += SPAN_NOTICE("It currently has <b>[charge_time]/40</b> charge.")
+	if(!isyautja(user)) . = list ( SPAN_NOTICE("This thing looks like an alien gun of some kind. Strange.") )
 
-		if(mode == FIRE_MODE_INCENDIARY)
-			. += SPAN_RED("It is set to fire incendiary plasma bolts.")
-		else
-			. += SPAN_ORANGE("It is set to fire plasma bolts.")
-	else
-		. = list()
-		. += SPAN_NOTICE("This thing looks like an alien gun of some kind. Strange.")
+/obj/item/weapon/gun/energy/yautja/plasmapistol/get_additional_gun_examine_text(mob/user)
+	. = ..()
 
+	. += SPAN_NOTICE("It currently has <b>[charge_time]/40</b> charge.")
+	. += mode == FIRE_MODE_INCENDIARY ? SPAN_RED("It is set to fire incendiary plasma bolts.") : SPAN_ORANGE("It is set to fire plasma bolts.")
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/able_to_fire(mob/user)
 	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
@@ -1125,7 +1116,7 @@
 	fire_delay = 3
 	flags_atom = FPRINT|CONDUCT
 	flags_item = NOBLUDGEON|DELONDROP|IGNITING_ITEM //Can't bludgeon with this.
-	flags_gun_features = GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	has_empty_icon = FALSE
 	indestructible = TRUE
 
@@ -1227,13 +1218,13 @@
 			to_chat(usr, SPAN_NOTICE("[src] will now fire [strength]."))
 			ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/stun]
 
-/obj/item/weapon/gun/energy/yautja/plasma_caster/get_examine_text(mob/user)
+/obj/item/weapon/gun/energy/yautja/plasma_caster/get_examine_text(mob/user) //Just to standardize it.
+	if(!isyautja(user)) . = list( SPAN_NOTICE("What is this strange contraption?") )
+
+/obj/item/weapon/gun/energy/yautja/plasma_caster/get_additional_gun_examine_text(mob/user)
 	. = ..()
-	var/msg = "It is set to fire [strength]."
-	if(mode == "lethal")
-		. += SPAN_RED(msg)
-	else
-		. += SPAN_ORANGE(msg)
+	var/t = "It is set to fire [strength]."
+	. += mode == "lethal" ? SPAN_RED(t) : SPAN_ORANGE(t)
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/dropped(mob/living/carbon/human/M)
 	playsound(M, 'sound/weapons/pred_plasmacaster_off.ogg', 15, 1)

@@ -465,6 +465,6 @@
 	update_damage_state()
 	material.use(1)
 	nailgun.current_mag.current_rounds -= 3
-	nailgun.in_chamber = null
+	QDEL_NULL(nailgun.in_chamber)
 	nailgun.load_into_chamber()
 	return TRUE

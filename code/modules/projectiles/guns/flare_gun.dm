@@ -136,7 +136,7 @@
 
 	update_icon()
 
-/obj/item/weapon/gun/flare/get_examine_text(mob/user)
+/obj/item/weapon/gun/flare/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(last_signal_flare_name)
 		. += SPAN_NOTICE("The last signal flare fired has the designation: [last_signal_flare_name]")

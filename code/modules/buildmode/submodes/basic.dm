@@ -17,10 +17,10 @@
 
 	if(istype(object,/turf) && left_click && !alt_click && !ctrl_click)
 		var/turf/clicked_turf = object
-		if(istype(object, /turf/closed/wall/almayer/outer))
+		if(istype(object, /turf/closed/wall/space_vessel/outer))
 			return
 		else if(istype(object, /turf/closed/wall/r_wall))
-			clicked_turf.PlaceOnTop(/turf/closed/wall/almayer/outer)
+			clicked_turf.PlaceOnTop(/turf/closed/wall/space_vessel/outer)
 		else if(istype(object, /turf/open/floor/plating))
 			clicked_turf.PlaceOnTop(/turf/open/floor/almayer)
 		else if(istype(object, /turf/open/floor))
@@ -35,7 +35,7 @@
 		log_admin("Build Mode: [key_name(c)] deleted [object] at [AREACOORD(object)]")
 		if(isturf(object))
 			var/turf/T = object
-			if(istype(object, /turf/closed/wall/almayer/outer))
+			if(istype(object, /turf/closed/wall/space_vessel/outer))
 				T.PlaceOnTop(/turf/closed/wall/r_wall)
 			else if(istype(object, /turf/closed/wall/r_wall))
 				T.PlaceOnTop(/turf/closed/wall)

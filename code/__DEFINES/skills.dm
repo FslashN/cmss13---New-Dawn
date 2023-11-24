@@ -33,7 +33,7 @@
 //firearms skill (general knowledge of guns) (hidden skill)
 //increase or decrase accuracy, recoil, and firing delay of rifles and smgs.
 #define SKILL_FIREARMS_CIVILIAN 0  //civilian
-#define SKILL_FIREARMS_TRAINED 1   //marines (allow tactical reloads)
+#define SKILL_FIREARMS_TRAINED 1   //marines (allow tactical reloads and auto-cocking)
 #define SKILL_FIREARMS_EXPERT 2   //special training
 #define SKILL_FIREARMS_MAX 2
 

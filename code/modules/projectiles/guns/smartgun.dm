@@ -51,15 +51,12 @@
 	var/recycletime = 120
 	var/cover_open = FALSE
 
-	unacidable = 1
-	indestructible = 1
-
 	attachable_allowed = list(
 		/obj/item/attachable/smartbarrel,
 		/obj/item/attachable/flashlight,
 	)
 
-	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY
+	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
 	gun_category = GUN_CATEGORY_HEAVY
 	starting_attachment_types = list(/obj/item/attachable/smartbarrel)
 	auto_retrieval_slot = WEAR_J_STORE
@@ -107,17 +104,12 @@
 		BULLET_TRAIT_ENTRY_ID("iff", /datum/element/bullet_trait_iff)
 	))
 
-/obj/item/weapon/gun/smartgun/get_examine_text(mob/user)
+/obj/item/weapon/gun/smartgun/get_additional_gun_examine_text(mob/user)
 	. = ..()
-	var/rounds = 0
-	if(current_mag && current_mag.current_rounds)
-		rounds = current_mag.current_rounds
-	var/message = "[rounds ? "Ammo counter shows [rounds] round\s remaining." : "It's dry."]"
-	. += message
-	. += "The restriction system is [iff_enabled ? "<B>on</b>" : "<B>off</b>"]."
+	. += "The restriction system is [iff_enabled ? SPAN_NOTICE("<B>on</b>") : SPAN_NOTICE("<B>off</b>")]."
 
-	if(battery && get_dist(user, src) <= 1)
-		. += "A small gauge on [battery] reads: Power: [battery.power_cell.charge] / [battery.power_cell.maxcharge]."
+	//Distance shoudn't matter since the battery isn't worn as a backpack anymore.
+	if(battery) . += "A small gauge on [battery] reads: Power: [battery.power_cell.charge] / [battery.power_cell.maxcharge]."
 
 /obj/item/weapon/gun/smartgun/clicked(mob/user, list/mods)
 	if(mods["alt"])
@@ -645,7 +637,7 @@
 	linked_human = H
 	RegisterSignal(linked_human, COMSIG_PARENT_QDELETING, PROC_REF(remove_idlock))
 
-/obj/item/weapon/gun/smartgun/co/get_examine_text()
+/obj/item/weapon/gun/smartgun/co/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(linked_human)
 		if(is_locked)
@@ -654,8 +646,6 @@
 			. += SPAN_NOTICE("It is registered to [linked_human] but has its fire restrictions unlocked.")
 	else
 		. += SPAN_NOTICE("It's unregistered. Pick it up to register yourself as its owner.")
-	if(!iff_enabled)
-		. += SPAN_WARNING("Its IFF restrictions are disabled.")
 
 /obj/item/weapon/gun/smartgun/co/proc/remove_idlock()
 	SIGNAL_HANDLER
@@ -668,7 +658,7 @@
 	ammo = /obj/item/ammo_magazine/smartgun/dirty
 	ammo_primary = /datum/ammo/bullet/smartgun/dirty//Toggled ammo type
 	ammo_secondary = /datum/ammo/bullet/smartgun/dirty/armor_piercing///Toggled ammo type
-	flags_gun_features = GUN_WY_RESTRICTED|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY
+	flags_gun_features = GUN_WY_RESTRICTED|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
 
 /obj/item/weapon/gun/smartgun/dirty/Initialize(mapload, ...)
 	. = ..()
@@ -743,7 +733,7 @@
 	ammo = /obj/item/ammo_magazine/smartgun/holo_targetting
 	ammo_primary = /datum/ammo/bullet/smartgun/holo_target //Toggled ammo type
 	ammo_secondary = /datum/ammo/bullet/smartgun/holo_target/ap ///Toggled ammo type
-	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY
+	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/twe_guns.dmi'
 	icon_state = "magsg"
 	item_state = "magsg"
@@ -752,3 +742,6 @@
 /obj/item/weapon/gun/smartgun/rmc/Initialize(mapload, ...)
 	. = ..()
 	MD.iff_signal = FACTION_TWE
+
+/obj/item/weapon/gun/smartgun/racked/Initialize(mapload, spawn_empty = TRUE)
+	. = ..()

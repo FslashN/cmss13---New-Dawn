@@ -57,3 +57,15 @@
 	desc = "OH GOD OH FUCK"
 	default_ammo = /datum/ammo/hugger_container
 	ammo_band_color = AMMO_BAND_COLOR_SUPER
+
+//Techweb railgun
+
+/obj/item/ammo_magazine/techweb_railgun
+	name = "\improper Railgun Ammunition (5 rounds)"
+	desc = "A magazine ammo for the poggers Railgun."
+	caliber = "14mm"
+	icon_state = "m42c" //PLACEHOLDER
+	w_class = SIZE_MEDIUM
+	max_rounds = 5
+	default_ammo = /datum/ammo/bullet/sniper/railgun
+	gun_type = /obj/item/weapon/gun/rifle/techweb_railgun

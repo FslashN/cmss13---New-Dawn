@@ -1,6 +1,8 @@
 //Base pistol for inheritance/
 //--------------------------------------------------
 
+//Pistols generally do not have an auto ejector or an ammo counter.
+
 /obj/item/weapon/gun/pistol
 	icon_state = "" //should return the honk-error sprite if there's no assigned icon.
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
@@ -27,21 +29,26 @@
 		/obj/item/attachable/burstfire_assembly,
 	)
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED //For easy reference.
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED //For easy reference.
 	gun_category = GUN_CATEGORY_HANDGUN
+	projectile_casing = PROJECTILE_CASING_BULLET
 
 /obj/item/weapon/gun/pistol/Initialize(mapload, spawn_empty)
 	. = ..()
-	if(current_mag && current_mag.current_rounds > 0)
-		load_into_chamber()
+	ready_in_chamber()
 
 /obj/item/weapon/gun/pistol/unique_action(mob/user)
-		cock(user)
-
+	cycle_chamber(user)
 
 /obj/item/weapon/gun/pistol/set_gun_config_values()
 	..()
 	movement_onehanded_acc_penalty_mult = 3
+
+/obj/item/weapon/gun/pistol/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = TRUE)
+	. = ..()
+
+/obj/item/weapon/gun/pistol/load_into_chamber(mob/user, manual_cock_only = TRUE)
+	. = ..()
 
 //-------------------------------------------------------
 //M4A3 PISTOL
@@ -53,7 +60,7 @@
 	icon_state = "m4a3"
 	item_state = "m4a3"
 	current_mag = /obj/item/ammo_magazine/pistol
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/reddot,
@@ -271,7 +278,7 @@
 	item_state = "np92"
 	fire_sound = "88m4"
 	current_mag = /obj/item/ammo_magazine/pistol/np92
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/reddot,
@@ -301,7 +308,7 @@
 	inherent_traits = list(TRAIT_GUN_SILENCED)
 	fire_sound = "gun_silenced"
 	current_mag = /obj/item/ammo_magazine/pistol/np92/suppressed
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
 	attachable_allowed = list(
 		/obj/item/attachable/reddot,
 		/obj/item/attachable/reflex,
@@ -323,7 +330,7 @@
 	item_state = "tt"
 	fire_sound = 'sound/weapons/gun_tt.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/t73
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
 	attachable_allowed = list(
 		/obj/item/attachable/reddot,
 		/obj/item/attachable/reflex,
@@ -423,6 +430,7 @@
 
 	fire_sound = 'sound/weapons/gun_pistol_holdout.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/holdout
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	w_class = SIZE_TINY
 	force = 2
 	attachable_allowed = list(
@@ -461,7 +469,7 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "m43"
 	item_state = "m43"
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	fire_sound = 'sound/weapons/gun_m43.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/clfpistol
 	w_class = SIZE_TINY
@@ -490,9 +498,21 @@
 // rebalanced - singlefire, very strong bullets but slow to fire and heavy recoil
 // redesigned - now rejected USCM sidearm model, utilized by Colonial Marshals and other stray groups.
 
+	/*
+	Original comment:
+	/// This weapon needs to be manually racked every time a new magazine is loaded. I tried and failed to touch gun shitcode so this will do.
+
+	11/20/2023
+	I've revised most firearms to require cocking to load the chamber unless the user has basic firearm skills, which the vast majority will have.
+
+	I should point out that guns in CM auto-cocked as a convenience as there was no firearms skill before. In reality, you would need to cock pistols to
+	make them fire after loading a magazine if there is nothing chambered. That's just how most firearms work. So in other words, this item didn't really
+	make sense from a practical and lore standpoints, so I've modified it.
+	*/
+
 /obj/item/weapon/gun/pistol/highpower
 	name = "\improper MK-45 'High-Power' Automagnum"
-	desc = "Originally designed as a replacement for the USCM's M44 combat revolver, it was rejected at the last minute by a committee, citing its need to be cocked after every loaded magazine to be too cumbersone and antiquated. The design has recently been purchased by the Henjin-Garcia company, refitted for .45 ACP, and sold to the Colonial Marshals and other various unscrupulous armed groups."
+	desc = "Originally designed as a replacement for the USCM's M44 combat revolver, it was rejected at the last minute by a committee. The design has recently been purchased by the Henjin-Garcia company, refitted for .45 ACP, and sold to the Colonial Marshals and other various unscrupulous armed groups."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "highpower"
 	item_state = "highpower"
@@ -517,37 +537,6 @@
 		/obj/item/attachable/lasersight,
 		/obj/item/attachable/burstfire_assembly,
 	)
-	/// This weapon needs to be manually racked every time a new magazine is loaded. I tried and failed to touch gun shitcode so this will do.
-	var/manually_slided = FALSE
-
-/obj/item/weapon/gun/pistol/highpower/Initialize(mapload, spawn_empty)
-	. = ..()
-	manually_slided = TRUE
-
-/obj/item/weapon/gun/pistol/highpower/Fire(atom/target, mob/living/user, params, reflex = 0, dual_wield)
-	if(!manually_slided)
-		click_empty()
-		to_chat(user, SPAN_DANGER("\The [src] makes a clicking noise! You need to manually rack the slide after loading in a new magazine!"))
-		return NONE
-	return ..()
-
-/obj/item/weapon/gun/pistol/highpower/unique_action(mob/user)
-	if(!manually_slided)
-		user.visible_message(SPAN_NOTICE("[user] racks \the [src]'s slide."), SPAN_NOTICE("You rack \the [src]'s slide, loading the next bullet in."))
-		manually_slided = TRUE
-		cock_gun(user, TRUE)
-		return
-	..()
-
-/obj/item/weapon/gun/pistol/highpower/cock_gun(mob/user, manual = FALSE)
-	if(manual)
-		..()
-	else return
-
-/obj/item/weapon/gun/pistol/highpower/reload(mob/user, obj/item/ammo_magazine/magazine)
-	//reset every time its reloaded
-	manually_slided = FALSE
-	..()
 
 /obj/item/weapon/gun/pistol/highpower/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 20,"rail_x" = 6, "rail_y" = 22, "under_x" = 20, "under_y" = 15, "stock_x" = 0, "stock_y" = 0)
@@ -596,7 +585,7 @@
 	unload_sound = 'sound/weapons/gun_88m4_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/mod88
 	force = 8
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/extended_barrel,
@@ -655,7 +644,7 @@
 	current_mag = /obj/item/ammo_magazine/pistol/es4
 	force = 8
 	muzzle_flash = "muzzle_flash_blue"
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
 	attachable_allowed = list(
 		/obj/item/attachable/flashlight,
 		/obj/item/attachable/reflex,
@@ -691,7 +680,7 @@
 	unload_sound = 'sound/weapons/gun_vp78_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/vp78
 	force = 8
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/reddot,
@@ -774,10 +763,11 @@ It is a modified Beretta 93R, and can fire three-round burst or single fire. Whe
 	item_state = "c70"
 
 	current_mag = /obj/item/ammo_magazine/pistol/chimp
+	projectile_casing = PROJECTILE_CASING_CASELESS //Nah.
 	fire_sound = 'sound/weapons/gun_chimp70.ogg'
 	w_class = SIZE_MEDIUM
 	force = 8
-	flags_gun_features = GUN_AUTO_EJECTOR
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_AMMO_COUNTER|GUN_NO_SAFETY_SWITCH
 
 /obj/item/weapon/gun/pistol/chimp/set_gun_config_values()
 	..()
@@ -797,7 +787,7 @@ It is a modified Beretta 93R, and can fire three-round burst or single fire. Whe
 
 /obj/item/weapon/gun/pistol/smart
 	name = "\improper SU-6 Smartpistol"
-	desc = "The SU-6 Smartpistol is an IFF-based sidearm currently undergoing field testing in the Colonial Marines. Uses modified .45 ACP IFF bullets. Capable of firing in bursts."
+	desc = "The SU-6 Smartpistol is an IFF-based sidearm currently undergoing field testing in the Colonial Marines. Uses modified .45 ACP IFF bullets. Capable of firing in bursts and has an ammo counter."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "smartpistol"
 	item_state = "smartpistol"
@@ -842,7 +832,7 @@ It is a modified Beretta 93R, and can fire three-round burst or single fire. Whe
 
 	fire_sound = 'sound/weapons/gun_skorpion.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/skorpion
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
 	attachable_allowed = list(
 		/obj/item/attachable/reddot, //Rail
 		/obj/item/attachable/reflex,

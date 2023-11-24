@@ -19,7 +19,7 @@
 
 	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
 	wield_delay = WIELD_DELAY_SLOW
-	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_NO_SAFETY_SWITCH //I don't believe most grenade launchers have a safety switch.
 	///Can you access the storage by clicking it, put things into it, or take things out? Meant for break-actions mostly but useful for any state where you want access to be toggleable. Make sure to call cylinder.close(user) so they don't still have the screen open!
 	var/open_chamber = TRUE
 	///Does it launch its grenades in a low arc or a high? Do they strike people in their path, or fly beyond?
@@ -42,10 +42,9 @@
 /obj/item/weapon/gun/launcher/grenade/on_pocket_removal()
 	update_icon()
 
-/obj/item/weapon/gun/launcher/grenade/get_examine_text(mob/user) //Different treatment for single-shot VS multi-shot GLs.
+/obj/item/weapon/gun/launcher/grenade/get_additional_gun_examine_text(mob/user) //Different treatment for single-shot VS multi-shot GLs.
 	. = ..()
-	if(get_dist(user, src) > 2 && user != loc)
-		return
+
 	if(length(cylinder.contents))
 		if(internal_slots == 1)
 			. += SPAN_NOTICE("It is loaded with a grenade.")
@@ -255,8 +254,7 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m92"
 	item_state = "m92"
-	unacidable = TRUE
-	indestructible = 1
+
 	matter = list("metal" = 6000)
 	actions_types = list(/datum/action/item_action/toggle_firing_level)
 

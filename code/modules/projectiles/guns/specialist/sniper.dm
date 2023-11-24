@@ -19,7 +19,7 @@
 	var/sniper_beam_icon = "laser_beam"
 	var/skill_locked = TRUE
 
-/obj/item/weapon/gun/rifle/sniper/get_examine_text(mob/user)
+/obj/item/weapon/gun/rifle/sniper/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(!has_aimed_shot)
 		return
@@ -289,8 +289,6 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m42a"
 	item_state = "m42a"
-	unacidable = TRUE
-	indestructible = 1
 
 	fire_sound = 'sound/weapons/gun_sniper.ogg'
 	current_mag = /obj/item/ammo_magazine/sniper
@@ -343,8 +341,6 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "xm42b"
 	item_state = "xm42b"
-	unacidable = TRUE
-	indestructible = 1
 
 	fire_sound = 'sound/weapons/sniper_heavy.ogg'
 	current_mag = /obj/item/ammo_magazine/sniper/anti_materiel //Renamed from anti-tank to align with new identity/description. Other references have been changed as well. -Kaga

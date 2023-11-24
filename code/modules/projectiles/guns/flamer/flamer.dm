@@ -61,7 +61,7 @@
 	playsound(user,'sound/weapons/handling/flamer_ignition.ogg', 25, 1)
 	update_icon()
 
-/obj/item/weapon/gun/flamer/get_examine_text(mob/user)
+/obj/item/weapon/gun/flamer/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(current_mag)
 		. += "The fuel gauge shows the current tank is [round(current_mag.get_ammo_percent())]% full!"
@@ -255,8 +255,6 @@
 	desc = "An improved version of the M240A1 incinerator unit, the M240-T model is capable of dispersing a larger variety of fuel types."
 	icon_state = "m240t"
 	item_state = "m240t"
-	unacidable = TRUE
-	indestructible = 1
 	current_mag = null
 	var/obj/item/storage/large_holster/fuelpack/fuelpack
 

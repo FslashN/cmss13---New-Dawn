@@ -1,5 +1,7 @@
 //-------------------------------------------------------
 
+//Most rifles manufactured in the future feature an auto-ejector. Antiques and cheapo garbage guns do not have one. The ammo counter is only specific to some guns.
+
 /obj/item/weapon/gun/rifle
 	reload_sound = 'sound/weapons/gun_rifle_reload.ogg'
 	cocked_sound = 'sound/weapons/gun_cocked2.ogg'
@@ -9,12 +11,13 @@
 	force = 5
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
 	gun_category = GUN_CATEGORY_RIFLE
+	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	aim_slowdown = SLOWDOWN_ADS_RIFLE
 	wield_delay = WIELD_DELAY_NORMAL
 
 /obj/item/weapon/gun/rifle/Initialize(mapload, spawn_empty)
 	. = ..()
-	if(current_mag && current_mag.current_rounds > 0) load_into_chamber()
+	ready_in_chamber()
 
 /obj/item/weapon/gun/rifle/set_gun_config_values()
 	..()
@@ -29,8 +32,13 @@
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 
 /obj/item/weapon/gun/rifle/unique_action(mob/user)
-	cock(user)
+	cycle_chamber(user)
 
+/obj/item/weapon/gun/rifle/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = TRUE)
+	. = ..()
+
+/obj/item/weapon/gun/rifle/load_into_chamber(mob/user, manual_cock_only = TRUE)
+	. = ..()
 
 //-------------------------------------------------------
 //M41A PULSE RIFLE
@@ -45,6 +53,7 @@
 	reload_sound = 'sound/weapons/handling/m41_reload.ogg'
 	unload_sound = 'sound/weapons/handling/m41_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/rifle
+	projectile_casing = PROJECTILE_CASING_CASELESS
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/bayonet,
@@ -76,6 +85,7 @@
 	starting_attachment_types = list(/obj/item/attachable/attached_gun/grenade, /obj/item/attachable/stock/rifle/collapsible)
 	map_specific_decoration = TRUE
 	start_automatic = TRUE
+	pixel_width_offset = -2
 
 /obj/item/weapon/gun/rifle/m41a/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 18,"rail_x" = 12, "rail_y" = 23, "under_x" = 24, "under_y" = 13, "stock_x" = 24, "stock_y" = 13)
@@ -99,6 +109,11 @@
 /obj/item/weapon/gun/rifle/m41a/stripped
 	starting_attachment_types = list()
 
+/obj/item/weapon/gun/rifle/m41a/racked //spawns empty and with no UGL.
+	starting_attachment_types = list(/obj/item/attachable/stock/rifle/collapsible)
+
+/obj/item/weapon/gun/rifle/m41a/racked/Initialize(mapload, spawn_empty = TRUE)
+	. = ..()
 
 /obj/item/weapon/gun/rifle/m41a/training
 	current_mag = /obj/item/ammo_magazine/rifle/rubber
@@ -123,6 +138,7 @@
 	aim_slowdown = SLOWDOWN_ADS_QUICK
 	wield_delay = WIELD_DELAY_VERY_FAST
 	current_mag = /obj/item/ammo_magazine/rifle/nsg23
+	projectile_casing = PROJECTILE_CASING_CASELESS
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/bayonet,
@@ -138,7 +154,7 @@
 		/obj/item/attachable/scope/mini/nsg23,
 	)
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER|GUN_WY_RESTRICTED
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_WY_RESTRICTED
 
 	random_spawn_muzzle = list(
 		/obj/item/attachable/suppressor,
@@ -151,6 +167,7 @@
 	)
 	start_semiauto = FALSE
 	start_automatic = TRUE
+	pixel_width_offset = -3
 
 /obj/item/weapon/gun/rifle/nsg23/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -284,15 +301,14 @@
 //-------------------------------------------------------
 //M40-SD AKA SOF RIFLE FROM HELL (It's actually an M41A, don't tell!)
 
+//How does it have a proprietary magazine feed system AND accept M41A2 mags? I changed this to just accept its own ammunition.
 /obj/item/weapon/gun/rifle/m41a/elite/xm40
 	name = "\improper XM40 pulse rifle"
-	desc = "One of the experimental predecessors to the M41 line that never saw widespread adoption beyond elite marine units. Of the rifles in the USCM inventory that are still in production, this is the only one to feature an integrated suppressor. It can accept M41A MK2 magazines, but also features its own proprietary magazine system. Extremely lethal in burstfire mode."
+	desc = "One of the experimental predecessors to the M41 line that never saw widespread adoption beyond elite marine units. Of the rifles in the USCM inventory that are still in production, this is the only one to feature an integrated suppressor. Features its own proprietary magazine system. Extremely lethal in burstfire mode."
 	icon_state = "m40sd"
 	item_state = "m40sd"
 	reload_sound = 'sound/weapons/handling/m40sd_reload.ogg'
 	unload_sound = 'sound/weapons/handling/m40sd_unload.ogg'
-	unacidable = TRUE
-	indestructible = TRUE
 
 	current_mag = /obj/item/ammo_magazine/rifle/xm40/heap
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
@@ -301,14 +317,8 @@
 	map_specific_decoration = FALSE
 	starting_attachment_types = list()
 	accepted_ammo = list(
-		/obj/item/ammo_magazine/rifle,
-		/obj/item/ammo_magazine/rifle/extended,
-		/obj/item/ammo_magazine/rifle/incendiary,
-		/obj/item/ammo_magazine/rifle/explosive,
-		/obj/item/ammo_magazine/rifle/le,
-		/obj/item/ammo_magazine/rifle/ap,
 		/obj/item/ammo_magazine/rifle/xm40,
-		/obj/item/ammo_magazine/rifle/xm40/heap,
+		/obj/item/ammo_magazine/rifle/xm40/heap
 	)
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor/xm40_integral,//no rail attachies
@@ -328,6 +338,7 @@
 		)
 
 	random_spawn_chance = 0
+	pixel_width_offset = 0
 
 /obj/item/weapon/gun/rifle/m41a/elite/xm40/handle_starting_attachment()
 	..()
@@ -370,6 +381,7 @@
 	reload_sound = 'sound/weapons/handling/m41_reload.ogg'
 	unload_sound = 'sound/weapons/handling/m41_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/rifle/m41aMK1
+	projectile_casing = PROJECTILE_CASING_CASELESS
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/bayonet,
@@ -386,6 +398,7 @@
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	starting_attachment_types = list(/obj/item/attachable/attached_gun/grenade/mk1, /obj/item/attachable/stock/rifle/collapsible)
 	start_automatic = TRUE
+	pixel_width_offset = -2
 
 /obj/item/weapon/gun/rifle/m41aMK1/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 18,"rail_x" = 12, "rail_y" = 23, "under_x" = 23, "under_y" = 13, "stock_x" = 24, "stock_y" = 14)
@@ -432,6 +445,7 @@
 	reload_sound = 'sound/weapons/handling/m41_reload.ogg'
 	unload_sound = 'sound/weapons/handling/m41_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/rifle/incendiary
+	projectile_casing = PROJECTILE_CASING_CASELESS
 
 	accepted_ammo = list(
 		/obj/item/ammo_magazine/rifle,
@@ -649,7 +663,7 @@
 	linked_human = H
 	RegisterSignal(linked_human, COMSIG_PARENT_QDELETING, PROC_REF(remove_idlock))
 
-/obj/item/weapon/gun/rifle/m46c/get_examine_text(mob/user)
+/obj/item/weapon/gun/rifle/m46c/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(linked_human)
 		if(is_locked)
@@ -725,7 +739,7 @@
 		/obj/item/attachable/compensator,
 	)
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
+	flags_gun_features = GUN_CAN_POINTBLANK
 	start_automatic = TRUE
 
 
@@ -934,6 +948,7 @@
 	)
 
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ANTIQUE
+	pixel_width_offset = -4
 
 /obj/item/weapon/gun/rifle/m16/handle_starting_attachment()
 	..()
@@ -1045,6 +1060,7 @@
 		/obj/item/attachable/verticalgrip,
 		/obj/item/attachable/lasersight,
 	)
+	pixel_width_offset = -4
 
 /obj/item/weapon/gun/rifle/xm177/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 18,"rail_x" = 9, "rail_y" = 20, "under_x" = 19, "under_y" = 13, "stock_x" = 15, "stock_y" = 14)
@@ -1122,6 +1138,7 @@
 	)
 
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ANTIQUE
+	pixel_width_offset = -4
 
 /obj/item/weapon/gun/rifle/ar10/handle_starting_attachment()
 	..()
@@ -1225,6 +1242,8 @@
 	fire_sound = 'sound/weapons/gun_hpr.ogg'
 	aim_slowdown = SLOWDOWN_ADS_LMG
 	current_mag = /obj/item/ammo_magazine/rifle/lmg
+	projectile_casing = PROJECTILE_CASING_CASELESS
+
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/reddot,
@@ -1262,7 +1281,8 @@
 	damage_mult = BASE_BULLET_DAMAGE_MULT
 	recoil_unwielded = RECOIL_AMOUNT_TIER_1
 
-
+/obj/item/weapon/gun/rifle/lmg/racked/Initialize(mapload, spawn_empty = TRUE)
+	. = ..()
 
 //-------------------------------------------------------
 
@@ -1303,7 +1323,7 @@
 		/obj/item/attachable/attached_gun/extinguisher,
 		)
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER //Roughly the same as the USCM
 	flags_equip_slot = SLOT_BACK
 	start_automatic = TRUE
 
@@ -1536,6 +1556,7 @@
 	reload_sound = 'sound/weapons/handling/l42_reload.ogg'
 	unload_sound = 'sound/weapons/handling/l42_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/rifle/m4ra
+
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,
 		/obj/item/attachable/bayonet,
@@ -1556,7 +1577,7 @@
 		/obj/item/attachable/flashlight/grip,
 	)
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER //Has an ammo counter in lore.
 	wield_delay = WIELD_DELAY_VERY_FAST
 	aim_slowdown = SLOWDOWN_ADS_QUICK
 	map_specific_decoration = TRUE
@@ -1581,6 +1602,9 @@
 	integrated.flags_attach_features &= ~ATTACH_REMOVABLE
 	integrated.Attach(src)
 	update_attachable(integrated.slot)
+
+/obj/item/weapon/gun/rifle/m4ra/racked/Initialize(mapload, spawn_empty = TRUE)
+	. = ..()
 
 /obj/item/weapon/gun/rifle/m4ra/training
 	current_mag = /obj/item/ammo_magazine/rifle/m4ra/rubber
@@ -1619,7 +1643,7 @@
 		/obj/item/attachable/flashlight/grip,
 	)
 
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
 	wield_delay = WIELD_DELAY_VERY_FAST
 	aim_slowdown = SLOWDOWN_ADS_QUICK
 	starting_attachment_types = list(/obj/item/attachable/stock/carbine)
@@ -1674,11 +1698,12 @@
 		/obj/item/attachable/stock/carbine/wood,
 		/obj/item/attachable/stock/carbine/wood/tactical,
 	)
-	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_WIELDED_FIRING_ONLY
 	wield_delay = WIELD_DELAY_FAST
 	starting_attachment_types = list(/obj/item/attachable/stock/carbine/wood, /obj/item/attachable/scope/mini/hunting)
 	map_specific_decoration = FALSE
 	civilian_usable_override = TRUE
+	pixel_width_offset = -4
 
 // Identical to the L42 in stats, *except* for extra recoil and scatter that are nulled by keeping the stock on.
 /obj/item/weapon/gun/rifle/l42a/abr40/set_gun_config_values()
@@ -1715,6 +1740,7 @@
 		/obj/item/attachable/stock/carbine/wood,
 		/obj/item/attachable/stock/carbine/wood/tactical,
 	)
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_WIELDED_FIRING_ONLY
 	starting_attachment_types = list(/obj/item/attachable/stock/carbine/wood/tactical, /obj/item/attachable/suppressor)
 	random_spawn_chance = 100
 	random_spawn_rail = list(
@@ -1738,6 +1764,7 @@
 	reload_sound = 'sound/weapons/handling/m41_reload.ogg'
 	unload_sound = 'sound/weapons/handling/m41_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/rifle/rmc_f90
+	projectile_casing = PROJECTILE_CASING_CASELESS
 	flags_equip_slot = NO_FLAGS
 	attachable_allowed = list(
 		/obj/item/attachable/suppressor,

@@ -101,7 +101,7 @@
 	if(refund) cell.charge += charge_cost
 	return TRUE
 
-/obj/item/weapon/gun/energy/get_examine_text(mob/user)
+/obj/item/weapon/gun/energy/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(has_charge_meter && cell)
 		. += SPAN_NOTICE("It has [round((cell.charge / charge_cost), 1)] / [max_shots] shots left.")
@@ -238,7 +238,7 @@
 /obj/item/weapon/gun/energy/taser/unique_action(mob/user)
 	change_mode(user)
 
-/obj/item/weapon/gun/energy/taser/get_examine_text(mob/user)
+/obj/item/weapon/gun/energy/taser/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	switch(mode)
 		if(TASER_MODE_P)

@@ -8,8 +8,6 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m5"
 	item_state = "m5"
-	unacidable = TRUE
-	indestructible = 1
 
 	matter = list("metal" = 10000)
 	current_mag = /obj/item/ammo_magazine/rocket
@@ -23,7 +21,7 @@
 		/obj/item/attachable/magnetic_harness,
 	)
 
-	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG
+	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG|GUN_UNUSUAL_DESIGN
 	var/datum/effect_system/smoke_spread/smoke
 
 	flags_item = TWOHANDED|NO_CRYO_STORE
@@ -52,14 +50,8 @@
 	recoil = RECOIL_AMOUNT_TIER_3
 
 
-/obj/item/weapon/gun/launcher/rocket/get_examine_text(mob/user)
-	. = ..()
-	if(current_mag.current_rounds <= 0)
-		. += "It's not loaded."
-		return
-	if(current_mag.current_rounds > 0)
-		. += "It has an 84mm [ammo.name] loaded."
-
+/obj/item/weapon/gun/launcher/rocket/get_additional_gun_examine_text(mob/user)
+	. = ..() + ( current_mag.current_rounds <= 0 ? "It's not loaded." : "It has an 84mm [ammo.name] loaded." )
 
 /obj/item/weapon/gun/launcher/rocket/able_to_fire(mob/living/user)
 	. = ..()
@@ -208,7 +200,7 @@
 
 	current_mag = /obj/item/ammo_magazine/rocket/m57a4
 	aim_slowdown = SLOWDOWN_ADS_SUPERWEAPON
-	flags_gun_features = GUN_WIELDED_FIRING_ONLY
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG|GUN_UNUSUAL_DESIGN
 
 /obj/item/weapon/gun/launcher/rocket/m57a4/set_gun_config_values()
 	..()
@@ -229,15 +221,14 @@
 	desc = "Used to take out light-tanks and enemy structures, the QH-4 is a dangerous weapon specialised against vehicles. Requires direct hits to penetrate vehicle armor."
 	icon_state = "m83a2"
 	item_state = "m83a2"
-	unacidable = FALSE
-	indestructible = FALSE
+
 	skill_locked = FALSE
 
 	current_mag = /obj/item/ammo_magazine/rocket/anti_tank
 
 	attachable_allowed = list()
 
-	flags_gun_features = GUN_WIELDED_FIRING_ONLY
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG|GUN_UNUSUAL_DESIGN
 
 	flags_item = TWOHANDED
 
@@ -252,9 +243,8 @@
 	desc = "The M83A2 SADAR is a lightweight one-shot anti-armor weapon capable of engaging enemy vehicles at ranges up to 1,000m. Fully disposable, the rocket's launcher is discarded after firing. When stowed (unique-action), the SADAR system consists of a watertight carbon-fiber composite blast tube, inside of which is an aluminum launch tube containing the missile. The weapon is fired by pushing a charge button on the trigger grip.  It is sighted and fired from the shoulder."
 	var/fired = FALSE
 
-/obj/item/weapon/gun/launcher/rocket/anti_tank/disposable/get_examine_text(mob/user)
-	. = ..()
-	. += SPAN_NOTICE("You can fold it up with unique-action.")
+/obj/item/weapon/gun/launcher/rocket/anti_tank/disposable/get_additional_gun_examine_text(mob/user)
+	. = ..() + SPAN_NOTICE("You can fold it up with unique-action.")
 
 /obj/item/weapon/gun/launcher/rocket/anti_tank/disposable/Fire(atom/target, mob/living/user, params, reflex, dual_wield)
 	. = ..()
@@ -332,7 +322,7 @@
 
 	attachable_allowed = list(/obj/item/attachable/upp_rpg_breech)
 
-	flags_gun_features = GUN_WIELDED_FIRING_ONLY
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG|GUN_UNUSUAL_DESIGN
 
 	flags_item = TWOHANDED
 

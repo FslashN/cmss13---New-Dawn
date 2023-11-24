@@ -1,112 +1,8 @@
-/*
-ERROR CODES AND WHAT THEY MEAN:
-
-
-ERROR CODE A1: null ammo while reloading. <------------ Only appears when initialising or reloading a weapon and switching the ammo. Somehow the argument passed a null ammo.
-ERROR CODE A2: null caliber while reloading. <------------ Only appears when initialising or reloading a weapon and switching the calibre. Somehow the argument passed a null caliber.
-ERROR CODE I1: projectile malfunctioned while firing. <------------ Right before the bullet is fired, the actual bullet isn't present or isn't a bullet.
-ERROR CODE I2: null ammo while load_into_chamber() <------------- Somehow the ammo datum is missing or something. We need to figure out how that happened.
-ERROR CODE R1: negative current_rounds on examine. <------------ Applies to ammunition only. Ammunition should never have negative rounds after spawn.
-
-DEFINES in setup.dm, referenced here.
-#define GUN_CAN_POINTBLANK 1
-#define GUN_TRIGGER_SAFETY 2
-#define GUN_UNUSUAL_DESIGN 4
-#define GUN_SILENCED 8
-#define GUN_AUTOMATIC 16
-#define GUN_INTERNAL_MAG 32
-#define GUN_AUTO_EJECTOR 64
-#define GUN_AMMO_COUNTER 128
-#define GUN_BURST_ON 256
-#define GUN_BURST_FIRING 512
-#define GUN_FLASHLIGHT_ON 1024
-#define GUN_WY_RESTRICTED 2048
-#define GUN_SPECIALIST 4096
-
-	NOTES
-
-	if(burst_toggled && burst_firing)
-		return
-	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-	That should be on for most procs that deal with the gun doing some action. We do not want
-	the gun to suddenly begin to fire when you're doing something else to it that could mess it up.
-	As a general safety, make sure you remember this.
-
-
-	Guns, on the front end, function off a three tier process. To successfully create some unique gun
-	that has a special method of firing, you need to override these procs.
-
-	New() //You can typically leave this one alone unless you need for the gun to do something on spawn.
-	Guns that use the regular system of chamber fire should load_into_chamber() on New().
-
-	reload() //If the gun doesn't use the normal methods of reloading, like revolvers or shotguns which use
-	handfuls, you will need to specify just how it reloads. User can be passed as null.
-
-	unload() //Same deal. If it's some unique unload method, you need to put that here. User can be passed as null.
-
-	able_to_fire() //Unless the gun has some special check to see whether or not it may fire, you don't need this.
-	You can see examples of how this is modified in smartgun/sadar code, along with others. Return ..() on a success.
-
-	load_into_chamber() //This can get complicated, but if the gun doesn't take attachments that fire bullets from
-	the Fire() process, just set them to null and leave the if(current_mag && current_mag.current_rounds > 0) check.
-	The idea here is that if the gun can find a valid bullet to fire, subtract the ammo.
-	This must return positive to continue the fire cycle.
-
-	ready_in_chamber() //If the load_into_chamber is identical to the base outside of the actual bullet getting loaded,
-	then you can use this in order to save on overrides. This primarily goes for anything that uses attachments like
-	any standard firing cycle (attachables that fire through the firing cycle).
-
-	reload_into_chamber() //The is the back action of the fire cycle that tells the gun to do all the stuff it needs
-	to in order to prepare for the next fire cycle. This will be called if the gun fired successfully, per bullet.
-	This is also where the gun will make a casing. So if your gun doesn't handle casings the regular way, modify it.
-	Also where the gun will do final attachment calculations if the gun fired an attachment bullet.
-	This must return positive to continue burst firing or so that you don't hear *click*.
-
-	delete_bullet() //Important for point blanking and and jams, but can be called on for other reasons (that are
-	not currently used). If the gun makes a bullet but doesn't fire it, this will be called on through clear_jam().
-	This is also used to delete the bullet when you directly fire a bullet without going through the Fire() process,
-	like with the mentioned point blanking/suicide.
-
-
-	Other procs are pretty self explanatory, and what is listed above is what you should usually change for unusual
-	cases. So long as the gun can return true on able_to_fire() then move on to load_into_chamber() and finally
-	reload_into_chamber(), you're in good shape. Those three procs basically make up the fire cycle, and if they
-	function correctly, everything else will follow.
-
-	This system is incredibly robust and can be used for anything from single bullet carbines to high-end energy
-	weapons. So long as the steps are followed, it will work without issue. Some guns ignore active attachables,
-	since they currently do not use them, but if that changes, the related procs must also change.
-
-	Energy guns, or guns that don't really use magazines, can gut this system a bit. You can see examples in
-	predator weapons or the taser.
-
-	Ammo is loaded dynamically based on parent type through a global list. It is located in global_lists.dm under
-	__HELPERS. So never create new() datums, as the datum should just be referenced through the global list instead.
-	This cuts down on unnecessary overhead, and makes bullets always have an ammo type, even if the parent weapon is
-	somehow deleted or some such. Null ammo in the projectile flight stage shoulder NEVER exist. If it does, something
-	has gone wrong elsewhere and should be looked at. Do not simply add if(ammo) checks. If the system is working correctly,
-	you will never need them.
-
-	The guns also have bitflags for various functions, so refer to those in case you want to create something unique.
-	They're all pretty straight forward; silenced comes from attachments only, so don't try to set it as the default.
-	If you want a silenced gun, attach a silencer to it on New() that cannot be removed.
-
-	~N
-
-	TODO:
-
-	Add more muzzle flashes and gun sounds. Energy weapons, spear launcher, and taser for example.
-	Add more guns, or unique guns. The framework should be there.
-	Add ping for energy guns like the taser and plasma caster.
-	Move pred check for damage effects into the actual predator files instead of the usual.
-	Move the mind checks for damage and stun to actual files, or rework it somehow.
-*/
-
 //----------------------------------------------------------
-			//   \\
-			// EQUIPMENT AND INTERACTION  \\
-			//   \\
-			//   \\
+			//   							\\
+			//  EQUIPMENT AND INTERACTION  	\\
+			//   							\\
+			//   							\\
 //----------------------------------------------------------
 
 /obj/item/weapon/gun/clicked(mob/user, list/mods)
@@ -261,7 +157,7 @@ DEFINES in setup.dm, referenced here.
 		var/oil_verb = pick("lubes", "oils", "cleans", "tends to", "gently strokes")
 		if(do_after(user, 30, INTERRUPT_NO_NEEDHAND, BUSY_ICON_FRIENDLY, user, INTERRUPT_MOVED, BUSY_ICON_GENERIC))
 			user.visible_message("[user] [oil_verb] [src]. It shines like new.", "You oil up and immaculately clean [src]. It shines like new.")
-			src.clean_blood()
+			clean_blood()
 		else
 			return
 
@@ -304,7 +200,7 @@ DEFINES in setup.dm, referenced here.
 		if(user.skills.get_skill_level(SKILL_FIREARMS) == 0)
 			to_chat(user, SPAN_WARNING("You don't know how to do tactical reloads."))
 			return
-		if(istype(src, magazine.gun_type) || (magazine.type in src.accepted_ammo))
+		if(istype(src, magazine.gun_type) || (magazine.type in accepted_ammo))
 			if(current_mag)
 				unload(user, FALSE, TRUE)
 			to_chat(user, SPAN_NOTICE("You start a tactical reload."))
@@ -323,10 +219,10 @@ DEFINES in setup.dm, referenced here.
 
 
 //----------------------------------------------------------
-				//  \\
+				//  					 \\
 				// GENERIC HELPER PROCS  \\
-				//  \\
-				//  \\
+				// 						 \\
+				//  					 \\
 //----------------------------------------------------------
 
 /obj/item/weapon/proc/unique_action(mob/user) //moved this up a path to make macroing for other weapons easier -spookydonut
@@ -787,6 +683,10 @@ DEFINES in setup.dm, referenced here.
 	if(flags_gun_features & GUN_BURST_FIRING)
 		return
 
+	if(flags_gun_features & GUN_NO_SAFETY_SWITCH)
+		to_chat(usr, SPAN_WARNING("[src] does not have a safety mechanism!"))
+		return
+
 	if(!ishuman(usr))
 		return
 
@@ -863,12 +763,12 @@ DEFINES in setup.dm, referenced here.
 		return
 	src = active_firearm
 
-	if(src.flags_gun_features & GUN_ANTIQUE || src.flags_gun_features & GUN_INTERNAL_MAG  || src.flags_gun_features & GUN_UNUSUAL_DESIGN)
+	if( !(flags_gun_features & GUN_AUTO_EJECTOR) )
 		to_chat(usr, SPAN_WARNING("[src] has no auto ejection system!"))
 		return
 	else
-		src.flags_gun_features ^= GUN_AUTO_EJECTOR
-		to_chat(usr, SPAN_INFO("You toggle the auto ejector [src.flags_gun_features & GUN_AUTO_EJECTOR ? "on" : "off"]"))
+		flags_gun_features ^= GUN_AUTO_EJECTING_OFF
+		to_chat(usr, SPAN_INFO("You toggle the auto ejector [flags_gun_features & GUN_AUTO_EJECTING_OFF ? "off" : "on"].")) //Toggles off when the flag is set.
 
 
 /obj/item/weapon/gun/verb/toggle_underbarrel_attachment_verb()

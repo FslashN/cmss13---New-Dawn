@@ -13,8 +13,9 @@ their unique feature is that a direct hit will buff your damage and firerate
 	w_class = SIZE_LARGE
 	fire_sound = 'sound/weapons/gun_lever_action_fire.ogg'
 	reload_sound = 'sound/weapons/handling/gun_lever_action_reload.ogg'
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG|GUN_NO_SAFETY_SWITCH
 	current_mag = /obj/item/ammo_magazine/internal/lever_action
+	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	gun_category = GUN_CATEGORY_RIFLE
 	aim_slowdown = SLOWDOWN_ADS_QUICK
 	wield_delay = WIELD_DELAY_FAST
@@ -42,6 +43,9 @@ their unique feature is that a direct hit will buff your damage and firerate
 	. = ..()
 	if(current_mag)
 		replace_internal_mag(current_mag.current_rounds)
+
+/obj/item/weapon/gun/lever_action/get_additional_gun_examine_text(mob/user)
+	. = ..() + ( flags_gun_features & GUN_AMMO_COUNTER ? "The ammo counter readout shows [current_mag? (current_mag.current_rounds + (in_chamber? 1 : 0) ) : (in_chamber? 1 : 0) ] round\s remaining." : "")
 
 /obj/item/weapon/gun/lever_action/set_gun_config_values()
 	..()
@@ -73,6 +77,67 @@ their unique feature is that a direct hit will buff your damage and firerate
 	. = ..()
 	reset_hit_buff(user)
 	addtimer(VARSET_CALLBACK(src, cur_onehand_chance, reset_onehand_chance), 4 SECONDS, TIMER_OVERRIDE|TIMER_UNIQUE)
+
+//The insane lad who worked on this originally, or maybe someone after, copy pasted several of the same proc. Re-organizing this to be less insane.
+//Remember kids, organize your work.
+
+//===========================Overriding procs======================================
+/*
+/obj/item/weapon/gun/lever_action/ready_in_chamber()
+	return ready_lever_action_internal_mag()*/
+
+ //The other one
+/obj/item/weapon/gun/lever_action/ready_in_chamber()
+	return
+
+
+/obj/item/weapon/gun/lever_action/reload_into_chamber(mob/user)
+	if(!current_mag)
+		return
+	if(!active_attachable)
+		levered = FALSE //It was fired, so let's unlock the lever.
+		current_mag.used_casings++
+		in_chamber = null
+		if(!current_mag.current_rounds && !in_chamber)
+			update_icon() //No rounds, nothing chambered.
+
+	return TRUE
+
+/*//The other reload proc.
+/obj/item/weapon/gun/lever_action/reload_into_chamber(mob/user)
+	if(!active_attachable)
+		QDEL_NULL(in_chamber)
+
+		//Time to move the internal_mag position.
+		ready_in_chamber() //We're going to try and reload. If we don't get anything, icon change.
+		if(!current_mag.current_rounds && !in_chamber) //No rounds, nothing chambered.
+			update_icon()
+
+	return TRUE
+*/
+
+/obj/item/weapon/gun/lever_action/reload(mob/user, obj/item/ammo_magazine/magazine)
+
+	if(!magazine || !istype(magazine,/obj/item/ammo_magazine/handful)) //Can only reload with handfuls.
+		to_chat(user, SPAN_WARNING("You can't use that to reload!"))
+		return
+
+	var/mag_caliber = magazine.default_ammo //Handfuls can get deleted, so we need to keep this on hand for later.
+	if(current_mag.transfer_ammo(magazine,user,1))
+		add_to_internal_mag(user,mag_caliber) //This will check the other conditions.
+
+/obj/item/weapon/gun/lever_action/unload(mob/user)
+	if(levered)
+		to_chat(user, SPAN_WARNING("You open the lever on \the [src]."))
+		levered = FALSE
+	return empty_chamber(user)
+
+/obj/item/weapon/gun/lever_action/unique_action(mob/user)
+	work_lever(user)
+
+//=================================================================================
+
+//===========================Buff Processing======================================
 
 /obj/item/weapon/gun/lever_action/proc/direct_hit_buff(mob/user, mob/target, one_hand_lever = FALSE)
 	SIGNAL_HANDLER
@@ -143,6 +208,62 @@ their unique feature is that a direct hit will buff your damage and firerate
 	if(one_hand_lever)
 		addtimer(VARSET_CALLBACK(src, cur_onehand_chance, reset_onehand_chance), 4 SECONDS, TIMER_OVERRIDE|TIMER_UNIQUE)
 
+//=================================================================================
+
+//===========================Working the Lever======================================
+
+//Boy, this really is a copy paste of shotgun code.
+/obj/item/weapon/gun/lever_action/proc/work_lever(mob/living/carbon/human/user)
+	if(world.time < (recent_lever + lever_delay))
+		return
+	if(levered)
+		if (world.time > (message_cooldown + lever_delay))
+			to_chat(user, SPAN_WARNING("<i>\The [src] already has a bullet in the chamber!<i>"))
+			message_cooldown = world.time
+		return
+	if(in_chamber) //eject the chambered round
+		QDEL_NULL(in_chamber)
+		var/obj/item/ammo_magazine/handful/new_handful = retrieve_bullet(ammo.type)
+		new_handful.forceMove(get_turf(src))
+
+	ready_lever_action_internal_mag()
+
+	if(current_mag.used_casings)
+		current_mag.used_casings--
+		make_casing(projectile_casing)
+
+	recent_lever = world.time
+	if(in_chamber)
+		if(levering_sprite)
+			flick(levering_sprite, src)
+		if(world.time < (last_fired + 2 SECONDS)) //if it's not wielded and you shot recently, one-hand lever
+			try_onehand_lever(user)
+		else
+			twohand_lever(user)
+
+		playsound(user, lever_sound, 25, TRUE)
+		levered = TRUE
+
+/obj/item/weapon/gun/lever_action/proc/twohand_lever(mob/living/carbon/human/user)
+	to_chat(user, SPAN_WARNING(lever_message))
+	if(flags_gun_lever_action & MOVES_WHEN_LEVERING)
+		animation_move_up_slightly(src)
+
+/obj/item/weapon/gun/lever_action/proc/try_onehand_lever(mob/living/carbon/human/user)
+	if(flags_item & WIELDED)
+		twohand_lever(user)
+		return
+	if(flags_gun_lever_action & MOVES_WHEN_LEVERING)
+		to_chat(user, SPAN_WARNING("<i>You spin \the [src] one-handed! Fuck yeah!<i>"))
+		animation_wrist_flick(src)
+	direct_hit_buff(user, ,TRUE)
+
+//=================================================================================
+
+
+//===========================Handling Tube/Ammo======================================
+
+
 /obj/item/weapon/gun/lever_action/proc/replace_internal_mag(number_to_replace)
 	if(!current_mag)
 		return
@@ -152,16 +273,12 @@ their unique feature is that a direct hit will buff your damage and firerate
 		current_mag.chamber_contents[i] = i > number_to_replace ? "empty" : current_mag.default_ammo
 	current_mag.chamber_position = current_mag.current_rounds //The position is always in the beginning [1]. It can move from there.
 
-/obj/item/weapon/gun/lever_action/proc/add_to_internal_mag(mob/user,selection) //bullets are added forward.
+/obj/item/weapon/gun/lever_action/proc/add_to_internal_mag(mob/user, selection) //Load it on the go, nothing chambered.
 	if(!current_mag)
 		return
-	current_mag.chamber_position++ //We move the position up when loading ammo. New rounds are always fired next, in order loaded.
-	current_mag.chamber_contents[current_mag.chamber_position] = selection //Just moves up one, unless the mag is full.
-	if(current_mag.current_rounds == 1 && !in_chamber) //The previous proc in the reload() cycle adds ammo, so the best workaround here,
-		update_icon() //This is not needed for now. Maybe we'll have loaded sprites at some point, but I doubt it. Also doesn't play well with double barrel.
-		ready_in_chamber()
-		cock_gun(user)
-	if(user) playsound(user, reload_sound, 25, TRUE)
+	current_mag.chamber_position++
+	current_mag.chamber_contents[current_mag.chamber_position] = selection
+	playsound(user, reload_sound, 25, TRUE)
 	return TRUE
 
 /obj/item/weapon/gun/lever_action/proc/empty_chamber(mob/user)
@@ -169,7 +286,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 		return
 	if(current_mag.current_rounds <= 0)
 		if(in_chamber)
-			in_chamber = null
+			QDEL_NULL(in_chamber)
 			var/obj/item/ammo_magazine/handful/new_handful = retrieve_bullet(ammo.type)
 			playsound(user, reload_sound, 25, TRUE)
 			new_handful.forceMove(get_turf(src))
@@ -200,16 +317,6 @@ their unique feature is that a direct hit will buff your damage and firerate
 	new_handful.generate_handful(selection, default_caliber, 9, 1, /obj/item/weapon/gun/lever_action)
 	return new_handful
 
-/obj/item/weapon/gun/lever_action/reload(mob/user, obj/item/ammo_magazine/magazine)
-
-	if(!magazine || !istype(magazine,/obj/item/ammo_magazine/handful)) //Can only reload with handfuls.
-		to_chat(user, SPAN_WARNING("You can't use that to reload!"))
-		return
-
-	var/mag_caliber = magazine.default_ammo //Handfuls can get deleted, so we need to keep this on hand for later.
-	if(current_mag.transfer_ammo(magazine,user,1))
-		add_to_internal_mag(user,mag_caliber) //This will check the other conditions.
-
 /obj/item/weapon/gun/lever_action/proc/ready_lever_action_internal_mag()
 	if(isnull(current_mag) || !length(current_mag.chamber_contents))
 		return
@@ -221,92 +328,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 		current_mag.chamber_position--
 		return in_chamber
 
-/obj/item/weapon/gun/lever_action/ready_in_chamber()
-	return ready_lever_action_internal_mag()
-
-/obj/item/weapon/gun/lever_action/reload_into_chamber(mob/user)
-	if(!active_attachable)
-		in_chamber = null
-
-		//Time to move the internal_mag position.
-		ready_in_chamber() //We're going to try and reload. If we don't get anything, icon change.
-		if(!current_mag.current_rounds && !in_chamber) //No rounds, nothing chambered.
-			update_icon()
-
-	return TRUE
-
-/obj/item/weapon/gun/lever_action/unique_action(mob/user)
-	work_lever(user)
-
-/obj/item/weapon/gun/lever_action/ready_in_chamber()
-	return
-
-/obj/item/weapon/gun/lever_action/add_to_internal_mag(mob/user, selection) //Load it on the go, nothing chambered.
-	if(!current_mag)
-		return
-	current_mag.chamber_position++
-	current_mag.chamber_contents[current_mag.chamber_position] = selection
-	playsound(user, reload_sound, 25, TRUE)
-	return TRUE
-
-/obj/item/weapon/gun/lever_action/proc/work_lever(mob/living/carbon/human/user)
-	if(world.time < (recent_lever + lever_delay))
-		return
-	if(levered)
-		if (world.time > (message_cooldown + lever_delay))
-			to_chat(user, SPAN_WARNING("<i>\The [src] already has a bullet in the chamber!<i>"))
-			message_cooldown = world.time
-		return
-	if(in_chamber) //eject the chambered round
-		in_chamber = null
-		var/obj/item/ammo_magazine/handful/new_handful = retrieve_bullet(ammo.type)
-		new_handful.forceMove(get_turf(src))
-
-	ready_lever_action_internal_mag()
-
-	recent_lever = world.time
-	if(in_chamber)
-		if(levering_sprite)
-			flick(levering_sprite, src)
-		if(world.time < (last_fired + 2 SECONDS)) //if it's not wielded and you shot recently, one-hand lever
-			try_onehand_lever(user)
-		else
-			twohand_lever(user)
-
-		playsound(user, lever_sound, 25, TRUE)
-		levered = TRUE
-
-/obj/item/weapon/gun/lever_action/proc/twohand_lever(mob/living/carbon/human/user)
-	to_chat(user, SPAN_WARNING(lever_message))
-	if(flags_gun_lever_action & MOVES_WHEN_LEVERING)
-		animation_move_up_slightly(src)
-
-/obj/item/weapon/gun/lever_action/proc/try_onehand_lever(mob/living/carbon/human/user)
-	if(flags_item & WIELDED)
-		twohand_lever(user)
-		return
-	if(flags_gun_lever_action & MOVES_WHEN_LEVERING)
-		to_chat(user, SPAN_WARNING("<i>You spin \the [src] one-handed! Fuck yeah!<i>"))
-		animation_wrist_flick(src)
-	direct_hit_buff(user, ,TRUE)
-
-/obj/item/weapon/gun/lever_action/reload_into_chamber(mob/user)
-	if(!current_mag)
-		return
-	if(!active_attachable)
-		levered = FALSE //It was fired, so let's unlock the lever.
-		in_chamber = null
-		if(!current_mag.current_rounds && !in_chamber)
-			update_icon() //No rounds, nothing chambered.
-
-	return TRUE
-
-/obj/item/weapon/gun/lever_action/unload(mob/user)
-	if(levered)
-		to_chat(user, SPAN_WARNING("You open the lever on \the [src]."))
-		levered = FALSE
-	return empty_chamber(user)
-
+//=================================================================================
 
 //===================THE R4T===================\\
 
@@ -334,8 +356,8 @@ their unique feature is that a direct hit will buff your damage and firerate
 		/obj/item/attachable/stock/r4t, // Stock
 		)
 	map_specific_decoration = TRUE
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG|GUN_AMMO_COUNTER
-	flags_gun_lever_action = MOVES_WHEN_LEVERING|DANGEROUS_TO_ONEHAND_LEVER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG
+	flags_gun_lever_action = MOVES_WHEN_LEVERING|DANGEROUS_TO_ONEHAND_LEVER|GUN_NO_SAFETY_SWITCH
 	civilian_usable_override = TRUE
 
 /obj/item/weapon/gun/lever_action/r4t/set_gun_attachment_offsets()
