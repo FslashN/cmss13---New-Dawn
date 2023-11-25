@@ -65,7 +65,7 @@
 
 	///What is currently in the chamber of the gun.
 	var/obj/projectile/in_chamber = null
-	var/datum/ammo
+	var/datum/ammo/ammo = null
 
 	/*Ammo mags may or may not be internal, though the difference is a few additional variables. If they are not internal, don't call
 	on those unique vars. This is done for quicker pathing. Just keep in mind most mags aren't internal, though some are.

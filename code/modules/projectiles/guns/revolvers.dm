@@ -1,6 +1,6 @@
 //---------------------------------------------------
 
-//Revolvers should not have GUN_AMMO_COUNTER set.
+//Revolvers generally don't (and should not) have ammo counters, but the functionality works.
 
 //Generic parent object.
 /obj/item/weapon/gun/revolver
@@ -103,17 +103,20 @@
 				to_chat(user, SPAN_WARNING("You can't load anything when the cylinder is closed!"))
 				return
 			if(current_mag.caliber == magazine.caliber) //Make sure calibers match.
+				to_chat(user, SPAN_WARNING("Got to the loading part."))
 				var/ammunition_reference = magazine.default_ammo //Handfuls can get deleted, so we remember what it had.
 				if(current_mag.transfer_ammo(magazine,user,1)) //Poorly named proc, this only transfers the "current_rounds", not ammo, which is a different variable.
+					to_chat(user, SPAN_WARNING("Passed the transfer check."))
 					add_to_cylinder(user, ammunition_reference) //Pop a round in.
 
 		else //If it's not a handful, we need a speeloader. These are all or nothing.
 			if(current_mag.gun_type == magazine.gun_type) //Has to be the same gun type.
-				if(current_mag.chamber_closed && user?.skills?.get_skill_level(SKILL_FIREARMS) > SKILL_FIREARMS_CIVILIAN) // If the chamber is closed unload it automatically load it if you are skilled.
+				if(current_mag.chamber_closed && !(user?.skills?.get_skill_level(SKILL_FIREARMS) > SKILL_FIREARMS_CIVILIAN)) // If the chamber is closed unload it automatically load it if you are skilled.
 					unload(user, reloading_override = TRUE) //Pop open the chamber first.
 				else
 					to_chat(user, SPAN_WARNING("You can't load anything when the cylinder is closed!"))
 					return
+
 				if(current_mag.transfer_ammo(magazine,user,magazine.current_rounds))//Make sure we're successful.
 					for(var/i = 1 to current_mag.current_rounds) add_to_cylinder(user, magazine.default_ammo) //Re-populates the cylinder with the speedloader rounds.
 					playsound(user, reload_sound, 25, 1) // Reloading via speedloader.
@@ -130,7 +133,7 @@
 		if(current_mag.chamber_closed) //If it's actually closed.
 			current_mag.chamber_closed = !current_mag.chamber_closed //Open it.
 			if(make_casing(projectile_casing) || reloading_override) //If we have some spent rounds in the chamber or we're reloading manually,
-				sort_cylinder_ammo() //This first before the cylinder is dumped.
+				sort_cylinder_ammo(user) //This first before the cylinder is dumped.
 				empty_cylinder() //dump everything out.
 				to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
 			//current_mag.create_handful(user)
@@ -159,7 +162,8 @@
 					//ammo types if not less.
 
 				else //Add if it's not, add it.
-					ammo_available += h = 1 //Make the association.
+					ammo_available += h//Make the association.
+					ammo_available[h] = 1
 
 				if(c < ammo_available[h] && !(h in L) ) //Found a candidate. If there's even one ammo type, this will fire.
 					c++ //Move it up.
@@ -167,10 +171,19 @@
 					L += h //Add it
 
 		//Now we should have two lists. We make sure that our main one is in the first position.
+		//Let's fine out where it's breaking.
+		to_chat(user, SPAN_WARNING("ammo len is [ammo_available.len] and L len is [L.len]"))
 
 		if(ammo_available.len) //We have some ammo.
+
+			for(var/i in ammo_available)
+				to_chat(user, SPAN_WARNING("Checking [ammo_available[i]] rounds of [i] pre merge"))
+
 			if(ammo_available.len > 1) //And there is more than one ammo type present.
 				ammo_available = L | ammo_available //L in the first position, so it gets added first.
+
+			for(var/i in ammo_available)
+				to_chat(user, SPAN_WARNING("Checking [ammo_available[i]] rounds of [i] post merge"))
 
 			for(var/i in ammo_available)
 				to_chat(user, SPAN_WARNING("Sending [ammo_available[i]] rounds of [i]"))
@@ -226,7 +239,10 @@
 	if(current_mag?.chamber_closed)
 		spin_cylinder(user)
 	else
+		make_casing(projectile_casing
+		sort_cylinder_ammo(user)
 		empty_cylinder()
+		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
 
 /obj/item/weapon/gun/revolver/proc/revolver_basic_spin(mob/living/carbon/human/user, direction = 1, obj/item/weapon/gun/revolver/double)
 	set waitfor = 0
@@ -561,7 +577,10 @@
 			accuracy_mult_unwielded = BASE_ACCURACY_MULT * 2
 			addtimer(CALLBACK(src, PROC_REF(recalculate_attachment_bonuses)), 2 SECONDS)
 	else
+		make_casing(projectile_casing
+		sort_cylinder_ammo(user)
 		empty_cylinder()
+		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
 
 //-------------------------------------------------------
 //BURST REVOLVER //Mateba is pretty well known. The cylinder folds up instead of to the side.
