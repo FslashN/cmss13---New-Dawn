@@ -22,6 +22,7 @@
 	)
 
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
+	flags_gun_receiver = GUN_CHAMBERED_CYCLE
 	gun_category = GUN_CATEGORY_SMG
 	start_automatic = TRUE
 
@@ -36,12 +37,6 @@
 	..()
 	movement_onehanded_acc_penalty_mult = 4
 	fa_max_scatter = SCATTER_AMOUNT_TIER_5
-
-/obj/item/weapon/gun/smg/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = TRUE)
-	. = ..()
-
-/obj/item/weapon/gun/smg/load_into_chamber(mob/user, manual_cock_only = TRUE)
-	. = ..()
 
 //-------------------------------------------------------
 //M39 SMG
@@ -667,7 +662,6 @@
 	reload_sound = 'sound/weapons/handling/smg_reload.ogg'
 	unload_sound = 'sound/weapons/handling/smg_unload.ogg'
 	cocked_sound = 'sound/weapons/gun_cocked2.ogg'
-
 	fire_sound = 'sound/weapons/nailgun_fire.ogg'
 	force = 5
 	w_class = SIZE_MEDIUM
@@ -677,6 +671,8 @@
 	attachable_allowed = list()
 
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH //Why wasn't wasn't an unusual design originally? I do believe nail guns have tip safety, so realistically, you shouldn't be able to fire them at people in the first place.
+	flags_gun_receiver = null
+
 	civilian_usable_override = TRUE
 	start_automatic = FALSE
 	var/nailing_speed = 2 SECONDS //Time to apply a sheet for patching. Also haha name. Try to keep sync with soundbyte duration
@@ -692,13 +688,6 @@
 	scatter_unwielded = SCATTER_AMOUNT_TIER_5
 	damage_mult = BASE_BULLET_DAMAGE_MULT
 	recoil_unwielded = RECOIL_AMOUNT_TIER_5
-
-//Want to reset these. Doesn't care about chambering behavior.
-/obj/item/weapon/gun/smg/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = FALSE)
-	. = ..()
-
-/obj/item/weapon/gun/smg/load_into_chamber(mob/user, manual_cock_only = FALSE)
-	. = ..()
 
 //We're making our own reload proc because we're chads.
 /obj/item/weapon/gun/reload(mob/user, obj/item/ammo_magazine/magazine, reload_override = TRUE)

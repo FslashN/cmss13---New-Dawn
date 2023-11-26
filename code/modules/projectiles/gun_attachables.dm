@@ -193,7 +193,7 @@ var/datum/ammo_counter/ammo_counter = new
 			// Prepend the bullet trait to the list
 			L = list(entry) + traits_to_give[entry]
 		// Apply bullet traits from attachment to gun's current projectile
-		G.in_chamber.apply_bullet_trait(L)
+		//G.in_chamber.apply_bullet_trait(L)
 
 /obj/item/attachable/proc/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
 	if(!istype(detaching_gun)) return //Guns only
@@ -277,7 +277,7 @@ var/datum/ammo_counter/ammo_counter = new
 	pixel_shift_y = 15
 	attach_icon = "suppressor_a"
 	hud_offset_mod = -3
-	gun_traits = list(TRAIT_GUN_SILENCED)
+	gun_traits = list(TRAIT_GUN_IS_SILENCED)
 
 /obj/item/attachable/suppressor/New()
 	..()
@@ -772,20 +772,20 @@ var/datum/ammo_counter/ammo_counter = new
 	if(toggle_on && !light_on)
 		attached_gun.set_light_range(attached_gun.light_range + light_mod)
 		attached_gun.set_light_power(attached_gun.light_power + (light_mod * 0.5))
-		if(!(attached_gun.flags_gun_features & GUN_FLASHLIGHT_ON))
+		if(!(attached_gun.flags_gun_toggles & GUN_FLASHLIGHT_ON))
 			attached_gun.set_light_on(TRUE)
 			light_on = TRUE
-			attached_gun.flags_gun_features |= GUN_FLASHLIGHT_ON
+			attached_gun.flags_gun_toggles |= GUN_FLASHLIGHT_ON
 
 	if(!toggle_on && light_on)
 		attached_gun.set_light_range(attached_gun.light_range - light_mod)
 		attached_gun.set_light_power(attached_gun.light_power - (light_mod * 0.5))
-		if(attached_gun.flags_gun_features & GUN_FLASHLIGHT_ON)
+		if(attached_gun.flags_gun_toggles & GUN_FLASHLIGHT_ON)
 			attached_gun.set_light_on(FALSE)
 			light_on = FALSE
-			attached_gun.flags_gun_features &= ~GUN_FLASHLIGHT_ON
+			attached_gun.flags_gun_toggles &= ~GUN_FLASHLIGHT_ON
 
-	if(attached_gun.flags_gun_features & GUN_FLASHLIGHT_ON)
+	if(attached_gun.flags_gun_toggles & GUN_FLASHLIGHT_ON)
 		icon_state += "-on"
 		attach_icon += "-on"
 		playsound(user, deactivation_sound, 15, 1)
@@ -3198,7 +3198,7 @@ var/datum/ammo_counter/ammo_counter = new
 		to_chat(user, SPAN_WARNING("You must wield [gun] to fire [src]!"))
 		return
 
-	if(gun.flags_gun_features & GUN_TRIGGER_SAFETY)
+	if(gun.flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
 		to_chat(user, SPAN_WARNING("\The [gun] isn't lit!"))
 		return
 

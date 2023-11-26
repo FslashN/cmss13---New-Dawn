@@ -53,7 +53,7 @@
 		fired_from.delete_bullet(firing_projectile, TRUE)
 		return
 
-	if(!(fired_from.flags_gun_features & GUN_SILENCED))
+	if(!(fired_from.flags_gun_features & GUN_IS_SILENCED))
 		playsound(user, fired_from.fire_sound, fired_from.firesound_volume, FALSE)
 	else
 		playsound(user, fired_from.fire_sound, 25, FALSE)

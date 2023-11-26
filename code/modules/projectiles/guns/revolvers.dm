@@ -20,7 +20,8 @@
 	var/recent_trick //So they're not spamming tricks.
 	var/list/cylinder_click = list('sound/weapons/gun_empty.ogg')
 	var/russian_roulette = FALSE //God help you if you do this.
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH //Revolvers by and large don't have safeties.
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH //Revolvers by and large don't have safeties.
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES
 	gun_category = GUN_CATEGORY_HANDGUN
 	wield_delay = WIELD_DELAY_VERY_FAST //If you modify your revolver to be two-handed, it will still be fast to aim
 	movement_onehanded_acc_penalty_mult = 3
@@ -44,10 +45,6 @@
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
 	movement_onehanded_acc_penalty_mult = 3
-
-/obj/item/weapon/gun/revolver/populate_internal_magazine(number_to_replace)
-	. = ..()
-	if(.) current_mag.chamber_position = max(1,number_to_replace)
 
 /obj/item/weapon/gun/revolver/get_additional_gun_examine_text(mob/user)
 	. = ..() + ( current_mag.chamber_closed ? "The cylinder is closed.": "The cylinder is open with [current_mag.current_rounds] round\s loaded." )
@@ -86,7 +83,7 @@
 		return TRUE
 
 /obj/item/weapon/gun/revolver/reload(mob/user, obj/item/ammo_magazine/magazine)
-	if(flags_gun_features & GUN_BURST_FIRING) return
+	if(flags_gun_toggles & GUN_BURST_FIRING) return
 
 	if(!magazine || !istype(magazine))
 		to_chat(user, SPAN_WARNING("That's not gonna work!"))
@@ -127,7 +124,7 @@
 				return
 
 /obj/item/weapon/gun/revolver/unload(mob/user, reloading_override = FALSE)
-	if(flags_gun_features & GUN_BURST_FIRING) return
+	if(flags_gun_toggles & GUN_BURST_FIRING) return
 
 	if(current_mag)
 		if(current_mag.chamber_closed) //If it's actually closed.
@@ -207,10 +204,8 @@
 	if(current_mag && length(current_mag.chamber_contents))
 		if(current_mag.current_rounds > 0)
 			if(current_mag.chamber_contents[current_mag.chamber_position]) //If it's not null.
-				ammo = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
+				in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
 				current_mag.current_rounds-- //Subtract the round from the mag.
-				in_chamber = create_bullet(ammo, initial(name))
-				apply_traits(in_chamber)
 				return in_chamber
 		else if(current_mag.chamber_closed)
 			unload(null)
@@ -239,7 +234,7 @@
 	if(current_mag?.chamber_closed)
 		spin_cylinder(user)
 	else
-		make_casing(projectile_casing
+		make_casing(projectile_casing)
 		sort_cylinder_ammo(user)
 		empty_cylinder()
 		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
@@ -347,7 +342,7 @@
 	item_state = "m44r"
 	current_mag = /obj/item/ammo_magazine/internal/revolver/m44
 	force = 8
-	flags_gun_features = GUN_INTERNAL_MAG|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	attachable_allowed = list(
 		/obj/item/attachable/bayonet,
 		/obj/item/attachable/bayonet/upp,
@@ -554,7 +549,7 @@
 	fire_sound = 'sound/weapons/gun_44mag2.ogg'
 	current_mag = /obj/item/ammo_magazine/internal/revolver/small
 	force = 6
-	flags_gun_features = GUN_INTERNAL_MAG|GUN_ANTIQUE|GUN_ONE_HAND_WIELDED|GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
+	flags_gun_features = GUN_ANTIQUE|GUN_ONE_HAND_WIELDED|GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
 
 /obj/item/weapon/gun/revolver/small/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 19,"rail_x" = 12, "rail_y" = 21, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
@@ -577,7 +572,7 @@
 			accuracy_mult_unwielded = BASE_ACCURACY_MULT * 2
 			addtimer(CALLBACK(src, PROC_REF(recalculate_attachment_bonuses)), 2 SECONDS)
 	else
-		make_casing(projectile_casing
+		make_casing(projectile_casing)
 		sort_cylinder_ammo(user)
 		empty_cylinder()
 		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))

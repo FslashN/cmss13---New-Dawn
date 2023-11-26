@@ -10,7 +10,8 @@
 	flags_equip_slot = SLOT_WAIST
 	wield_delay = WIELD_DELAY_VERY_FAST
 	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_4
-	flags_gun_features = GUN_INTERNAL_MAG|GUN_CAN_POINTBLANK
+	flags_gun_features = GUN_CAN_POINTBLANK
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE
 	gun_category = GUN_CATEGORY_HANDGUN
 	attachable_allowed = list(/obj/item/attachable/scope/mini/flaregun)
 
@@ -63,8 +64,7 @@
 			to_chat(user, SPAN_WARNING("You can't put a burnt out flare in [src]!"))
 			return
 		if(current_mag && current_mag.current_rounds == 0)
-			ammo = GLOB.ammo_list[attacking_flare.ammo_datum]
-			playsound(user, reload_sound, 25, 1)
+			in_chamber = GLOB.ammo_list[attacking_flare.ammo_datum]
 			to_chat(user, SPAN_NOTICE("You load [attacking_flare] into [src]."))
 			current_mag.current_rounds++
 			qdel(attacking_flare)
@@ -75,7 +75,7 @@
 		to_chat(user, SPAN_WARNING("That's not a flare!"))
 
 /obj/item/weapon/gun/flare/unload(mob/user)
-	if(flags_gun_features & GUN_BURST_FIRING)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return
 	unload_flare(user)
 
@@ -83,9 +83,10 @@
 	if(!current_mag)
 		return
 	if(current_mag.current_rounds)
-		var/obj/item/device/flashlight/flare/unloaded_flare = new ammo.handful_type(get_turf(src))
+		var/obj/item/device/flashlight/flare/unloaded_flare = new in_chamber.handful_type(get_turf(src))
 		playsound(user, reload_sound, 25, TRUE)
 		current_mag.current_rounds--
+		in_chamber = null
 		if(user)
 			to_chat(user, SPAN_NOTICE("You unload [unloaded_flare] from \the [src]."))
 			user.put_in_hands(unloaded_flare)
@@ -102,8 +103,8 @@
 		to_chat(user, SPAN_NOTICE("The roof above you is too dense."))
 		return
 
-	if(!istype(ammo, /datum/ammo/flare))
-		to_chat(user, SPAN_NOTICE("[src] jams as it is somehow loaded with incorrect ammo!"))
+	if(!istype(in_chamber, /datum/ammo/flare))
+		to_chat(user, SPAN_NOTICE("[src] cannot fire as its either not loaded or loaded with an incorrect item!"))
 		return
 
 	if(user.action_busy)
@@ -119,7 +120,7 @@
 
 	flare_turf.ceiling_debris()
 
-	var/datum/ammo/flare/explicit_ammo = ammo
+	var/datum/ammo/flare/explicit_ammo = in_chamber
 
 	var/obj/item/device/flashlight/flare/fired_flare = new explicit_ammo.flare_type(get_turf(src))
 	to_chat(user, SPAN_NOTICE("You fire [fired_flare] into the air!"))

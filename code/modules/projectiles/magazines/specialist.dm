@@ -187,7 +187,6 @@
 		return
 	user.drop_inv_item_on_ground(src)
 	qdel(in_hand.current_mag)
-	in_hand.replace_ammo(user,src)
 	in_hand.current_mag = src
 	forceMove(in_hand)
 	to_chat(user, SPAN_NOTICE("You load \the [src] into \the [M]'s [in_hand]."))

@@ -30,6 +30,7 @@
 	)
 
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED //For easy reference.
+	flags_gun_receiver = GUN_CHAMBERED_CYCLE
 	gun_category = GUN_CATEGORY_HANDGUN
 	projectile_casing = PROJECTILE_CASING_BULLET
 
@@ -43,12 +44,6 @@
 /obj/item/weapon/gun/pistol/set_gun_config_values()
 	..()
 	movement_onehanded_acc_penalty_mult = 3
-
-/obj/item/weapon/gun/pistol/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = TRUE)
-	. = ..()
-
-/obj/item/weapon/gun/pistol/load_into_chamber(mob/user, manual_cock_only = TRUE)
-	. = ..()
 
 //-------------------------------------------------------
 //M4A3 PISTOL
@@ -90,7 +85,6 @@
 
 /obj/item/weapon/gun/pistol/m4a3/training
 	current_mag = /obj/item/ammo_magazine/pistol/rubber
-
 
 /obj/item/weapon/gun/pistol/m4a3/custom
 	name = "\improper M4A3 custom pistol"
@@ -305,7 +299,7 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/upp.dmi'
 	icon_state = "npz92"
 	item_state = "npz92"
-	inherent_traits = list(TRAIT_GUN_SILENCED)
+	inherent_traits = list(TRAIT_GUN_IS_SILENCED)
 	fire_sound = "gun_silenced"
 	current_mag = /obj/item/ammo_magazine/pistol/np92/suppressed
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED

@@ -21,7 +21,8 @@
 		/obj/item/attachable/magnetic_harness,
 	)
 
-	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG|GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
+	flags_gun_receiver = GUN_INTERNAL_MAG
 	var/datum/effect_system/smoke_spread/smoke
 
 	flags_item = TWOHANDED|NO_CRYO_STORE
@@ -51,7 +52,7 @@
 
 
 /obj/item/weapon/gun/launcher/rocket/get_additional_gun_examine_text(mob/user)
-	. = ..() + ( current_mag.current_rounds <= 0 ? "It's not loaded." : "It has an 84mm [ammo.name] loaded." )
+	. = ..() + ( current_mag.current_rounds <= 0 ? "It's not loaded." : "It has an 84mm [in_chamber.name] loaded." )
 
 /obj/item/weapon/gun/launcher/rocket/able_to_fire(mob/living/user)
 	. = ..()
@@ -113,7 +114,7 @@
 /obj/item/weapon/gun/launcher/rocket/reload(mob/user, obj/item/ammo_magazine/rocket)
 	if(!current_mag)
 		return
-	if(flags_gun_features & GUN_BURST_FIRING)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
 	if(!rocket || !istype(rocket) || !istype(src, rocket.gun_type))
@@ -135,7 +136,6 @@
 			user.drop_inv_item_on_ground(rocket)
 			current_mag = rocket
 			rocket.forceMove(src)
-			replace_ammo(,rocket)
 			to_chat(user, SPAN_NOTICE("You load [rocket] into [src]."))
 			if(reload_sound)
 				playsound(user, reload_sound, 25, 1)
@@ -148,7 +148,6 @@
 		qdel(current_mag)
 		current_mag = rocket
 		rocket.forceMove(src)
-		replace_ammo(,rocket)
 	return TRUE
 
 /obj/item/weapon/gun/launcher/rocket/unload(mob/user,  reload_override = 0, drop_override = 0)
@@ -162,8 +161,9 @@
 				to_chat(user, SPAN_WARNING("You have already unloaded \the [src]."))
 				return
 			playsound(user, unload_sound, 25, 1)
-			user.visible_message(SPAN_NOTICE("[user] unloads [ammo] from [src]."),
-			SPAN_NOTICE("You unload [ammo] from [src]."))
+			var/loaded_rocket =  GLOB.ammo_list[current_mag.default_ammo] //Datum, quickhand
+			user.visible_message(SPAN_NOTICE("[user] unloads [loaded_rocket] from [src]."),
+			SPAN_NOTICE("You unload [loaded_rocket] from [src]."))
 			make_rocket(user, drop_override, 0)
 			current_mag.current_rounds = 0
 
@@ -200,7 +200,7 @@
 
 	current_mag = /obj/item/ammo_magazine/rocket/m57a4
 	aim_slowdown = SLOWDOWN_ADS_SUPERWEAPON
-	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG|GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
 
 /obj/item/weapon/gun/launcher/rocket/m57a4/set_gun_config_values()
 	..()
@@ -228,7 +228,7 @@
 
 	attachable_allowed = list()
 
-	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG|GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
 
 	flags_item = TWOHANDED
 
@@ -322,7 +322,7 @@
 
 	attachable_allowed = list(/obj/item/attachable/upp_rpg_breech)
 
-	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_INTERNAL_MAG|GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
 
 	flags_item = TWOHANDED
 

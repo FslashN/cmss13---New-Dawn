@@ -10,50 +10,52 @@ ERROR CODE R1: negative current_rounds on examine. <------------ Applies to ammu
 
 DEFINES in conflict.dm, referenced here.
 
+//================================
+//These are gun features set through flats_gun_features. Three categories, but they all fall under the same flags.
 //These are basic features of a gun.
 #define GUN_CAN_POINTBLANK (1<<0) ///Can gun the shoot point-blank? Add it if it can.
-#define GUN_NO_SAFETY_SWITCH (1<<1) ///Some guns don't have a safety switch at all. You will not be able to set GUN_TRIGGER_SAFETY via interaction, but does not safety check beyond that.
-#define GUN_INTERNAL_MAG (1<<2) ///If checking for ammo with current.mag you have to check it against numerical values, as booleans will not trigger.
+#define GUN_NO_SAFETY_SWITCH (1<<1) ///Some guns don't have a safety switch at all. You will not be able to set GUN_TRIGGER_SAFETY_ON via interaction, but does not safety check beyond that.
 #define GUN_AMMO_COUNTER (1<<3) ///Most USCM and UPP primaries have this set. This shows an active ammo counter on the weapon when picked up.
 #define GUN_AUTO_EJECTOR (1<<4) ///This will kick it out the magazine automatically once it runs dry. Most rifles and SMGs have this set.
-#define GUN_NO_DESCRIPTION (1<<5) /// No gun description, only base desc
-
-
-CHAMBER_ALWAYS_LOADED
-CHAMBER_MANUALLY_LOADED
-CHAMBER_CAN_ROTATE
-CHAMBER_CAN_OPEN
-CHAMBER_IS_CLOSED
-
-CHAMBER_ACCEPT_MAGAZINE
-CHAMBER_ACCEPT_SPEEDLOADER
-CHAMBER_ACCEPT_HANDFUL
-
-GUN_AMMO_COUNTER
-GUN_AUTO_EJECTOR
-GUN_INTERNAL_MAG
-GUN_NO_SAFETY_SWITCH
-
-//These are really gun states.
-#define GUN_SILENCED (1<<8) ///Only from an attachment, add an attachment on spawn if wanted.
-#define GUN_TRIGGER_SAFETY (1<<9) ///Disable safety, so setting through flags means the gun starts with the SAFETY ON.
-#define GUN_FLASHLIGHT_ON (1<<10) ///From an attachment, if the attached light source is on.
-#define GUN_BURST_FIRING (1<<11) ///Added when the gun is burst firing.
-#define GUN_RECOIL_BUILDUP (1<<12) /// Whether the gun has been fired by its current user (reset upon `dropped()`)
-#define GUN_AUTO_EJECTING_OFF (1<<13) ///If the gun has an auto ejector, it defaults to ON when spawned in. Adding this toggles it off instead. Must have GUN_AUTO_EJECTOR
-
+#define GUN_RECOIL_BUILDUP (1<<5) /// Whether the gun has been fired by its current user (reset upon `dropped()`)
+#define GUN_IS_SILENCED (1<<6) ///Only from an attachment, add an attachment on spawn if wanted. Temporary until attachement is removed.
+#define GUN_ONE_HAND_WIELDED (1<<7) /// This removes unwielded accuracy and scatter penalties (not recoil) when set, when you're using only one hand.
+#define GUN_NO_DESCRIPTION (1<<8) /// No gun description, only base desc
 //These are various restrictions
-#define GUN_SPECIALIST (1<<15) ///Some weapons are restricted to specialists on, this checks for it for those weapons.
-#define GUN_WY_RESTRICTED (1<<16) ///Some weapons are locked to WY mercs only, this checks for it for those weapons.
-#define GUN_WIELDED_FIRING_ONLY (1<<17) ///Some firarms have to be wielded to be fired, like rocket launchers.
-#define GUN_ONE_HAND_WIELDED (1<<18) /// This removes unwielded accuracy and scatter penalties (not recoil) when set, when you're using only one hand.
-
+#define GUN_SPECIALIST (1<<10) ///Some weapons are restricted to specialists on, this checks for it for those weapons.
+#define GUN_WY_RESTRICTED (1<<11) ///Some weapons are locked to WY mercs only, this checks for it for those weapons.
+#define GUN_WIELDED_FIRING_ONLY (1<<12) ///Some firarms have to be wielded to be fired, like rocket launchers.
 //These are gun designs
-#define GUN_SUPPORT_PLATFORM (1<<21) /// support weapon, bipod will grant autofire
-#define GUN_UNUSUAL_DESIGN (1<<22) ///Guns with weird designs, energy weapons, not guns, and so on. This is important for checking for reloads and unloads. Can also be categorized as a basic feature.
-#define GUN_ANTIQUE (1<<23) ///Some really old guns (chronologically to the world) have this set. Used to show guns that couldn't auto-eject, but has been phased out in favor of GUN_AUTO_EJECTOR being set for anything that can auto eject.
+#define GUN_SUPPORT_PLATFORM (1<<17) /// support weapon, bipod will grant autofire
+#define GUN_UNUSUAL_DESIGN (1<<18) ///Guns with weird designs, energy weapons, not guns, and so on. This is important for checking for reloads and unloads. Can also be categorized as a basic feature. //TODO NIX THIS
+#define GUN_ANTIQUE (1<<19) ///Some really old guns (chronologically to the world) have this set. Used to show guns that couldn't auto-eject, but has been phased out in favor of GUN_AUTO_EJECTOR being set for anything that can auto eject.
 
-//Gun weapon categories, currently used for firing while dualwielding.
+//================================
+//These are temporary gun states set through flags_gun_toggles. They can change depending on various factors.
+#define GUN_TRIGGER_SAFETY_ON (1<<0) ///Disable safety, so setting through flags means the gun starts with the SAFETY ON.
+#define GUN_FLASHLIGHT_ON (1<<1) ///From an attachment, if the attached light source is on.
+#define GUN_BURST_FIRING (1<<2) ///Added when the gun is burst firing.
+#define GUN_AUTO_EJECTING_OFF (1<<3) ///If the gun has an auto ejector, it defaults to ON when spawned in. Adding this toggles it off instead. Must have GUN_AUTO_EJECTOR
+///These defines are still part of flags_gun_toggles, but they primarily function with the smartgun. Can be used on other things.
+#define GUN_IFF_SYSTEM_ON (1<<4) ///We want this to default to ON in most circumstances.
+#define GUN_RECOIL_COMP_ON (1<<5) ///If the gun is toggled to minimize recoil.
+#define GUN_ACCURACY_ASSIST_ON (1<<6) ///If the gun is set to assist with accuracy.
+#define GUN_AUTOMATIC_AIM_ASSIST_ON (1<<7) ///If the gun will fire at targets by itself.
+#define GUN_SECONDARY_MODE_ON (1<<8) ///If the gun has a secondary mode, like an alternative ammo to fire, this is used.
+#define GUN_MOTION_DETECTOR_ON (1<<9) //If the gun comes with a motion detection module built in, this can be toggled too.
+#define GUN_ID_LOCK_ON (1<<10) ///If the gun can lock itself from use, requiring a specific ID to unlock or something.
+
+//================================
+//These are receiver features set through flags_gun_receiver
+#define GUN_INTERNAL_MAG (1<<0) ///The gun is fed ammunition into an internal magazine, like a shotgun or revolver.
+#define GUN_CHAMBERED_CYCLE (1<<1)///The gun has to be "cocked" to fire, usually when a magazine is loaded. Most guns do this.
+#define GUN_MANUAL_CYCLE (1<<2)///Intead of automatically loading the next bullet, the user must manually load it each shot.
+#define GUN_CHAMBER_CAN_OPEN (1<<3)///The receiver can be opened, like a double barrel or revolver.
+#define GUN_CHAMBER_IS_OPEN (1<<4)///If the above is set, this means the receiver is currently open.
+#define GUN_CHAMBER_ROTATES (1<<5)///The chamber position can move around, typically with a cylinder.
+#define GUN_CHAMBER_IS_STATIC (1<<6)///in_chamber is always "on" acting as the default ammo for the gun and ignores most of the fire cycle. It should never be nulled.
+
+//Gun weapon categories, currently used for firing while dualwielding. Changed these to bitflags in case I want to mix and match. Unique from the flags above, could combine with gun designs.
 #define GUN_CATEGORY_HANDGUN (1<<0)
 #define GUN_CATEGORY_SMG (1<<1)
 #define GUN_CATEGORY_RIFLE (1<<2)
@@ -65,7 +67,7 @@ GUN_NO_SAFETY_SWITCH
 #define PROJECTILE_CASING_BULLET "bullet" //regular
 #define PROJECTILE_CASING_SHELL "shell" //shotguns
 #define PROJECTILE_CASING_CARTRIDGE "cartridge" //rifles and larger calibers
-
+#define PROJECTILE_CASING_TWOBORE "twobore" //The twobore unique casing.
 
 	UPDATED INFO
 
@@ -214,6 +216,10 @@ GUN_NO_SAFETY_SWITCH
 	~N
 
 	TODO:
+
+	/obj/item/attachable/proc/Attach(obj/item/weapon/gun/G)
+	I commented out a line in attachments.
+		//G.in_chamber.apply_bullet_trait(L)
 
 	Bullet holds leave the wrong sprite.
 	Fix lever action

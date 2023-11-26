@@ -13,7 +13,7 @@
 	muzzle_flash = null//replace at some point
 	fire_sound = 'sound/weapons/emitter2.ogg'
 
-	ammo = /datum/ammo/energy
+	in_chamber = /datum/ammo/energy
 	w_class = SIZE_LARGE
 	matter = list("metal" = 2000)
 
@@ -25,6 +25,7 @@
 	var/charge_icon = "+stunrevolver_empty"//define on a per gun basis, used for the meter and empty icon on non meter guns
 
 	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_CAN_POINTBLANK
+	flags_gun_receiver = GUN_CHAMBER_IS_STATIC
 	gun_category = GUN_CATEGORY_HANDGUN
 
 /obj/item/weapon/gun/energy/Initialize(mapload, spawn_empty)
@@ -75,7 +76,6 @@
 		return
 
 	cell.charge -= charge_cost
-	in_chamber = create_bullet(ammo, initial(name))
 	return in_chamber
 
 /obj/item/weapon/gun/energy/has_ammunition()
@@ -122,7 +122,7 @@
 	gun_category = GUN_CATEGORY_HANDGUN
 	flags_equip_slot = SLOT_WAIST
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER|GUN_ONE_HAND_WIELDED
-	ammo = /datum/ammo/energy/rxfm_eva
+	in_chamber = /datum/ammo/energy/rxfm_eva
 	attachable_allowed = list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad)
 	starting_attachment_types = list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad)
 	has_charge_meter = FALSE
@@ -177,7 +177,7 @@
 	gun_category = GUN_CATEGORY_SMG
 	flags_equip_slot = SLOT_WAIST
 	charge_cost = 200
-	ammo = /datum/ammo/energy/laz_uzi
+	in_chamber = /datum/ammo/energy/laz_uzi
 	fire_sound = 'sound/weapons/Laser4.ogg'
 	has_charge_meter = FALSE
 	charge_icon = "+laz_uzi_empty"
@@ -208,7 +208,7 @@
 	muzzle_flash = null //TO DO.
 	fire_sound = 'sound/weapons/Taser.ogg'
 	w_class = SIZE_MEDIUM
-	ammo = /datum/ammo/energy/taser/precise
+	in_chamber = /datum/ammo/energy/taser/precise
 	charge_cost = 625 // approx 16 shots.
 	has_charge_meter = TRUE
 	charge_icon = "+taser"
@@ -256,11 +256,11 @@
 		if(TASER_MODE_P)
 			mode = TASER_MODE_F
 			to_chat(user, SPAN_NOTICE("[src] is now set to Free mode."))
-			ammo = GLOB.ammo_list[/datum/ammo/energy/taser]
+			in_chamber = GLOB.ammo_list[/datum/ammo/energy/taser]
 		if(TASER_MODE_F)
 			mode = TASER_MODE_P
 			to_chat(user, SPAN_NOTICE("[src] is now set to Precision mode."))
-			ammo = GLOB.ammo_list[/datum/ammo/energy/taser/precise]
+			in_chamber = GLOB.ammo_list[/datum/ammo/energy/taser/precise]
 	var/datum/action/item_action/taser/change_mode/action = locate(/datum/action/item_action/taser/change_mode) in actions
 	action.update_icon()
 	update_icon()

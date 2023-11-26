@@ -16,7 +16,8 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	var/break_sound = 'sound/weapons/handling/gun_mou_open.ogg'
 	var/seal_sound = 'sound/weapons/handling/gun_mou_close.ogg'
 	accuracy_mult = 1.15
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG
+	flags_gun_features = GUN_CAN_POINTBLANK
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE
 	gun_category = GUN_CATEGORY_SHOTGUN
 	aim_slowdown = SLOWDOWN_ADS_SHOTGUN
 	wield_delay = WIELD_DELAY_NORMAL //Shotguns are as hard to pull up as a rifle. They're quite bulky afterall
@@ -46,14 +47,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 /obj/item/weapon/gun/shotgun/unique_action(mob/user)
 	cycle_chamber(user)
 
-/obj/item/weapon/gun/shotgun/populate_internal_magazine(number_to_replace)
-	. = ..()
-	if(.) current_mag.chamber_position = current_mag.current_rounds //The position is always in the beginning [1]. It can move from there.
-
 /obj/item/weapon/gun/shotgun/play_chamber_cycle_sound(mob/user, cocked_sound, volume = 20, sound_delay)
-	. = ..()
-
-/obj/item/weapon/gun/shotgun/load_into_chamber(mob/user, manual_cock_only = TRUE)
 	. = ..()
 
 /obj/item/weapon/gun/shotgun/get_additional_gun_examine_text(mob/user)
@@ -61,7 +55,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	if(flags_gun_features & GUN_AMMO_COUNTER) . += "The ammo counter readout shows [current_mag? (current_mag.current_rounds + (in_chamber? 1 : 0) ) : (in_chamber? 1 : 0) ] round\s remaining."
 
 /obj/item/weapon/gun/shotgun/unload(mob/user)
-	if(flags_gun_features & GUN_BURST_FIRING)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
 	empty_chamber(user)
@@ -113,8 +107,8 @@ This is better than "empty" as a text string has value. null is easier to accoun
 			current_mag.chamber_position--
 
 		if("chamber")
-			QDEL_NULL(in_chamber)
-			new_handful = retrieve_shell(ammo.type)
+			new_handful = retrieve_shell(in_chamber.type)
+			in_chamber = null
 
 	if(user) //Want to put into hand first.
 		user.put_in_hands(new_handful)
@@ -131,7 +125,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	return 1
 
 /obj/item/weapon/gun/shotgun/reload(mob/user, obj/item/ammo_magazine/magazine)
-	if(flags_gun_features & GUN_BURST_FIRING)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
 	if(!magazine || !istype(magazine,/obj/item/ammo_magazine/handful)) //Can only reload with handfuls.
@@ -158,8 +152,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	if(isnull(current_mag) || !length(current_mag.chamber_contents))
 		return
 	if(current_mag.current_rounds > 0)
-		ammo = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
-		in_chamber = create_bullet(ammo, initial(name))
+		in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
 		current_mag.current_rounds--
 		current_mag.chamber_contents[current_mag.chamber_position] = null
 		current_mag.chamber_position--
@@ -197,7 +190,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		/obj/item/attachable/compensator,
 	)
 
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG|GUN_NO_SAFETY_SWITCH //No rules, no safety,
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH //No rules, no safety,
 
 /obj/item/weapon/gun/shotgun/merc/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 31, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 17, "under_y" = 14, "stock_x" = 17, "stock_y" = 14)
@@ -319,7 +312,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/buckshot
 
 	flags_equip_slot = SLOT_WAIST|SLOT_BACK
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG
 	auto_retrieval_slot = WEAR_J_STORE
 	start_automatic = TRUE
 	pixel_width_offset = -3
@@ -375,7 +367,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		/obj/item/attachable/burstfire_assembly,
 		/obj/item/attachable/stock/type23, // Stock
 		)
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER|GUN_INTERNAL_MAG
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	flags_equip_slot = SLOT_BACK
 	map_specific_decoration = FALSE
 	gauge = "8g"
@@ -463,7 +455,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		/obj/item/attachable/verticalgrip, //Underbarrel
 		/obj/item/attachable/stock/type23, //Stock
 	)
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER|GUN_INTERNAL_MAG
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	flags_equip_slot = SLOT_BACK
 	map_specific_decoration = FALSE
 	gauge = "8g"
@@ -504,7 +496,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		/obj/item/attachable/stock/double,
 	)
 
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN
 	burst_delay = 0 //So doubleshotty can doubleshot
 	has_open_icon = TRUE
 	civilian_usable_override = TRUE // Come on. It's THE survivor shotgun.
@@ -572,8 +564,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	if(!current_mag)
 		return
 	if(current_mag.current_rounds > 0)
-		ammo = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
-		in_chamber = create_bullet(ammo, initial(name))
+		in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
 		current_mag.current_rounds--
 		return in_chamber
 	//We can't make a projectile without a mag or active attachable.
@@ -643,7 +634,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	icon_state = "sshotgun"
 	item_state = "sshotgun"
 	flags_equip_slot = SLOT_WAIST
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG
 
 /obj/item/weapon/gun/shotgun/double/sawn/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 19, "rail_x" = 11, "rail_y" = 20, "under_x" = 15, "under_y" = 14,  "stock_x" = 18, "stock_y" = 16)
@@ -689,10 +679,11 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	attachable_allowed = list()
 	projectile_casing = PROJECTILE_CASING_BULLET
 
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG|GUN_TRIGGER_SAFETY|GUN_ONE_HAND_WIELDED|GUN_ANTIQUE|GUN_NO_DESCRIPTION|GUN_UNUSUAL_DESIGN
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_ANTIQUE|GUN_NO_DESCRIPTION|GUN_UNUSUAL_DESIGN
+	flags_gun_toggles = GUN_TRIGGER_SAFETY_ON
 	flags_item = NO_FLAGS
 
-	inherent_traits = list(TRAIT_GUN_SILENCED)
+	inherent_traits = list(TRAIT_GUN_IS_SILENCED)
 
 /obj/item/weapon/gun/shotgun/double/cane/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -709,7 +700,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
 
 /obj/item/weapon/gun/shotgun/double/cane/gun_safety_handle(mob/user)
-	if(flags_gun_features & GUN_TRIGGER_SAFETY)
+	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
 		to_chat(user, SPAN_NOTICE("You turn [src] back into its normal cane stance."))
 		playsound(user, 'sound/weapons/handling/nsg23_unload.ogg', 25, 1)
 	else
@@ -725,7 +716,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	playsound(user, 'sound/weapons/handling/safety_toggle.ogg', 25, 1)
 
 /obj/item/weapon/gun/shotgun/double/cane/proc/update_desc()
-	if(flags_gun_features & GUN_TRIGGER_SAFETY)
+	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
 		name = initial(name)
 		desc = initial(desc)
 	else
@@ -733,13 +724,13 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		desc = initial(desc) + " Apparently, because it's also a gun. Who'da thunk it?" //It's not a revolver... Changed this.
 
 /obj/item/weapon/gun/shotgun/double/cane/cycle_chamber(mob/user, override)
-	if(flags_gun_features & GUN_TRIGGER_SAFETY && !override)
+	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON && !override)
 		to_chat(user, SPAN_WARNING("Not with the safety on!"))
 		return
 	. =  ..()
 
 /obj/item/weapon/gun/shotgun/double/cane/update_icon()
-	if(flags_gun_features & GUN_TRIGGER_SAFETY)
+	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
 		icon_state = initial(icon_state)
 
 	else if(current_mag.chamber_closed == FALSE)
@@ -759,7 +750,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	fire_sound = 'sound/weapons/gun_mou53.ogg'
 	reload_sound = 'sound/weapons/handling/gun_mou_reload.ogg'//unique shell insert
 	flags_equip_slot = SLOT_BACK
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/double/mou53 //Take care, she comes loaded!
 	attachable_allowed = list(
 		/obj/item/attachable/bayonet,
@@ -1033,6 +1023,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	fire_sound = 'sound/weapons/gun_shotgun.ogg'
 	firesound_volume = 60
 	cocked_sound = "shotgunpump"
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE|GUN_MANUAL_CYCLE
 
 	attachable_allowed = list(
 		/obj/item/attachable/bayonet,

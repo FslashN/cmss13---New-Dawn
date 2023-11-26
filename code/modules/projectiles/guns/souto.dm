@@ -8,9 +8,9 @@
 	fire_sound = 'sound/items/syringeproj.ogg'
 	attachable_allowed = list()
 	has_empty_icon = 0
-	ammo = /datum/ammo/souto
 	var/range = 6 // This var is used as range for the weapon/toy.
-	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_INTERNAL_MAG|GUN_AMMO_COUNTER|GUN_NO_SAFETY_SWITCH
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_AMMO_COUNTER|GUN_NO_SAFETY_SWITCH
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_IS_STATIC
 	var/obj/item/storage/backpack/souto/soutopack
 	current_mag = null
 	auto_retrieval_slot = WEAR_IN_BACK
@@ -61,14 +61,18 @@
 		if(!istype(H.back, /obj/item/storage/backpack/souto))
 			click_empty(H)
 			return FALSE
-		if(current_mag)
-			var/datum/ammo/souto/S = ammo
-			S.can_type = new S.shrapnel_type
-			if(!in_chamber)
-				load_into_chamber()
-			in_chamber.icon_state = S.can_type.icon_state
-			S.can_type.forceMove(in_chamber)
-			S.can_type.sharp = 1
+		if(!current_mag) //This can apparently be false becauase the mag spawns later. Something to fix.
+			return
+
+//Ughhh.
+/obj/item/weapon/gun/souto/create_bullet(datum/ammo/chambered, bullet_source)
+	var/obj/projectile/P = ..()
+	var/datum/ammo/souto/S = in_chamber
+	S.can_type = new S.shrapnel_type
+	P.icon_state = S.can_type.icon_state
+	S.can_type.forceMove(P)
+	S.can_type.sharp = 1
+	. = P
 
 /obj/item/weapon/gun/souto/proc/link_soutopack(mob/user)
 	if(user.back)

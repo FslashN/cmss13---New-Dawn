@@ -14,6 +14,7 @@
 	unload_sound = 'sound/weapons/handling/gun_sg_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/smartgun
 	flags_equip_slot = NO_FLAGS
+	flags_gun_toggles = GUN_IFF_SYSTEM_ON
 	w_class = SIZE_HUGE
 	force = 20
 	wield_delay = WIELD_DELAY_FAST
@@ -25,7 +26,7 @@
 	var/requires_battery = TRUE
 	/// Whether the smartgun requires a harness to use
 	var/requires_harness = TRUE
-	ammo = /datum/ammo/bullet/smartgun
+	in_chamber = /datum/ammo/bullet/smartgun
 	actions_types = list(
 		/datum/action/item_action/smartgun/toggle_accuracy_improvement,
 		/datum/action/item_action/smartgun/toggle_ammo_type,
@@ -36,12 +37,7 @@
 	)
 	var/datum/ammo/ammo_primary = /datum/ammo/bullet/smartgun //Toggled ammo type
 	var/datum/ammo/ammo_secondary = /datum/ammo/bullet/smartgun/armor_piercing //Toggled ammo type
-	var/iff_enabled = TRUE //Begin with the safety on.
-	var/secondary_toggled = 0 //which ammo we use
-	var/recoil_compensation = 0
-	var/accuracy_improvement = 0
-	var/auto_fire = 0
-	var/motion_detector = 0
+
 	var/drain = 11
 	var/range = 7
 	var/angle = 2
@@ -65,7 +61,7 @@
 
 
 /obj/item/weapon/gun/smartgun/Initialize(mapload, ...)
-	ammo_primary = GLOB.ammo_list[ammo_primary] //Gun initialize calls replace_ammo() so we need to set these first.
+	ammo_primary = GLOB.ammo_list[ammo_primary]
 	ammo_secondary = GLOB.ammo_list[ammo_secondary]
 	MD = new(src)
 	battery = new /obj/item/smartgun_battery(src)
@@ -87,11 +83,11 @@
 	set_fire_delay(FIRE_DELAY_TIER_SG)
 	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_TIER_8
 	fa_max_scatter = SCATTER_AMOUNT_TIER_9
-	if(accuracy_improvement)
+	if(flags_gun_toggles & GUN_ACCURACY_ASSIST_ON)
 		accuracy_mult += HIT_ACCURACY_MULT_TIER_3
 	else
 		accuracy_mult += HIT_ACCURACY_MULT_TIER_1
-	if(recoil_compensation)
+	if(flags_gun_toggles & GUN_RECOIL_COMP_ON)
 		scatter = SCATTER_AMOUNT_TIER_10
 		recoil = RECOIL_OFF
 	else
@@ -106,7 +102,7 @@
 
 /obj/item/weapon/gun/smartgun/get_additional_gun_examine_text(mob/user)
 	. = ..()
-	. += "The restriction system is [iff_enabled ? SPAN_NOTICE("<B>on</b>") : SPAN_NOTICE("<B>off</b>")]."
+	. += "The restriction system is [flags_gun_toggles & GUN_IFF_SYSTEM_ON ? SPAN_NOTICE("<B>on</b>") : SPAN_NOTICE("<B>off</b>")]."
 
 	//Distance shoudn't matter since the battery isn't worn as a backpack anymore.
 	if(battery) . += "A small gauge on [battery] reads: Power: [battery.power_cell.charge] / [battery.power_cell.maxcharge]."
@@ -196,7 +192,7 @@
 	if(!holder_item)
 		return
 	var/obj/item/weapon/gun/smartgun/G = holder_item
-	if(G.motion_detector)
+	if(G.flags_gun_toggles & GUN_MOTION_DETECTOR_ON)
 		button.icon_state = "template_on"
 	else
 		button.icon_state = "template"
@@ -218,7 +214,7 @@
 	if(!holder_item)
 		return
 	var/obj/item/weapon/gun/smartgun/G = holder_item
-	if(G.auto_fire)
+	if(G.flags_gun_toggles & GUN_AUTOMATIC_AIM_ASSIST_ON)
 		button.icon_state = "template_on"
 	else
 		button.icon_state = "template"
@@ -235,7 +231,7 @@
 	. = ..()
 	var/obj/item/weapon/gun/smartgun/G = holder_item
 	G.toggle_accuracy_improvement(usr)
-	if(G.accuracy_improvement)
+	if(G.flags_gun_toggles & GUN_ACCURACY_ASSIST_ON)
 		button.icon_state = "template_on"
 	else
 		button.icon_state = "template"
@@ -252,7 +248,7 @@
 	. = ..()
 	var/obj/item/weapon/gun/smartgun/G = holder_item
 	G.toggle_recoil_compensation(usr)
-	if(G.recoil_compensation)
+	if(G.flags_gun_toggles & GUN_RECOIL_COMP_ON)
 		button.icon_state = "template_on"
 	else
 		button.icon_state = "template"
@@ -269,7 +265,7 @@
 	. = ..()
 	var/obj/item/weapon/gun/smartgun/G = holder_item
 	G.toggle_lethal_mode(usr)
-	if(G.iff_enabled)
+	if(G.flags_gun_toggles & GUN_IFF_SYSTEM_ON)
 		action_icon_state = "iff_toggle_on"
 	else
 		action_icon_state = "iff_toggle_off"
@@ -291,7 +287,7 @@
 
 /datum/action/item_action/smartgun/toggle_ammo_type/proc/update_icon()
 	var/obj/item/weapon/gun/smartgun/G = holder_item
-	if(G.secondary_toggled)
+	if(G.flags_gun_toggles & GUN_SECONDARY_MODE_ON)
 		action_icon_state = "ammo_swap_ap"
 	else
 		action_icon_state = "ammo_swap_normal"
@@ -323,31 +319,25 @@
 	toggle_ammo_type(usr)
 
 /obj/item/weapon/gun/smartgun/proc/toggle_ammo_type(mob/user)
-	if(!iff_enabled)
+	if(!(flags_gun_toggles & GUN_IFF_SYSTEM_ON))
 		to_chat(user, "[icon2html(src, usr)] Can't switch ammunition type when \the [src]'s fire restriction is disabled.")
 		return
-	secondary_toggled = !secondary_toggled
-	to_chat(user, "[icon2html(src, usr)] You changed \the [src]'s ammo preparation procedures. You now fire [secondary_toggled ? "armor shredding rounds" : "highly precise rounds"].")
+	flags_gun_toggles ^= GUN_SECONDARY_MODE_ON
+	to_chat(user, "[icon2html(src, usr)] You changed \the [src]'s ammo preparation procedures. You now fire [flags_gun_toggles & GUN_SECONDARY_MODE_ON ? "armor shredding rounds" : "highly precise rounds"].")
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
-	ammo = secondary_toggled ? ammo_secondary : ammo_primary
 	var/datum/action/item_action/smartgun/toggle_ammo_type/TAT = locate(/datum/action/item_action/smartgun/toggle_ammo_type) in actions
 	TAT.update_icon()
 
-/obj/item/weapon/gun/smartgun/replace_ammo()
-	..()
-	ammo = secondary_toggled ? ammo_secondary : ammo_primary
-
 /obj/item/weapon/gun/smartgun/proc/toggle_lethal_mode(mob/user)
-	to_chat(user, "[icon2html(src, usr)] You [iff_enabled? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s fire restriction. You will [iff_enabled ? "harm anyone in your way" : "target through IFF"].")
+	to_chat(user, "[icon2html(src, usr)] You [flags_gun_toggles & GUN_IFF_SYSTEM_ON? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s fire restriction. You will [flags_gun_toggles & GUN_IFF_SYSTEM_ON ? "harm anyone in your way" : "target through IFF"].")
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
-	iff_enabled = !iff_enabled
-	ammo = ammo_primary
-	secondary_toggled = FALSE
-	if(iff_enabled)
+	flags_gun_toggles ^= GUN_IFF_SYSTEM_ON
+	flags_gun_toggles &= ~GUN_SECONDARY_MODE_ON
+	if(flags_gun_toggles & GUN_IFF_SYSTEM_ON)
 		add_bullet_trait(BULLET_TRAIT_ENTRY_ID("iff", /datum/element/bullet_trait_iff))
 		drain += 10
 		MD.iff_signal = initial(MD.iff_signal)
-	if(!iff_enabled)
+	if(!(flags_gun_toggles & GUN_IFF_SYSTEM_ON))
 		remove_bullet_trait("iff")
 		drain -= 10
 		MD.iff_signal = null
@@ -361,6 +351,13 @@
 			return ..()
 		if(drain_battery())
 			return ..()
+
+//I don't like smartguns having two ammunition types. That isn't how smartguns work in the lore or how guns work in general.
+//In the future I want ammo to be fed as normal, through the magazine only. For now this will suffice until a smartgun rework.
+/obj/item/weapon/gun/smartgun/ready_in_chamber()
+	if(current_mag && current_mag.current_rounds > 0)
+		current_mag.current_rounds--
+		return flags_gun_toggles & GUN_SECONDARY_MODE_ON ? ammo_secondary : ammo_primary
 
 /obj/item/weapon/gun/smartgun/proc/drain_battery(override_drain)
 
@@ -383,20 +380,20 @@
 	return FALSE
 
 /obj/item/weapon/gun/smartgun/proc/toggle_recoil_compensation(mob/user)
-	to_chat(user, "[icon2html(src, usr)] You [recoil_compensation? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s recoil compensation.")
+	to_chat(user, "[icon2html(src, usr)] You [flags_gun_toggles & GUN_RECOIL_COMP_ON? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s recoil compensation.")
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
-	recoil_compensation = !recoil_compensation
-	if(recoil_compensation)
+	flags_gun_toggles ^= GUN_RECOIL_COMP_ON
+	if(flags_gun_toggles & GUN_RECOIL_COMP_ON)
 		drain += 50
 	else
 		drain -= 50
 	recalculate_attachment_bonuses() //Includes set_gun_config_values() as well as attachments.
 
 /obj/item/weapon/gun/smartgun/proc/toggle_accuracy_improvement(mob/user)
-	to_chat(user, "[icon2html(src, usr)] You [accuracy_improvement? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s accuracy improvement.")
+	to_chat(user, "[icon2html(src, usr)] You [flags_gun_toggles & GUN_ACCURACY_ASSIST_ON? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s accuracy improvement.")
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
-	accuracy_improvement = !accuracy_improvement
-	if(accuracy_improvement)
+	flags_gun_toggles ^= GUN_ACCURACY_ASSIST_ON
+	if(flags_gun_toggles & GUN_ACCURACY_ASSIST_ON)
 		drain += 50
 	else
 		drain -= 50
@@ -406,29 +403,29 @@
 	if(!(flags_item & WIELDED))
 		to_chat(user, "[icon2html(src, usr)] You need to wield \the [src] to enable autofire.")
 		return //Have to be actually be wielded.
-	to_chat(user, "[icon2html(src, usr)] You [auto_fire? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s auto fire mode.")
+	to_chat(user, "[icon2html(src, usr)] You [flags_gun_toggles & GUN_AUTOMATIC_AIM_ASSIST_ON? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s auto fire mode.")
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
-	auto_fire = !auto_fire
+	flags_gun_toggles ^= GUN_AUTOMATIC_AIM_ASSIST_ON
 	var/datum/action/item_action/smartgun/toggle_auto_fire/TAF = locate(/datum/action/item_action/smartgun/toggle_auto_fire) in actions
 	TAF.update_icon()
 	auto_fire()
 
 /obj/item/weapon/gun/smartgun/proc/auto_fire()
-	if(auto_fire)
+	if(flags_gun_toggles & GUN_AUTOMATIC_AIM_ASSIST_ON)
 		drain += 150
-		if(!motion_detector)
+		if(!(flags_gun_toggles & GUN_MOTION_DETECTOR_ON))
 			START_PROCESSING(SSobj, src)
-	if(!auto_fire)
+	if(!(flags_gun_toggles & GUN_AUTOMATIC_AIM_ASSIST_ON))
 		drain -= 150
-		if(!motion_detector)
+		if(!(flags_gun_toggles & GUN_MOTION_DETECTOR_ON))
 			STOP_PROCESSING(SSobj, src)
 
 /obj/item/weapon/gun/smartgun/process()
-	if(!auto_fire && !motion_detector)
+	if(!(flags_gun_toggles & GUN_AUTOMATIC_AIM_ASSIST_ON) && !(flags_gun_toggles & GUN_MOTION_DETECTOR_ON))
 		STOP_PROCESSING(SSobj, src)
-	if(auto_fire)
+	if(flags_gun_toggles & GUN_AUTOMATIC_AIM_ASSIST_ON)
 		auto_prefire()
-	if(motion_detector)
+	if(flags_gun_toggles & GUN_MOTION_DETECTOR_ON)
 		recycletime--
 		if(!recycletime)
 			recycletime = initial(recycletime)
@@ -446,7 +443,7 @@
 		target = get_target(human_user)
 		process_shot(human_user, warned)
 	else
-		auto_fire = FALSE
+		flags_gun_toggles &= ~GUN_AUTOMATIC_AIM_ASSIST_ON
 		var/datum/action/item_action/smartgun/toggle_auto_fire/TAF = locate(/datum/action/item_action/smartgun/toggle_auto_fire) in actions
 		TAF.update_icon()
 		auto_fire()
@@ -525,9 +522,6 @@
 	if(!target)
 		return //Acquire our victim.
 
-	if(!ammo)
-		return
-
 	if(target && (world.time-last_fired >= 3)) //Practical firerate is limited mainly by process delay; this is just to make sure it doesn't fire too soon after a manual shot or slip a shot into an ongoing burst.
 		if(world.time-last_fired >= 300 && !warned) //if we haven't fired for a while, beep first
 			playsound(loc, 'sound/machines/twobeep.ogg', 50, 1)
@@ -539,21 +533,21 @@
 	target = null
 
 /obj/item/weapon/gun/smartgun/proc/toggle_motion_detector(mob/user)
-	to_chat(user, "[icon2html(src, usr)] You [motion_detector? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s motion detector.")
+	to_chat(user, "[icon2html(src, usr)] You [flags_gun_toggles & GUN_MOTION_DETECTOR_ON? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s motion detector.")
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
-	motion_detector = !motion_detector
+	flags_gun_toggles ^= GUN_MOTION_DETECTOR_ON
 	var/datum/action/item_action/smartgun/toggle_motion_detector/TMD = locate(/datum/action/item_action/smartgun/toggle_motion_detector) in actions
 	TMD.update_icon()
 	motion_detector()
 
 /obj/item/weapon/gun/smartgun/proc/motion_detector()
-	if(motion_detector)
+	if(flags_gun_toggles & GUN_MOTION_DETECTOR_ON)
 		drain += 15
-		if(!auto_fire)
+		if(!(flags_gun_toggles & GUN_AUTOMATIC_AIM_ASSIST_ON))
 			START_PROCESSING(SSobj, src)
-	if(!motion_detector)
+	if(!(flags_gun_toggles & GUN_MOTION_DETECTOR_ON))
 		drain -= 15
-		if(!auto_fire)
+		if(!(flags_gun_toggles & GUN_AUTOMATIC_AIM_ASSIST_ON))
 			STOP_PROCESSING(SSobj, src)
 
 //CO SMARTGUN
@@ -563,7 +557,6 @@
 	icon_state = "m56c"
 	item_state = "m56c"
 	var/mob/living/carbon/human/linked_human
-	var/is_locked = TRUE
 
 /obj/item/weapon/gun/smartgun/co/Initialize(mapload, ...)
 	LAZYADD(actions_types, /datum/action/item_action/co_sg/toggle_id_lock)
@@ -571,14 +564,14 @@
 
 /obj/item/weapon/gun/smartgun/co/able_to_fire(mob/user)
 	. = ..()
-	if(is_locked && linked_human && linked_human != user)
+	if(flags_gun_toggles & GUN_ID_LOCK_ON && linked_human && linked_human != user)
 		if(linked_human.is_revivable() || linked_human.stat != DEAD)
 			to_chat(user, SPAN_WARNING("[icon2html(src, usr)] Trigger locked by [src]. Unauthorized user."))
 			playsound(loc,'sound/weapons/gun_empty.ogg', 25, 1)
 			return FALSE
 
 		linked_human = null
-		is_locked = FALSE
+		flags_gun_toggles &= ~GUN_ID_LOCK_ON
 		UnregisterSignal(linked_human, COMSIG_PARENT_QDELETING)
 
 // ID lock action \\
@@ -606,7 +599,7 @@
 	. = ..()
 	var/obj/item/weapon/gun/smartgun/co/protag_gun = holder_item
 	protag_gun.toggle_lock()
-	if(protag_gun.is_locked)
+	if(protag_gun.flags_gun_toggles & GUN_ID_LOCK_ON)
 		action_icon_state = "id_lock_locked"
 	else
 		action_icon_state = "id_lock_unlocked"
@@ -620,8 +613,8 @@
 	else if(!linked_human)
 		name_after_co(usr)
 
-	is_locked = !is_locked
-	to_chat(usr, SPAN_NOTICE("[icon2html(src, usr)] You [is_locked? "lock": "unlock"] \the [src]."))
+	flags_gun_toggles ^= GUN_ID_LOCK_ON
+	to_chat(usr, SPAN_NOTICE("[icon2html(src, usr)] You [flags_gun_toggles & GUN_ID_LOCK_ON? "lock": "unlock"] \the [src]."))
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
 
 // action end \\
@@ -640,7 +633,7 @@
 /obj/item/weapon/gun/smartgun/co/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(linked_human)
-		if(is_locked)
+		if(flags_gun_toggles & GUN_ID_LOCK_ON)
 			. += SPAN_NOTICE("It is registered to [linked_human].")
 		else
 			. += SPAN_NOTICE("It is registered to [linked_human] but has its fire restrictions unlocked.")
@@ -655,7 +648,6 @@
 	name = "\improper M56D 'Dirty' smartgun"
 	desc = "The actual firearm in the 4-piece M56D Smartgun System. If you have this, you're about to bring some serious pain to anyone in your way.\nYou may toggle firing restrictions by using a special action.\nAlt-click it to open the feed cover and allow for reloading."
 	current_mag = /obj/item/ammo_magazine/smartgun/dirty
-	ammo = /obj/item/ammo_magazine/smartgun/dirty
 	ammo_primary = /datum/ammo/bullet/smartgun/dirty//Toggled ammo type
 	ammo_secondary = /datum/ammo/bullet/smartgun/dirty/armor_piercing///Toggled ammo type
 	flags_gun_features = GUN_WY_RESTRICTED|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
@@ -663,7 +655,6 @@
 /obj/item/weapon/gun/smartgun/dirty/Initialize(mapload, ...)
 	. = ..()
 	MD.iff_signal = FACTION_PMC
-
 
 //TERMINATOR SMARTGUN
 /obj/item/weapon/gun/smartgun/dirty/elite
@@ -678,7 +669,7 @@
 	..()
 	set_burst_amount(BURST_AMOUNT_TIER_5)
 	set_burst_delay(FIRE_DELAY_TIER_12)
-	if(!recoil_compensation)
+	if(!(flags_gun_toggles & GUN_RECOIL_COMP_ON))
 		scatter = SCATTER_AMOUNT_TIER_8
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_10
 	set_fire_delay(FIRE_DELAY_TIER_12)
@@ -730,7 +721,6 @@
 	name = "\improper L56A2 smartgun"
 	desc = "The actual firearm in the 2-piece L56A2 Smartgun System. This Variant is used by the Three World Empires Royal Marines Commando units.\nYou may toggle firing restrictions by using a special action.\nAlt-click it to open the feed cover and allow for reloading."
 	current_mag = /obj/item/ammo_magazine/smartgun/holo_targetting
-	ammo = /obj/item/ammo_magazine/smartgun/holo_targetting
 	ammo_primary = /datum/ammo/bullet/smartgun/holo_target //Toggled ammo type
 	ammo_secondary = /datum/ammo/bullet/smartgun/holo_target/ap ///Toggled ammo type
 	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER

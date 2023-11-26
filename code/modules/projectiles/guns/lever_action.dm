@@ -13,7 +13,8 @@ their unique feature is that a direct hit will buff your damage and firerate
 	w_class = SIZE_LARGE
 	fire_sound = 'sound/weapons/gun_lever_action_fire.ogg'
 	reload_sound = 'sound/weapons/handling/gun_lever_action_reload.ogg'
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG|GUN_NO_SAFETY_SWITCH
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE|GUN_MANUAL_CYCLE
 	current_mag = /obj/item/ammo_magazine/internal/lever_action
 	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	gun_category = GUN_CATEGORY_RIFLE
@@ -102,20 +103,6 @@ their unique feature is that a direct hit will buff your damage and firerate
 			update_icon() //No rounds, nothing chambered.
 
 	return TRUE
-
-/*//The other reload proc.
-/obj/item/weapon/gun/lever_action/reload_into_chamber(mob/user)
-	if(!active_attachable)
-		QDEL_NULL(in_chamber)
-
-		//Time to move the internal_mag position.
-		ready_in_chamber() //We're going to try and reload. If we don't get anything, icon change.
-		if(!current_mag.current_rounds && !in_chamber) //No rounds, nothing chambered.
-			update_icon()
-
-	return TRUE
-*/
-
 /obj/item/weapon/gun/lever_action/reload(mob/user, obj/item/ammo_magazine/magazine)
 
 	if(!magazine || !istype(magazine,/obj/item/ammo_magazine/handful)) //Can only reload with handfuls.
@@ -222,8 +209,8 @@ their unique feature is that a direct hit will buff your damage and firerate
 			message_cooldown = world.time
 		return
 	if(in_chamber) //eject the chambered round
-		QDEL_NULL(in_chamber)
-		var/obj/item/ammo_magazine/handful/new_handful = retrieve_bullet(ammo.type)
+		var/obj/item/ammo_magazine/handful/new_handful = retrieve_bullet(in_chamber.type)
+		in_chamber = null
 		new_handful.forceMove(get_turf(src))
 
 	ready_lever_action_internal_mag()
@@ -286,8 +273,8 @@ their unique feature is that a direct hit will buff your damage and firerate
 		return
 	if(current_mag.current_rounds <= 0)
 		if(in_chamber)
-			QDEL_NULL(in_chamber)
-			var/obj/item/ammo_magazine/handful/new_handful = retrieve_bullet(ammo.type)
+			var/obj/item/ammo_magazine/handful/new_handful = retrieve_bullet(in_chamber.type)
+			in_chamber = null
 			playsound(user, reload_sound, 25, TRUE)
 			new_handful.forceMove(get_turf(src))
 		else
@@ -321,8 +308,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 	if(isnull(current_mag) || !length(current_mag.chamber_contents))
 		return
 	if(current_mag.current_rounds > 0)
-		ammo = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
-		in_chamber = create_bullet(ammo, initial(name))
+		in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
 		current_mag.current_rounds--
 		current_mag.chamber_contents[current_mag.chamber_position] = "empty"
 		current_mag.chamber_position--
@@ -356,7 +342,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 		/obj/item/attachable/stock/r4t, // Stock
 		)
 	map_specific_decoration = TRUE
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG
+	flags_gun_features = GUN_CAN_POINTBLANK
 	flags_gun_lever_action = MOVES_WHEN_LEVERING|DANGEROUS_TO_ONEHAND_LEVER|GUN_NO_SAFETY_SWITCH
 	civilian_usable_override = TRUE
 
@@ -385,7 +371,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 	lever_hitsound = 'sound/weapons/handling/gun_boomslang_hitsound.ogg'
 	flags_equip_slot = SLOT_BACK
 	map_specific_decoration = TRUE
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_INTERNAL_MAG|GUN_AMMO_COUNTER
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	levering_sprite = null
 	flags_gun_lever_action = USES_STREAKS
 	lever_name = "chambering button"

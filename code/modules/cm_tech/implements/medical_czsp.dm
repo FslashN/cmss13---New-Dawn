@@ -141,7 +141,7 @@
 
 	current_mag = /obj/item/ammo_magazine/internal/pillgun
 
-	flags_gun_features = GUN_INTERNAL_MAG
+	flags_gun_receiver = GUN_INTERNAL_MAG
 
 	matter = list("metal" = 2000)
 

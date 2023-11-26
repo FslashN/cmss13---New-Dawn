@@ -247,7 +247,7 @@
 #define TRAIT_CLOTHING_HOOD "t_clothing_hood"
 
 // GUN TRAITS
-#define TRAIT_GUN_SILENCED "t_gun_silenced"
+#define TRAIT_GUN_IS_SILENCED "t_gun_silenced"
 
 #define TRAIT_GUN_BIPODDED "t_gun_bipodded"
 
@@ -351,7 +351,7 @@ GLOBAL_LIST_INIT(traits_by_type, list(
 		"TRAIT_CLOTHING_HOOD" = TRAIT_CLOTHING_HOOD
 	),
 	/obj/item/weapon/gun = list(
-		"TRAIT_GUN_SILENCED" = TRAIT_GUN_SILENCED,
+		"TRAIT_GUN_IS_SILENCED" = TRAIT_GUN_IS_SILENCED,
 		"TRAIT_GUN_BIPODDED" = TRAIT_GUN_BIPODDED,
 	),
 	/obj/structure/surface/table = list(

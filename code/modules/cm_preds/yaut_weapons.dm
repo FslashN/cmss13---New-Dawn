@@ -11,10 +11,6 @@
 	STOP_PROCESSING(SSobj, src)
 	return ..()
 
-/obj/item/weapon/gun/launcher/spike/Destroy()
-	STOP_PROCESSING(SSobj, src)
-	return ..()
-
 /*#########################################
 ############## Misc Weapons ###############
 #########################################*/
@@ -800,13 +796,14 @@
 
 	unacidable = TRUE
 	fire_sound = 'sound/effects/woodhit.ogg' // TODO: Decent THWOK noise.
-	ammo = /datum/ammo/alloy_spike
+	in_chamber = /datum/ammo/alloy_spike
 	flags_equip_slot = SLOT_WAIST|SLOT_BACK
 	w_class = SIZE_MEDIUM //Fits in yautja bags.
 	var/spikes = 12
 	var/max_spikes = 12
 	var/last_regen
 	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
+	flags_gun_receiver = GUN_CHAMBER_IS_STATIC
 	flags_item = ITEM_PREDATOR|TWOHANDED
 
 /obj/item/weapon/gun/launcher/spike/process()
@@ -860,8 +857,6 @@
 
 /obj/item/weapon/gun/launcher/spike/load_into_chamber()
 	if(spikes > 0)
-		in_chamber = create_bullet(ammo, initial(name))
-		apply_traits(in_chamber)
 		spikes--
 		return in_chamber
 
@@ -889,6 +884,11 @@
 		WEAR_R_HAND = 'icons/mob/humans/onmob/hunter/items_righthand.dmi'
 	)
 
+/obj/item/weapon/gun/energy/yautja/create_bullet(datum/ammo/chambered, bullet_source)
+	var/obj/projectile/P = ..()
+	P.set_light(1)
+	. = P
+
 /obj/item/weapon/gun/energy/yautja/plasmarifle
 	name = "plasma rifle"
 	desc = "A long-barreled heavy plasma weapon. Intended for combat, not hunting. Has an integrated battery that allows for a functionally unlimited amount of shots to be discharged. Equipped with an internal gyroscopic stabilizer allowing its operator to fire the weapon one-handed if desired"
@@ -896,7 +896,7 @@
 	item_state = "plasmarifle"
 	unacidable = TRUE
 	fire_sound = 'sound/weapons/pred_plasma_shot.ogg'
-	ammo = /datum/ammo/energy/yautja/rifle/bolt
+	in_chamber = /datum/ammo/energy/yautja/rifle/bolt
 	muzzle_flash = null // TO DO, add a decent one.
 	zoomdevicename = "scope"
 	flags_equip_slot = SLOT_BACK
@@ -958,11 +958,7 @@
 	return ..()
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/load_into_chamber()
-	ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/rifle/bolt]
 	charge_time -= 7
-	var/obj/projectile/projectile = create_bullet(ammo, initial(name))
-	projectile.set_light(1)
-	in_chamber = projectile
 	return in_chamber
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/has_ammunition()
@@ -989,7 +985,7 @@
 	unacidable = TRUE
 	fire_sound = 'sound/weapons/pulse3.ogg'
 	flags_equip_slot = SLOT_WAIST
-	ammo = /datum/ammo/energy/yautja/pistol
+	in_chamber = /datum/ammo/energy/yautja/pistol
 	muzzle_flash = null // TO DO, add a decent one.
 	w_class = SIZE_MEDIUM
 	/// Max amount of shots
@@ -1053,9 +1049,6 @@
 /obj/item/weapon/gun/energy/yautja/plasmapistol/load_into_chamber()
 	if(charge_time < 1)
 		return
-	var/obj/projectile/projectile = create_bullet(ammo, initial(name))
-	projectile.set_light(1)
-	in_chamber = projectile
 	charge_time -= shot_cost
 	return in_chamber
 
@@ -1080,14 +1073,14 @@
 			shot_cost = 5
 			fire_delay = FIRE_DELAY_TIER_5
 			to_chat(usr, SPAN_NOTICE("[src] will now fire incendiary plasma bolts."))
-			ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/pistol/incendiary]
+			in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/pistol/incendiary]
 
 		if(FIRE_MODE_INCENDIARY)
 			mode = FIRE_MODE_STANDARD
 			shot_cost = 1
 			fire_delay = FIRE_DELAY_TIER_7
 			to_chat(usr, SPAN_NOTICE("[src] will now fire plasma bolts."))
-			ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/pistol]
+			in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/pistol]
 
 #undef FIRE_MODE_STANDARD
 #undef FIRE_MODE_INCENDIARY
@@ -1109,7 +1102,7 @@
 		WEAR_J_STORE = "plasma_wear_off"
 	)
 	fire_sound = 'sound/weapons/pred_plasmacaster_fire.ogg'
-	ammo = /datum/ammo/energy/yautja/caster/stun
+	in_chamber = /datum/ammo/energy/yautja/caster/stun
 	muzzle_flash = null // TO DO, add a decent one.
 	w_class = SIZE_HUGE
 	force = 0
@@ -1164,21 +1157,21 @@
 					set_fire_delay(FIRE_DELAY_TIER_1)
 					fire_sound = 'sound/weapons/pred_lasercannon.ogg'
 					to_chat(user, SPAN_NOTICE("[src] will now fire [strength]."))
-					ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/bolt/stun]
+					in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/bolt/stun]
 				if("high power stun bolts")
 					strength = "plasma immobilizers"
 					charge_cost = 200
 					set_fire_delay(FIRE_DELAY_TIER_2 * 8)
 					fire_sound = 'sound/weapons/pulse.ogg'
 					to_chat(user, SPAN_NOTICE("[src] will now fire [strength]."))
-					ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/sphere/stun]
+					in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/sphere/stun]
 				if("plasma immobilizers")
 					strength = "low power stun bolts"
 					charge_cost = 30
 					set_fire_delay(FIRE_DELAY_TIER_6)
 					fire_sound = 'sound/weapons/pred_plasmacaster_fire.ogg'
 					to_chat(user, SPAN_NOTICE("[src] will now fire [strength]."))
-					ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/stun]
+					in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/stun]
 		if("lethal")
 			switch(strength)
 				if("plasma bolts")
@@ -1187,14 +1180,14 @@
 					set_fire_delay(FIRE_DELAY_TIER_2 * 12)
 					fire_sound = 'sound/weapons/pulse.ogg'
 					to_chat(user, SPAN_NOTICE("[src] will now fire [strength]."))
-					ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/sphere]
+					in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/sphere]
 				if("plasma spheres")
 					strength = "plasma bolts"
 					charge_cost = 100
 					set_fire_delay(FIRE_DELAY_TIER_6 * 3)
 					fire_sound = 'sound/weapons/pred_lasercannon.ogg'
 					to_chat(user, SPAN_NOTICE("[src] will now fire [strength]."))
-					ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/bolt]
+					in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/bolt]
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/use_unique_action()
 	switch(mode)
@@ -1206,7 +1199,7 @@
 			set_fire_delay(FIRE_DELAY_TIER_6 * 3)
 			fire_sound = 'sound/weapons/pred_lasercannon.ogg'
 			to_chat(usr, SPAN_NOTICE("[src] will now fire [strength]."))
-			ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/bolt]
+			in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/bolt]
 
 		if("lethal")
 			mode = "stun"
@@ -1216,7 +1209,7 @@
 			set_fire_delay(FIRE_DELAY_TIER_6)
 			fire_sound = 'sound/weapons/pred_plasmacaster_fire.ogg'
 			to_chat(usr, SPAN_NOTICE("[src] will now fire [strength]."))
-			ammo = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/stun]
+			in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/stun]
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/get_examine_text(mob/user) //Just to standardize it.
 	if(!isyautja(user)) . = list( SPAN_NOTICE("What is this strange contraption?") )
@@ -1245,7 +1238,6 @@
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/load_into_chamber(mob/user)
 	if(source.drain_power(user, charge_cost))
-		in_chamber = create_bullet(ammo, initial(name))
 		return in_chamber
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/has_ammunition()

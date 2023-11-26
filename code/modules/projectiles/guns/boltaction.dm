@@ -18,6 +18,7 @@
 	w_class = SIZE_LARGE
 	force = 5
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_WIELDED_FIRING_ONLY
+	flags_gun_receiver = GUN_CHAMBERED_CYCLE|GUN_MANUAL_CYCLE|GUN_CHAMBER_CAN_OPEN
 	gun_category = GUN_CATEGORY_RIFLE
 	aim_slowdown = SLOWDOWN_ADS_RIFLE
 	wield_delay = WIELD_DELAY_NORMAL
@@ -101,13 +102,7 @@
 		to_chat(user, SPAN_WARNING("The bolt is still open, you can't fire [src]."))
 		return FALSE
 
-/obj/item/weapon/gun/boltaction/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = FALSE, manual_chamber_cyle_only = TRUE) //Only cycle through the bolt.
-	. = ..()
-
-/obj/item/weapon/gun/boltaction/load_into_chamber(mob/user, manual_cock_only = TRUE) //Won't fire with nothing in_chamber.
-	. = ..()
-
-/obj/item/weapon/gun/boltaction/reload_into_chamber(mob/user, manual_chamber_cyle_only = TRUE) //This keeps all attachment and mag functionality.
+/obj/item/weapon/gun/boltaction/reload_into_chamber(mob/user) //This keeps all attachment and mag functionality.
 	. = ..()
 	if(!active_attachable) used_casings++ //Sadly have to check for this again in case an attachable was used.
 

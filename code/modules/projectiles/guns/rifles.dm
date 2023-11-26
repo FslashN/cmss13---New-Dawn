@@ -10,6 +10,7 @@
 	w_class = SIZE_LARGE
 	force = 5
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
+	flags_gun_receiver = GUN_CHAMBERED_CYCLE
 	gun_category = GUN_CATEGORY_RIFLE
 	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	aim_slowdown = SLOWDOWN_ADS_RIFLE
@@ -33,12 +34,6 @@
 
 /obj/item/weapon/gun/rifle/unique_action(mob/user)
 	cycle_chamber(user)
-
-/obj/item/weapon/gun/rifle/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, manual_cock_only = TRUE)
-	. = ..()
-
-/obj/item/weapon/gun/rifle/load_into_chamber(mob/user, manual_cock_only = TRUE)
-	. = ..()
 
 //-------------------------------------------------------
 //M41A PULSE RIFLE
@@ -447,6 +442,7 @@
 	reload_sound = 'sound/weapons/handling/m41_reload.ogg'
 	unload_sound = 'sound/weapons/handling/m41_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/rifle/incendiary
+	flags_gun_toggles = GUN_IFF_SYSTEM_ON
 	projectile_casing = PROJECTILE_CASING_CASELESS
 
 	accepted_ammo = list(
@@ -507,14 +503,12 @@
 	map_specific_decoration = TRUE
 
 	var/mob/living/carbon/human/linked_human
-	var/is_locked = TRUE
-	var/iff_enabled = TRUE
 
 /obj/item/weapon/gun/rifle/m46c/Initialize(mapload, ...)
 	LAZYADD(actions_types, /datum/action/item_action/m46c/toggle_lethal_mode)
 	LAZYADD(actions_types, /datum/action/item_action/m46c/toggle_id_lock)
 	. = ..()
-	if(iff_enabled)
+	if(flags_gun_toggles & GUN_IFF_SYSTEM_ON)
 		LAZYADD(traits_to_give, list(
 		BULLET_TRAIT_ENTRY_ID("iff", /datum/element/bullet_trait_iff)
 		))
@@ -552,14 +546,14 @@
 
 /obj/item/weapon/gun/rifle/m46c/able_to_fire(mob/user)
 	. = ..()
-	if(is_locked && linked_human && linked_human != user)
+	if(flags_gun_toggles & GUN_ID_LOCK_ON && linked_human && linked_human != user)
 		if(linked_human.is_revivable() || linked_human.stat != DEAD)
 			to_chat(user, SPAN_WARNING("[icon2html(src, usr)] Trigger locked by [src]. Unauthorized user."))
 			playsound(loc,'sound/weapons/gun_empty.ogg', 25, 1)
 			return FALSE
 
 		linked_human = null
-		is_locked = FALSE
+		flags_gun_toggles &= ~GUN_ID_LOCK_ON
 		UnregisterSignal(linked_human, COMSIG_PARENT_QDELETING)
 
 /obj/item/weapon/gun/rifle/m46c/pickup(user)
@@ -593,7 +587,7 @@
 	. = ..()
 	var/obj/item/weapon/gun/rifle/m46c/protag_gun = holder_item
 	protag_gun.toggle_iff(usr)
-	if(protag_gun.iff_enabled)
+	if(protag_gun.flags_gun_toggles & GUN_IFF_SYSTEM_ON)
 		action_icon_state = "iff_toggle_on"
 	else
 		action_icon_state = "iff_toggle_off"
@@ -612,7 +606,7 @@
 	. = ..()
 	var/obj/item/weapon/gun/rifle/m46c/protag_gun = holder_item
 	protag_gun.toggle_lock()
-	if(protag_gun.is_locked)
+	if(protag_gun.flags_gun_toggles & GUN_ID_LOCK_ON)
 		action_icon_state = "id_lock_locked"
 	else
 		action_icon_state = "id_lock_unlocked"
@@ -629,29 +623,29 @@
 	else if(!linked_human)
 		name_after_co(usr)
 
-	is_locked = !is_locked
-	to_chat(usr, SPAN_NOTICE("[icon2html(src, usr)] You [is_locked? "lock": "unlock"] [src]."))
+	flags_gun_toggles ^= GUN_ID_LOCK_ON
+	to_chat(usr, SPAN_NOTICE("[icon2html(src, usr)] You [flags_gun_toggles & GUN_ID_LOCK_ON? "lock": "unlock"] [src]."))
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
 
 /obj/item/weapon/gun/rifle/m46c/proc/toggle_iff(mob/user)
-	if(is_locked && linked_human && usr != linked_human)
+	if(flags_gun_toggles & GUN_ID_LOCK_ON && linked_human && usr != linked_human)
 		to_chat(usr, SPAN_WARNING("[icon2html(src, usr)] Action denied by [src]. Unauthorized user."))
 		return
 
 	gun_firemode = GUN_FIREMODE_SEMIAUTO
-	iff_enabled = !iff_enabled
-	to_chat(usr, SPAN_NOTICE("[icon2html(src, usr)] You [iff_enabled? "enable": "disable"] the IFF on [src]."))
+	flags_gun_toggles ^= GUN_IFF_SYSTEM_ON
+	to_chat(usr, SPAN_NOTICE("[icon2html(src, usr)] You [flags_gun_toggles & GUN_IFF_SYSTEM_ON? "enable": "disable"] the IFF on [src]."))
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
 
 	recalculate_attachment_bonuses()
-	if(iff_enabled)
+	if(flags_gun_toggles & GUN_IFF_SYSTEM_ON)
 		add_bullet_trait(BULLET_TRAIT_ENTRY_ID("iff", /datum/element/bullet_trait_iff))
 	else
 		remove_bullet_trait("iff")
 
 /obj/item/weapon/gun/rifle/m46c/recalculate_attachment_bonuses()
 	. = ..()
-	if(iff_enabled)
+	if(flags_gun_toggles & GUN_IFF_SYSTEM_ON)
 		modify_fire_delay(FIRE_DELAY_TIER_12)
 		remove_firemode(GUN_FIREMODE_BURSTFIRE)
 		remove_firemode(GUN_FIREMODE_AUTOMATIC)
@@ -668,13 +662,13 @@
 /obj/item/weapon/gun/rifle/m46c/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(linked_human)
-		if(is_locked)
+		if(flags_gun_toggles & GUN_ID_LOCK_ON)
 			. += SPAN_NOTICE("It is registered to [linked_human].")
 		else
 			. += SPAN_NOTICE("It is registered to [linked_human] but has its fire restrictions unlocked.")
 	else
 		. += SPAN_NOTICE("It's unregistered. Pick it up to register yourself as its owner.")
-	if(!iff_enabled)
+	if(!(flags_gun_toggles & GUN_IFF_SYSTEM_ON))
 		. += SPAN_WARNING("Its IFF restrictions are disabled.")
 
 /obj/item/weapon/gun/rifle/m46c/proc/remove_idlock()
@@ -1507,7 +1501,7 @@
 
 	fire_sound = "gun_silenced"
 	wield_delay = 0 //Ends up being .5 seconds due to scope
-	inherent_traits = list(TRAIT_GUN_SILENCED)
+	inherent_traits = list(TRAIT_GUN_IS_SILENCED)
 	current_mag = /obj/item/ammo_magazine/rifle/type71/ap
 	attachable_allowed = list(
 		/obj/item/attachable/verticalgrip,

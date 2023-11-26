@@ -15,7 +15,7 @@
 
 /obj/item/weapon/gun/mob_can_equip(mob/user)
 	//Cannot equip wielded items or items burst firing.
-	if(flags_gun_features & GUN_BURST_FIRING)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return 0
 	unwield(user)
 	return ..()
@@ -32,9 +32,108 @@
 	else
 		..()
 
+/*
+Note: pickup and dropped on weapons must have both the ..() to update zoom AND twohanded,
+As sniper rifles have both and weapon mods can change them as well. ..() deals with zoom only.
+*/
+/obj/item/weapon/gun/equipped(mob/living/user, slot)
+	if(flags_item & NODROP) return
+
+	unwield(user)
+	pull_time = world.time + wield_delay
+	if(user.dazed)
+		pull_time += 3
+	guaranteed_delay_time = world.time + WEAPON_GUARANTEED_DELAY
+
+	var/delay_left = (last_fired + fire_delay + additional_fire_group_delay) - world.time
+	if(fire_delay_group && delay_left > 0)
+		LAZYSET(user.fire_delay_next_fire, src, world.time + delay_left)
+
+	if(slot in list(WEAR_L_HAND, WEAR_R_HAND))
+		set_gun_user(user)
+		if(HAS_TRAIT_FROM_ONLY(src, TRAIT_GUN_LIGHT_DEACTIVATED, user))
+			force_light(on = TRUE)
+			REMOVE_TRAIT(src, TRAIT_GUN_LIGHT_DEACTIVATED, user)
+	else
+		set_gun_user(null)
+		force_light(on = FALSE)
+		ADD_TRAIT(src, TRAIT_GUN_LIGHT_DEACTIVATED, user)
+
+	if(flags_gun_features & GUN_AMMO_COUNTER)
+		displaying_ammo = TRUE
+		vis_contents += ammo_counter.counter
+		display_ammo(user, TRUE, parent_proc = "equipped()")
+
+	return ..()
+
+/obj/item/weapon/gun/dropped(mob/user)
+	. = ..()
+
+	var/delay_left = (last_fired + fire_delay + additional_fire_group_delay) - world.time
+	if(fire_delay_group && delay_left > 0)
+		LAZYSET(user.fire_delay_next_fire, src, world.time + delay_left)
+
+	for(var/obj/item/attachable/stock/smg/collapsible/brace/current_stock in contents) //SMG armbrace folds to stop it getting stuck on people
+		if(current_stock.stock_activated)
+			current_stock.activate_attachment(src, user, turn_off = TRUE)
+
+	if(flags_gun_features & GUN_AMMO_COUNTER)
+		displaying_ammo = FALSE
+		vis_contents -= ammo_counter.counter
+		for(var/i in ammo_counter_tracker)
+			vis_contents -= ammo_counter_tracker[i]
+			ammo_counter_tracker[i] = null
+
+	unwield(user)
+	set_gun_user(null)
+
+/obj/item/weapon/gun/wield(mob/living/user)
+	if(!(flags_item & TWOHANDED) || flags_item & WIELDED)
+		return
+
+	if(world.time < pull_time) //Need to wait until it's pulled out to aim
+		return
+
+	var/obj/item/I = user.get_inactive_hand()
+	if(I)
+		if(!user.drop_inv_item_on_ground(I))
+			return
+
+	if(ishuman(user))
+		var/check_hand = user.r_hand == src ? "l_hand" : "r_hand"
+		var/mob/living/carbon/human/wielder = user
+		var/obj/limb/hand = wielder.get_limb(check_hand)
+		if(!istype(hand) || !hand.is_usable())
+			to_chat(user, SPAN_WARNING("Your other hand can't hold \the [src]!"))
+			return
+
+	flags_item ^= WIELDED
+	name += " (Wielded)"
+	item_state += "_w"
+	slowdown = initial(slowdown) + aim_slowdown
+	place_offhand(user, initial(name))
+	wield_time = world.time + wield_delay
+	if(user.dazed)
+		wield_time += 5
+	guaranteed_delay_time = world.time + WEAPON_GUARANTEED_DELAY
+	//slower or faster wield delay depending on skill.
+	if(user.skills)
+		if(user.skills.get_skill_level(SKILL_FIREARMS) == SKILL_FIREARMS_CIVILIAN && !is_civilian_usable(user))
+			wield_time += 3
+		else
+			wield_time -= 2*user.skills.get_skill_level(SKILL_FIREARMS)
+
+	return TRUE
+
+/obj/item/weapon/gun/unwield(mob/user)
+	. = ..()
+	if(.)
+		slowdown = initial(slowdown)
+
+
 /// This function actually turns the lights on the gun off
 /obj/item/weapon/gun/proc/turn_off_light(mob/bearer)
-	if (!(flags_gun_features & GUN_FLASHLIGHT_ON))
+	if (!(flags_gun_toggles & GUN_FLASHLIGHT_ON))
 		return FALSE
 	for (var/slot in attachments)
 		var/obj/item/attachable/attachment = attachments[slot]
@@ -150,7 +249,7 @@
 //Clicking stuff onto the gun.
 //Attachables & Reloading
 /obj/item/weapon/gun/attackby(obj/item/attack_item, mob/user)
-	if(flags_gun_features & GUN_BURST_FIRING)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
 	if(istype(attack_item, /obj/item/prop/helmetgarb/gunoil))
@@ -193,7 +292,7 @@
 		if(src != user.r_hand && src != user.l_hand)
 			to_chat(user, SPAN_WARNING("[src] must be in your hand to do that."))
 			return
-		if(flags_gun_features & GUN_INTERNAL_MAG)
+		if(flags_gun_receiver & GUN_INTERNAL_MAG)
 			to_chat(user, SPAN_WARNING("Can't do tactical reloads with [src]."))
 			return
 		//no tactical reload for the untrained.
@@ -216,7 +315,22 @@
 	else
 		..()
 
+/obj/item/weapon/gun/proc/check_inactive_hand(mob/user)
+	if(user)
+		var/obj/item/weapon/gun/in_hand = user.get_inactive_hand()
+		if( in_hand != src ) //It has to be held.
+			to_chat(user, SPAN_WARNING("You have to hold [src] to do that!"))
+			return
+	return TRUE
 
+/obj/item/weapon/gun/proc/check_both_hands(mob/user)
+	if(user)
+		var/obj/item/weapon/gun/in_handL = user.l_hand
+		var/obj/item/weapon/gun/in_handR = user.r_hand
+		if( in_handL != src && in_handR != src ) //It has to be held.
+			to_chat(user, SPAN_WARNING("You have to hold [src] to do that!"))
+			return
+	return TRUE
 
 //----------------------------------------------------------
 				//  					 \\
@@ -228,22 +342,12 @@
 /obj/item/weapon/proc/unique_action(mob/user) //moved this up a path to make macroing for other weapons easier -spookydonut
 	return
 
-/obj/item/weapon/gun/proc/check_inactive_hand(mob/user)
-	if(user)
-		var/obj/item/weapon/gun/in_hand = user.get_inactive_hand()
-		if( in_hand != src ) //It has to be held.
-			to_chat(user, SPAN_WARNING("You have to hold [src] to do that!"))
-			return
-	return 1
-
-/obj/item/weapon/gun/proc/check_both_hands(mob/user)
-	if(user)
-		var/obj/item/weapon/gun/in_handL = user.l_hand
-		var/obj/item/weapon/gun/in_handR = user.r_hand
-		if( in_handL != src && in_handR != src ) //It has to be held.
-			to_chat(user, SPAN_WARNING("You have to hold [src] to do that!"))
-			return
-	return 1
+/obj/item/weapon/gun/proc/handle_starting_attachment()
+	if(starting_attachment_types && starting_attachment_types.len)
+		for(var/path in starting_attachment_types)
+			var/obj/item/attachable/A = new path(src)
+			A.Attach(src)
+			update_attachable(A.slot)
 
 /obj/item/weapon/gun/proc/has_attachment(attachment)
 	if(!attachment)
@@ -374,7 +478,7 @@
 				to_chat(user, SPAN_WARNING("You need a gun in one of your hands to do that!"))
 				return
 
-	if(held_item?.flags_gun_features & GUN_BURST_FIRING)
+	if(held_item?.flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
 	return held_item
@@ -539,7 +643,7 @@
 
 /obj/item/weapon/gun/proc/do_toggle_firemode(datum/source, datum/keybinding, new_firemode)
 	SIGNAL_HANDLER
-	if(flags_gun_features & GUN_BURST_FIRING)//can't toggle mid burst
+	if(flags_gun_toggles & GUN_BURST_FIRING)//can't toggle mid burst
 		return
 
 	if(!length(gun_firemode_list))
@@ -645,7 +749,7 @@
 	if(user.client?.prefs && (user.client?.prefs?.toggle_prefs & TOGGLE_EJECT_MAGAZINE_TO_HAND))
 		drop_to_ground = FALSE
 		unwield(user)
-		if(!(active_firearm.flags_gun_features & GUN_INTERNAL_MAG))
+		if(!(active_firearm.flags_gun_receiver & GUN_INTERNAL_MAG))
 			user.swap_hand()
 
 	unload(user, FALSE, drop_to_ground) //We want to drop the mag on the ground.
@@ -680,7 +784,7 @@
 
 	src = active_firearm
 
-	if(flags_gun_features & GUN_BURST_FIRING)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
 	if(flags_gun_features & GUN_NO_SAFETY_SWITCH)
@@ -694,12 +798,12 @@
 		to_chat(usr, "Not right now.")
 		return
 
-	flags_gun_features ^= GUN_TRIGGER_SAFETY
+	flags_gun_toggles ^= GUN_TRIGGER_SAFETY_ON
 	gun_safety_handle(usr)
 
 
 /obj/item/weapon/gun/proc/gun_safety_handle(mob/user)
-	to_chat(user, SPAN_NOTICE("You toggle the safety [SPAN_BOLD(flags_gun_features & GUN_TRIGGER_SAFETY ? "on" : "off")]."))
+	to_chat(user, SPAN_NOTICE("You toggle the safety [SPAN_BOLD(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON ? "on" : "off")]."))
 	playsound(user, 'sound/weapons/handling/safety_toggle.ogg', 25, 1)
 
 /obj/item/weapon/gun/verb/activate_attachment_verb()
@@ -767,8 +871,8 @@
 		to_chat(usr, SPAN_WARNING("[src] has no auto ejection system!"))
 		return
 	else
-		flags_gun_features ^= GUN_AUTO_EJECTING_OFF
-		to_chat(usr, SPAN_INFO("You toggle the auto ejector [flags_gun_features & GUN_AUTO_EJECTING_OFF ? "off" : "on"].")) //Toggles off when the flag is set.
+		flags_gun_toggles ^= GUN_AUTO_EJECTING_OFF
+		to_chat(usr, SPAN_INFO("You toggle the auto ejector [flags_gun_toggles & GUN_AUTO_EJECTING_OFF ? "off" : "on"].")) //Toggles off when the flag is set.
 
 
 /obj/item/weapon/gun/verb/toggle_underbarrel_attachment_verb()

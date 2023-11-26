@@ -26,7 +26,8 @@
 		/obj/item/attachable/attached_gun/extinguisher,
 		/obj/item/attachable/attached_gun/flamer_nozzle
 	)
-	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_WIELDED_FIRING_ONLY|GUN_TRIGGER_SAFETY
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_WIELDED_FIRING_ONLY
+	flags_gun_toggles = GUN_TRIGGER_SAFETY_ON
 	gun_category = GUN_CATEGORY_HEAVY
 
 
@@ -57,7 +58,7 @@
 	toggle_gun_safety()
 
 /obj/item/weapon/gun/flamer/gun_safety_handle(mob/user)
-	to_chat(user, SPAN_NOTICE("You [SPAN_BOLD(flags_gun_features & GUN_TRIGGER_SAFETY ? "extinguish" : "ignite")] the pilot light."))
+	to_chat(user, SPAN_NOTICE("You [SPAN_BOLD(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON ? "extinguish" : "ignite")] the pilot light."))
 	playsound(user,'sound/weapons/handling/flamer_ignition.ogg', 25, 1)
 	update_icon()
 
@@ -82,7 +83,7 @@
 		I.color = mix_color_from_reagents(current_mag.reagents.reagent_list)
 		overlays += I
 
-	if(!(flags_gun_features & GUN_TRIGGER_SAFETY))
+	if(!(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON))
 		var/obj/item/attachable/attached_gun/flamer_nozzle/nozzle = locate() in contents
 		var/image/I = image(icon, src, "+lit")
 		I.pixel_x += nozzle && nozzle == active_attachable ? 6 : 1
@@ -125,7 +126,7 @@
 			active_attachable.last_fired = world.time
 		return NONE
 
-	if(flags_gun_features & GUN_TRIGGER_SAFETY)
+	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
 		to_chat(user, SPAN_WARNING("\The [src] isn't lit!"))
 		return NONE
 
@@ -169,7 +170,6 @@
 		else
 			current_mag = magazine
 			magazine.forceMove(src)
-			replace_ammo(,magazine)
 	var/obj/item/ammo_magazine/flamer_tank/tank = magazine
 	fuel_pressure = tank.fuel_pressure
 	update_icon()
