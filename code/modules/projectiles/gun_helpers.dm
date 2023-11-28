@@ -477,7 +477,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 /obj/item/weapon/gun/proc/get_active_firearm(mob/user, restrictive = TRUE)
 	if(!ishuman(usr))
 		return
-	if(!user.canmove || user.stat || user.is_mob_restrained() || !user.loc || !isturf(usr.loc))
+	if(user.is_mob_incapacitated() || !isturf(usr.loc))
 		to_chat(user, SPAN_WARNING("Not right now."))
 		return
 
