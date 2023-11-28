@@ -50,10 +50,9 @@
 	desc = "A gas-operated rotary machine gun used by UPP heavies. Its enormous volume of fire and ammunition capacity allows the suppression of large concentrations of enemy forces. Heavy weapons training is required control its recoil."
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER|GUN_RECOIL_BUILDUP|GUN_CAN_POINTBLANK
 
-/obj/item/weapon/gun/minigun/upp/able_to_fire(mob/living/user)
+/obj/item/weapon/gun/minigun/upp/check_additional_able_to_fire(mob/living/user)
 	. = ..()
-	if(!. || !istype(user)) //Let's check all that other stuff first.
-		return FALSE
+
 	if(!skillcheck(user, SKILL_FIREARMS, SKILL_FIREARMS_TRAINED))
 		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
 		return FALSE
@@ -152,12 +151,12 @@
 	else
 		overlays += "+[base_gun_icon]_cover_closed"
 
-/obj/item/weapon/gun/m60/able_to_fire(mob/living/user)
+/obj/item/weapon/gun/m60/check_additional_able_to_fire(mob/living/user)
 	. = ..()
-	if(.)
-		if(cover_open)
-			to_chat(user, SPAN_WARNING("You can't fire [src] with the feed cover open! <b>(alt-click to close)</b>"))
-			return FALSE
+
+	if(cover_open)
+		to_chat(user, SPAN_WARNING("You can't fire [src] with the feed cover open! <b>(alt-click to close)</b>"))
+		return FALSE
 
 
 /obj/item/weapon/gun/pkp
@@ -266,18 +265,18 @@
 	else
 		overlays += "+[base_gun_icon]_cover_closed"
 
-/obj/item/weapon/gun/pkp/able_to_fire(mob/living/user)
+/obj/item/weapon/gun/pkp/check_additional_able_to_fire(mob/living/user)
 	. = ..()
-	if(.)
-		if(cover_open)
-			to_chat(user, SPAN_WARNING("You can't fire [src] with the feed cover open! <b>(alt-click to close)</b>"))
-			return FALSE
+
+	if(cover_open)
+		to_chat(user, SPAN_WARNING("You can't fire [src] with the feed cover open! <b>(alt-click to close)</b>"))
+		return FALSE
 	if(!skillcheck(user, SKILL_FIREARMS, SKILL_FIREARMS_TRAINED))
 		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return 0
+		return FALSE
 	if(!skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_UPP)
 		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return 0
+		return FALSE
 
 
 /obj/effect/syringe_gun_dummy
@@ -321,7 +320,7 @@
 		BULLET_TRAIT_ENTRY(/datum/element/bullet_trait_iff)
 	))
 
-/obj/item/weapon/gun/rifle/techweb_railgun/able_to_fire()
+/obj/item/weapon/gun/rifle/techweb_railgun/check_additional_able_to_fire()
 	return charged
 
 /obj/item/weapon/gun/rifle/techweb_railgun/proc/start_charging(user)

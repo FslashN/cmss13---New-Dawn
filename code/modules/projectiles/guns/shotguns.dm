@@ -536,11 +536,8 @@ This is better than "empty" as a text string has value. null is easier to accoun
 /obj/item/weapon/gun/shotgun/double/add_to_tube(mob/user, selection, do_not_chamber = TRUE) //Load it on the go, nothing chambered.
 	. = ..()
 
-/obj/item/weapon/gun/shotgun/double/able_to_fire(mob/user)
+/obj/item/weapon/gun/shotgun/double/check_additional_able_to_fire(mob/user)
 	. = ..()
-
-	if(!current_mag) //I really dislike that these procs check for current mag ten billion times.
-		return FALSE
 
 	if(!current_mag.chamber_closed)
 		to_chat(user, SPAN_DANGER("Close the chamber!"))

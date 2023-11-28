@@ -12,7 +12,7 @@
 	pickupvol = 7
 	dropvol = 15
 	matter = null
-	var/displaying_ammo = FALSE
+
 	var/ammo_counter_tracker = list("hundred" = null,"ten" = null,"single" = null)
 						//Guns generally have their own unique levels.
 	w_class = SIZE_MEDIUM
@@ -33,9 +33,9 @@
 	//Determine most common properties about a gun. The other two flag sets deal with additional properties. Check documentation for details.
 	var/flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK
 	//What various states the gun may have active at the same time, like when firing multiple rounds or toggling a flashlight.
-	var/flags_gun_toggles = null
-	//How the gun operates internally. Defaults to the gun not requiring chambering or anything special. Will fire regardless of chambering, if it has ammo.
-	var/flags_gun_receiver = null
+	var/flags_gun_toggles = NO_FLAGS
+	//How the gun operates internally. Defaults to the gun not requiring chambering or anything special. Will fire regardless of chambering if it has a magazine loaded with bullets left.
+	var/flags_gun_receiver = NO_FLAGS
 	///////////////////////END FLAGS////////////////////////////
 
 	///Only guns of the same category can be fired together while dualwielding.
@@ -301,7 +301,7 @@
 	AddComponent(/datum/component/automatedfire/autofire, fire_delay, burst_delay, burst_amount, gun_firemode, autofire_slow_mult, CALLBACK(src, PROC_REF(set_bursting)), CALLBACK(src, PROC_REF(reset_fire)), CALLBACK(src, PROC_REF(fire_wrapper)), CALLBACK(src, PROC_REF(set_auto_firing))) //This should go after handle_starting_attachment() and setup_firemodes() to get the proper values set.
 
 	//Essentially sets in_chamber to the ammo the gun uses, permanently. Don't need the old ammo variable.
-	if(flags_gun_toggles & GUN_CHAMBER_IS_STATIC)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_STATIC)
 		in_chamber = GLOB.ammo_list[in_chamber]
 
 //Internal magazines use this to generate and track their bullets/shells.
@@ -557,6 +557,13 @@
 
 //======================================================================================\\
 
+//----------------------------------------------------------
+			// 									\\
+			// 				TG GUI			    \\
+			// 									\\
+			// 									\\
+//----------------------------------------------------------
+
 /obj/item/weapon/gun/Topic(href, href_list)
 	. = ..()
 	if(.)
@@ -711,8 +718,6 @@
 	. += get_asset_datum(/datum/asset/simple/firemodes)
 	//. += get_asset_datum(/datum/asset/spritesheet/gun_lineart)
 
-// END TGUI \\
-
 //----------------------------------------------------------
 			// 									\\
 			// LOADING, RELOADING, AND CASINGS  \\
@@ -770,7 +775,7 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 	current_mag = magazine
 	if(!in_chamber) //Nothing chambered.
 		if(!(flags_gun_receiver & GUN_MANUAL_CYCLE) && ( !(flags_gun_receiver & GUN_CHAMBERED_CYCLE) || user?.skills?.get_skill_level(SKILL_FIREARMS) > SKILL_FIREARMS_CIVILIAN ) )
-			ready_in_chamber()
+			ready_in_chamber(user)
 			play_chamber_cycle_sound(user, null, null, 0.5 SECONDS) //Delayed sound to account for loading.
 
 	user.visible_message(SPAN_NOTICE("[user] loads [magazine] into [src]!"),
@@ -804,8 +809,9 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 
 ///Unload a chambered round.
 /obj/item/weapon/gun/proc/unload_chamber(mob/user)
-	if(!in_chamber)
+	if(!in_chamber || flags_gun_receiver & GUN_CHAMBER_IS_STATIC)
 		return
+
 	var/found_handful
 	for(var/obj/item/ammo_magazine/handful/H in user.loc)
 		if(H.default_ammo == in_chamber.type && H.caliber == caliber && H.current_rounds < H.max_rounds)
@@ -823,7 +829,6 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 //Renamed this proc. Previously was cock()
 //This is for manually cycling the chamber through racking the slide, pulling the bolt, pumping a shotgun, etc.
 //You can override this for unique behavior. You want to generally assign this to unique_action() if the gun category uses this proc.
-
 /obj/item/weapon/gun/proc/cycle_chamber(mob/user)
 	if(flags_gun_features & GUN_UNUSUAL_DESIGN || flags_gun_toggles & GUN_BURST_FIRING)
 		return
@@ -842,7 +847,7 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		user.visible_message(SPAN_NOTICE("[user] cocks [src]."),
 		SPAN_NOTICE("You cock [src]."), null, 4, CHAT_TYPE_COMBAT_ACTION)
 
-	ready_in_chamber() //This will already check for everything else, loading the next bullet.
+	ready_in_chamber(user) //This will already check for everything else, loading the next bullet.
 	display_ammo(user, TRUE, parent_proc = "cycle_chamber()")
 
 //More gooder now.
@@ -873,34 +878,36 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		if(!casing) //No casing on the ground?
 			casing = new new_casing(current_turf)
 			num_of_casings--
-			playsound(current_turf, sound_to_play, vol = rand(10,15), vary = TRUE, sound_range = 5) //Played again if necessary.
+			playsound(current_turf, sound_to_play, rand(15,20), TRUE, 5) //Played again if necessary.
 		if(num_of_casings) //Still have some.
 			casing.current_casings += num_of_casings
 			casing.update_icon()
-			playsound(current_turf, sound_to_play, vol = rand(10,15), vary = TRUE, sound_range = 5)
+			playsound(current_turf, sound_to_play, rand(15,20), TRUE, 5)
 
 //----------------------------------------------------------
+			// 							     \\
 			// 							     \\
 			// 	ABLE TO FIRE AND CHAMBERING  \\
 			// 								 \\
 			// 								 \\
 //----------------------------------------------------------
 
+//Do not call this through a child proc with ..(). Use check_additional_able_to_fire() for extra sanity checking. It fires in the middle of the main proc.
+//This proc should return TRUE or FALSE. returning null is fine, but for clarity FALSE is preferred.
 /obj/item/weapon/gun/proc/able_to_fire(mob/user)
-
 	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return TRUE
 	if(user.is_mob_incapacitated())
-		return
+		return FALSE
 	if(world.time < guaranteed_delay_time)
-		return
+		return FALSE
 	if((world.time < wield_time || world.time < pull_time) && (delay_style & WEAPON_DELAY_NO_FIRE > 0))
-		return //We just put the gun up. Can't do it that fast
+		return FALSE//We just put the gun up. Can't do it that fast
 
-	if(ismob(user)) //Could be an object firing the gun.
+	if(ismob(user)) //Could be an object firing the gun. They default to TRUE.
 		if(!user.IsAdvancedToolUser())
 			to_chat(user, SPAN_WARNING("You don't have the dexterity to do this!"))
-			return
+			return FALSE
 
 		if(ishuman(user))
 			var/mob/living/carbon/human/H = user
@@ -909,22 +916,28 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 					to_chat(user, SPAN_WARNING("Your programming does not allow you to use firearms."))
 				else
 					to_chat(user, SPAN_WARNING("You are unable to use firearms."))
-				return
+				return FALSE
 
-		if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON) //Not checking for GUN_NO_SAFETY_SWITCH since you wouldn't be able to turn on the safety flag. Save some processing.
+		if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
 			to_chat(user, SPAN_WARNING("The safety is on!"))
-			return
+			return FALSE
+
 		if(active_attachable)
 			if(active_attachable.flags_attach_features & ATTACH_PROJECTILE)
 				if(!(active_attachable.flags_attach_features & ATTACH_WIELD_OVERRIDE) && !(flags_item & WIELDED))
 					to_chat(user, SPAN_WARNING("You must wield [src] to fire [active_attachable]!"))
-					return
+					return FALSE
+
 		if((flags_gun_features & GUN_WIELDED_FIRING_ONLY) && !(flags_item & WIELDED) && !active_attachable) //If we're not holding the weapon with both hands when we should.
 			to_chat(user, SPAN_WARNING("You need a more secure grip to fire this weapon!"))
-			return
+			return FALSE
 
 		if((flags_gun_features & GUN_WY_RESTRICTED) && !wy_allowed_check(user))
-			return
+			return FALSE
+
+		//Anything else goes here.
+		if(!check_additional_able_to_fire(user))
+			return FALSE
 
 		//Has to be on the bottom of the stack to prevent delay when failing to fire the weapon for the first time.
 		//Can also set last_fired through New(), but honestly there's not much point to it.
@@ -933,17 +946,12 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		if(fa_firing)
 			return TRUE
 
-		var/next_shot
-
-		if(active_attachable) //Underbarrel attached weapon?
-			next_shot += active_attachable.last_fired + active_attachable.attachment_firing_delay
-		else //Normal fire.
-			next_shot += last_fired + fire_delay
+		var/next_shot = active_attachable ? active_attachable.last_fired + active_attachable.attachment_firing_delay : last_fired + fire_delay //Normal fire if not attachaed fire.
 
 		if(world.time >= next_shot + extra_delay) //check the last time it was fired.
 			extra_delay = 0
 		else if(!PB_burst_bullets_fired) //Special delay exemption for handed-off PB bursts. It's the same burst, after all.
-			return
+			return FALSE
 
 		if(fire_delay_group)
 			for(var/group in fire_delay_group)
@@ -959,14 +967,18 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 							user.fire_delay_next_fire -= cycled_gun
 							continue
 
-						return
+						return FALSE
 
 	return TRUE
 
-/obj/item/weapon/gun/proc/load_into_chamber(mob/user) //Override for if you need the gun to manually cock if there is nothing chambered.
-	//The workhorse of the bullet procs.
+//Append this for a child object for additional sanity checking. Start with . = ..() and then return FALSE if the check fails.
+/obj/item/weapon/gun/proc/check_additional_able_to_fire(mob/user)
+	return TRUE
+
+//Return null if doesn't find anything.
+/obj/item/weapon/gun/proc/load_into_chamber(mob/user)
 	//If we have a round chambered and no active attachable, we're good to go.
-	if(in_chamber && !active_attachable)
+	if(in_chamber && !active_attachable && !(flags_gun_receiver & GUN_CHAMBER_IS_STATIC)) //Static in_chamber will still process.
 		return in_chamber //Already set!
 
 	//Let's check on the active attachable. It loads ammo on the go, so it never chambers anything
@@ -995,19 +1007,20 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 			playsound(user, active_attachable.activation_sound, 15, 1)
 			active_attachable.activate_attachment(src, null, TRUE)
 	else if( !(flags_gun_receiver & GUN_CHAMBERED_CYCLE) ) //If we want the gun to only use in_chamber to fire, we can't allow it to load here.
-		ready_in_chamber()//We can load as normal otherwise.
+		return ready_in_chamber(user)//Otherwise we try to load it as normal and return the result.
 
-/obj/item/weapon/gun/proc/ready_in_chamber()
-	if(current_mag && current_mag.current_rounds > 0)
-		current_mag.current_rounds-- //Subtract the round from the mag.
+//This actually places the ammo in the chamber, through in_chamber.
+//Override this for specific behavior instead of adding to it. That should make sure guns have the most compatability and can still run speedy like.
+/obj/item/weapon/gun/proc/ready_in_chamber(mob/user)
+	if(current_mag && current_mag.current_rounds > 0) //Check for mag since it may not be present.
+		current_mag.current_rounds-- //Subtract a round from the mag.
 		in_chamber = GLOB.ammo_list[current_mag.default_ammo]
 		return in_chamber
-
 
 //----------------------------------------------------------
 		//   									\\
 		//   									\\
-		// FIRE BULLET AND POINT BLANK/SUICIDE 	\\
+		// 		FIRE BULLET AND HANDLE FIRE	  	\\
 		//    									\\
 		//    									\\
 //----------------------------------------------------------
@@ -1062,7 +1075,6 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		return fire_return
 
 	flags_gun_toggles &= ~GUN_BURST_FIRING // We always want to turn off bursting when we're done, mainly for when we break early mid-burstfire.
-	//display_ammo(user, parent_proc = "Fire()")
 
 	return AUTOFIRE_CONTINUE
 
@@ -1075,18 +1087,18 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 	if(loc != user || (flags_gun_features & GUN_WIELDED_FIRING_ONLY && !(flags_item & WIELDED)))
 		return TRUE
 
-	load_into_chamber(user) //Load an ammo datum or check for existing one.
-	if(!in_chamber) //If there is nothing to load, click.
+	if(!load_into_chamber(user)) //Load an ammo datum or check for existing one.
 		click_empty(user)
 		flags_gun_toggles &= ~GUN_BURST_FIRING
 		return NONE
 
-	//Unlike the previous iteration of the system, here we make the bullet during the fire cycle only.
+	//Unlike the previous iteration of the system, here we make a projectile when the gun actually fires.
+	//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 	var/obj/projectile/projectile_to_fire = create_bullet(in_chamber, initial(name))
 	apply_traits(projectile_to_fire)
-
 	apply_bullet_effects(projectile_to_fire, user, reflex, dual_wield) //User can be passed as null.
 	SEND_SIGNAL(projectile_to_fire, COMSIG_BULLET_USER_EFFECTS, user)
+	//===================================================================================================
 
 	curloc = get_turf(user)
 	if(QDELETED(original_target)) //If the target's destroyed, shoot at where it was last.
@@ -1130,9 +1142,11 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 
 		//This is where the projectile leaves the barrel and deals with projectile code only.
 		//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
 		INVOKE_ASYNC(projectile_to_fire, TYPE_PROC_REF(/obj/projectile, fire_at), target, user, src, projectile_to_fire?.ammo?.max_range, bullet_velocity, original_target)
-		projectile_to_fire = null // Important: firing might have made projectile collide early and ALREADY have deleted it. We clear it too.
+		//IMPORTANT NOTE: we want to null this variable only if in_chamber is not static, and only here. If the system is working correctly, we won't have to reset it again.
+		if( !(flags_gun_receiver & GUN_CHAMBER_IS_STATIC) ) in_chamber = null
+		// IMPORTANT NOTE: firing might have made projectile collide early and ALREADY have deleted it. We clear it too.
+		projectile_to_fire = null
 		//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 		if(check_for_attachment_fire)
@@ -1154,7 +1168,10 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 				if(DUAL_WIELD_SWAP)
 					user.swap_hand()
 
-	else
+	else //If ended up not firing anything, we need to clean up the created projectile.
+		qdel(projectile_to_fire)
+		to_chat(user, "Fired at yourself. Dummy.")
+		log_debug("Projectile malfunctioned while firing. User: <b>[user]</b> Weapon: <b>[src]</b> Magazine: <b>[current_mag]</b>")
 		return TRUE
 
 	//>>POST PROCESSING AND CLEANUP BEGIN HERE.<<
@@ -1167,6 +1184,14 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		return TRUE //Nothing else to do here, time to cancel out.
 	return TRUE
 
+//----------------------------------------------------------
+				// 							\\
+				// 							\\
+				// POINTBLANKING & ATTACK   \\
+				// 							\\
+				// 							\\
+//----------------------------------------------------------
+
 #define EXECUTION_CHECK (attacked_mob.stat == UNCONSCIOUS || attacked_mob.is_mob_restrained()) && ((user.a_intent == INTENT_GRAB)||(user.a_intent == INTENT_DISARM))
 
 /obj/item/weapon/gun/afterattack(atom/target, mob/user, proximity_flag, click_parameters)
@@ -1178,6 +1203,7 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		active_attachable.fire_attachment(target, src, user)
 		return TRUE
 
+//This is a maze of code.
 /obj/item/weapon/gun/attack(mob/living/attacked_mob, mob/living/user, dual_wield)
 	if(active_attachable && (active_attachable.flags_attach_features & ATTACH_MELEE)) //this is expected to do something in melee.
 		active_attachable.last_fired = world.time
@@ -1209,10 +1235,13 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		if(active_attachable && !(active_attachable.flags_attach_features & ATTACH_PROJECTILE))
 			active_attachable.activate_attachment(src, null, TRUE)//We're not firing off a nade into our mouth.
 
-		load_into_chamber(user)
-		if(in_chamber) //We actually have an ammo datum to fire.
+		if(load_into_chamber(user)) //We actually have an ammo datum to fire. Make a projectile.
+			//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			var/obj/projectile/projectile_to_fire = create_bullet(in_chamber, initial(name))
 			apply_traits(projectile_to_fire)
+			if( !(flags_gun_receiver & GUN_CHAMBER_IS_STATIC) ) in_chamber = null
+			//No bullet effects.
+			//===================================================================================================
 
 			user.visible_message(SPAN_WARNING("[user] pulls the trigger!"))
 			var/actual_sound
@@ -1321,8 +1350,15 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		if(QDELETED(attacked_mob)) //Target deceased.
 			break
 
-		var/obj/projectile/projectile_to_fire = load_into_chamber(user)
-		if(!projectile_to_fire)
+		var/obj/projectile/projectile_to_fire
+		if(load_into_chamber(user)) //We actually have an ammo datum to fire. Make a projectile.
+			//vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+			projectile_to_fire = create_bullet(in_chamber, initial(name))
+			apply_traits(projectile_to_fire)
+			if( !(flags_gun_receiver & GUN_CHAMBER_IS_STATIC) ) in_chamber = null
+			//No bullet effects.
+			//===================================================================================================
+		else
 			click_empty(user)
 			break
 
@@ -1428,50 +1464,6 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 
 #undef EXECUTION_CHECK
 
-/obj/item/weapon/gun/proc/create_bullet(datum/ammo/chambered, bullet_source)
-	if(!chambered)
-		to_chat(usr, "Something has gone horribly wrong. Ahelp the following: ERROR CODE I2: null ammo while create_bullet()")
-		log_debug("ERROR CODE I2: null ammo while create_bullet(). User: <b>[usr]</b> Weapon: <b>[src]</b> Magazine: <b>[current_mag]</b>")
-		chambered = GLOB.ammo_list[/datum/ammo/bullet] //Slap on a default bullet if somehow ammo wasn't passed.
-
-	var/weapon_source_mob = null
-	if(isliving(loc))
-		var/mob/M = loc
-		weapon_source_mob = M
-
-	var/obj/projectile/P = new projectile_type(src, create_cause_data(bullet_source, weapon_source_mob))
-	P.generate_bullet(chambered, 0, NO_FLAGS)
-
-	return P
-
-/obj/item/weapon/gun/proc/apply_traits(obj/projectile/P)
-	// Apply bullet traits from gun
-	for(var/entry in traits_to_give)
-		var/list/L
-		// Check if this is an ID'd bullet trait
-		if(istext(entry))
-			L = traits_to_give[entry].Copy()
-		else
-			// Prepend the bullet trait to the list
-			L = list(entry) + traits_to_give[entry]
-		P.apply_bullet_trait(L)
-
-	// Apply bullet traits from attachments
-	for(var/slot in attachments)
-		if(!attachments[slot])
-			continue
-
-		var/obj/item/attachable/AT = attachments[slot]
-		for(var/entry in AT.traits_to_give)
-			var/list/L
-			// Check if this is an ID'd bullet trait
-			if(istext(entry))
-				L = AT.traits_to_give[entry].Copy()
-			else
-				// Prepend the bullet trait to the list
-				L = list(entry) + AT.traits_to_give[entry]
-			P.apply_bullet_trait(L)
-
 //----------------------------------------------------------
 				// 							\\
 				// AFTER FIRE AND CLEANUP   \\
@@ -1493,12 +1485,9 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		if(!(flags_gun_receiver & GUN_MANUAL_CYCLE)) //If you manually cycle, you will drop the casing next cock/whatever it uses instead.
 			make_casing(projectile_casing) // Drop a casing if needed.
 
-		//IMPORTANT TO RESET THIS HERE
-		in_chamber = null //If we didn't fire from attachable, reset this for the next pass.
-		//^^^^^^^^^^^^^^^^
-
 		if(current_mag) //If there is no mag, we can't reload.
-			if(!(flags_gun_receiver & GUN_MANUAL_CYCLE)) ready_in_chamber() //If the weapon requires manual cocking each fire cycle, we don't prepare the next bullet to fire.
+			if(!(flags_gun_receiver & GUN_MANUAL_CYCLE)) //If the weapon requires manual cocking each fire cycle, we don't prepare the next bullet to fire.
+				ready_in_chamber(user)
 
 			// This is where the magazine is auto-ejected
 			if(current_mag.current_rounds <= 0 && flags_gun_features & GUN_AUTO_EJECTOR && !(flags_gun_toggles & GUN_AUTO_EJECTING_OFF))
@@ -1523,7 +1512,7 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 		qdel(projectile_to_fire) //Getting rid of it. Attachables only use ammo after the cycle is over.
 		if(refund)
 			active_attachable.current_rounds++ //Refund the bullet.
-		return 1
+		return TRUE
 
 /obj/item/weapon/gun/proc/clear_jam(obj/projectile/projectile_to_fire, mob/user as mob) //Guns jamming, great.
 	flags_gun_toggles &= ~GUN_BURST_FIRING // Also want to turn off bursting, in case that was on. It probably was.
@@ -1539,14 +1528,6 @@ User can be passed as null, (a gun reloading itself for instance), so we need to
 				// 							\\
 				// 							\\
 //----------------------------------------------------------
-
-/**Returns TRUE if the weapon is loaded. Separate proc because there's no single way to check this for all weapons: chamber isn't always loaded,
-not all weapons use normal magazines etc. load_into_chamber() itself is designed to be called immediately before firing, and isn't suitable.**/
-/obj/item/weapon/gun/proc/has_ammunition()
-	if(in_chamber)
-		return TRUE //Chambered round.
-	if(current_mag?.current_rounds > 0)
-		return TRUE //Loaded magazine.
 
 /obj/item/weapon/gun/proc/click_empty(mob/user)
 	if(user)
@@ -1566,16 +1547,14 @@ not all weapons use normal magazines etc. load_into_chamber() itself is designed
 		return //Potentially not care about this at all since guns won't get to this proc in the cycle. Comment out and test later.
 		//Currently override is set to everything but the fire cycle itself.
 
-	if(!user) user = gun_user
-
 	user.visible_message(SPAN_NOTICE("DEBUG: TRIGGERED AMMO COUNTER CALL! Parent proc is: [parent_proc]"))
 
-	if(flags_gun_features & GUN_AMMO_COUNTER && displaying_ammo) //displaying_ammo may not be necessary.
+	if(flags_gun_features & GUN_AMMO_COUNTER)
 		var/total_ammo_remaining = ammo_remaining_override ? ammo_remaining_override  :  (current_mag ? current_mag.current_rounds : 0) + (in_chamber ? 1 : 0)
 
 		//ideally we want to do stuff only when we need to. So there's one switch followed by potentially two ifs and some list functions.
 		switch(total_ammo_remaining)
-			if(999 to INFINITY) //Super basic for now.
+			if(999 to INFINITY) //Super basic for now. Anything in the list will stay there.
 				ammo_counter_tracker["single"] = ammo_counter.digits["9"]
 				ammo_counter_tracker["ten"] = ammo_counter.digits["90"]
 				ammo_counter_tracker["hundred"] = ammo_counter.digits["900"]
@@ -1583,7 +1562,7 @@ not all weapons use normal magazines etc. load_into_chamber() itself is designed
 				vis_contents += ammo_counter.digits["90"]
 				vis_contents += ammo_counter.digits["900"]
 
-			if(100 to 998) //Probably need to cut this down for smarties.
+			if(100 to 998) //Three numbers.
 				var/hundred = round(total_ammo_remaining/100) * 100
 				var/tens = round( (total_ammo_remaining - hundred)/10 ) * 10
 				var/tens_string = tens == 0 ? "00" : "[tens]" // If it's zero, the icon won't be retrieved properly.
@@ -1603,7 +1582,7 @@ not all weapons use normal magazines etc. load_into_chamber() itself is designed
 					vis_contents += ammo_counter.digits["[hundred]"]
 					ammo_counter_tracker["hundred"] = ammo_counter.digits["[hundred]"]
 
-			if(10 to 99)
+			if(10 to 99) //Two numbers. This is the most likely scenario.
 				var/tens = round(total_ammo_remaining/10) * 10
 
 				vis_contents -= ammo_counter_tracker["single"]
@@ -1620,7 +1599,7 @@ not all weapons use normal magazines etc. load_into_chamber() itself is designed
 					vis_contents += ammo_counter.digits["000"]
 					ammo_counter_tracker["hundred"] = ammo_counter.digits["000"]
 
-			if(1 to 9)
+			if(0 to 9) //One number.
 				vis_contents -= ammo_counter_tracker["single"]
 				vis_contents += ammo_counter.digits["[total_ammo_remaining]"]
 				ammo_counter_tracker["single"] = ammo_counter.digits["[total_ammo_remaining]"]
@@ -1635,23 +1614,47 @@ not all weapons use normal magazines etc. load_into_chamber() itself is designed
 					vis_contents += ammo_counter.digits["000"]
 					ammo_counter_tracker["hundred"] = ammo_counter.digits["000"]
 
-			if(0)
-				vis_contents -= ammo_counter_tracker["single"]
-				vis_contents += ammo_counter.digits["0"]
-				ammo_counter_tracker["single"] = ammo_counter.digits["0"]
 
+/obj/item/weapon/gun/proc/create_bullet(datum/ammo/chambered, bullet_source)
+	if(!istype(chambered))
+		to_chat(usr, "Something has gone horribly wrong. Ahelp the following: ERROR CODE I2: null ammo or wrong type while create_bullet()")
+		log_debug("ERROR CODE I2: null ammo while create_bullet(). User: <b>[usr]</b> Weapon: <b>[src]</b> Magazine: <b>[current_mag]</b>")
+		chambered = GLOB.ammo_list[/datum/ammo/bullet] //Slap on a default bullet if somehow ammo wasn't passed.
 
-				if( !(ammo_counter.digits["00"] in vis_contents) )
-					vis_contents -= ammo_counter_tracker["ten"]
-					vis_contents += ammo_counter.digits["00"]
-					ammo_counter_tracker["ten"] = ammo_counter.digits["00"]
+	var/weapon_source_mob = isliving(loc) ? loc : null
 
+	var/obj/projectile/P = new projectile_type(src, create_cause_data(bullet_source, weapon_source_mob))
+	P.generate_bullet(chambered, 0, NO_FLAGS)
 
-				if( !(ammo_counter.digits["000"] in vis_contents) )
-					vis_contents -= ammo_counter_tracker["hundred"]
-					vis_contents += ammo_counter.digits["000"]
-					ammo_counter_tracker["hundred"] = ammo_counter.digits["000"]
+	return P
 
+/obj/item/weapon/gun/proc/apply_traits(obj/projectile/P)
+	// Apply bullet traits from gun
+	var/list/L
+	for(var/entry in traits_to_give)
+		// Check if this is an ID'd bullet trait
+		if(istext(entry))
+			L = traits_to_give[entry].Copy()
+		else
+			// Prepend the bullet trait to the list
+			L = list(entry) + traits_to_give[entry]
+		P.apply_bullet_trait(L)
+
+	// Apply bullet traits from attachments
+	var/obj/item/attachable/AT
+	for(var/slot in attachments)
+		if(!attachments[slot])
+			continue
+
+		AT = attachments[slot]
+		for(var/entry in AT.traits_to_give)
+			// Check if this is an ID'd bullet trait
+			if(istext(entry))
+				L = AT.traits_to_give[entry].Copy()
+			else
+				// Prepend the bullet trait to the list
+				L = list(entry) + AT.traits_to_give[entry]
+			P.apply_bullet_trait(L)
 
 //This proc applies some bonus effects to the shot/makes the message when a bullet is actually fired.
 /obj/item/weapon/gun/proc/apply_bullet_effects(obj/projectile/projectile_to_fire, mob/user, reflex = 0, dual_wield = 0)

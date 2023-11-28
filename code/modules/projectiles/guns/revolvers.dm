@@ -193,22 +193,22 @@
 		current_mag.used_casings = 0 //Always dump out everything.
 		return TRUE
 
-/obj/item/weapon/gun/revolver/able_to_fire(mob/user)
+/obj/item/weapon/gun/revolver/check_additional_able_to_fire(mob/user)
 	. = ..()
-	if(. && istype(user) && current_mag && !current_mag.chamber_closed)
+
+	if(!current_mag.chamber_closed)
 		to_chat(user, SPAN_WARNING("Close the cylinder!"))
 		playsound(user, pick(cylinder_click), 25, 1, 5)
 		return FALSE
 
 /obj/item/weapon/gun/revolver/ready_in_chamber()
-	if(current_mag && length(current_mag.chamber_contents))
-		if(current_mag.current_rounds > 0)
-			if(current_mag.chamber_contents[current_mag.chamber_position]) //If it's not null.
-				in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
-				current_mag.current_rounds-- //Subtract the round from the mag.
-				return in_chamber
-		else if(current_mag.chamber_closed)
-			unload(null)
+	if(current_mag.current_rounds > 0)
+		if(current_mag.chamber_contents[current_mag.chamber_position]) //If it's not null.
+			in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
+			current_mag.current_rounds-- //Subtract the round from the mag.
+			return in_chamber
+	else if(current_mag.chamber_closed)
+		unload(null)
 
 /obj/item/weapon/gun/revolver/load_into_chamber(mob/user)
 	if(ready_in_chamber())
@@ -372,12 +372,12 @@
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
 
-/obj/item/weapon/gun/revolver/m44/able_to_fire(mob/user)
-	if (folded)
+/obj/item/weapon/gun/revolver/m44/check_additional_able_to_fire(mob/user)
+	. = ..()
+
+	if(folded)
 		to_chat(user, SPAN_NOTICE("You need to unfold the stock to fire!"))//this is stupid
-		return 0
-	else
-		return ..()
+		return FALSE
 
 /obj/item/weapon/gun/revolver/m44/mp //No differences (yet) beside spawning with marksman ammo loaded
 	current_mag = /obj/item/ammo_magazine/internal/revolver/m44/marksman

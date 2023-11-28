@@ -5,7 +5,7 @@ ERROR CODES AND WHAT THEY MEAN:
 ERROR CODE A1: null ammo while reloading. <------------ Only appears when initialising or reloading a weapon and switching the ammo. Somehow the argument passed a null ammo.
 ERROR CODE A2: null caliber while reloading. <------------ Only appears when initialising or reloading a weapon and switching the calibre. Somehow the argument passed a null caliber.
 ERROR CODE I1: projectile malfunctioned while firing. <------------ Right before the bullet is fired, the actual bullet isn't present or isn't a bullet.
-ERROR CODE I2: null ammo while load_into_chamber() <------------- Somehow the ammo datum is missing or something. We need to figure out how that happened.
+ERROR CODE I2: null ammo or incorrect with create_bullet <------------- Somehow the ammo datum is missing or something. We need to figure out how that happened.
 ERROR CODE R1: negative current_rounds on examine. <------------ Applies to ammunition only. Ammunition should never have negative rounds after spawn.
 
 DEFINES in conflict.dm, referenced here.
@@ -80,7 +80,7 @@ DEFINES in conflict.dm, referenced here.
 	loaded, the bullets don't just appear in the chamber somehow. It's a mechanical process. So instead, you have to do some
 	physical action, like pulling a pistol's slide or a rifle's bolt, to manually chamber the first round. Most guns will take
 	over the chamber feeding procedure automatically after that first round is loaded manually. They do this in a variety of ways
-	that don't really matter. The firing process then goes like this: Some kind of mechanical force is applied to the
+	that don't really matter. The firing process then goes like this: When the trigger is pulled, some kind of mechanical force is applied to the
 	propellant in the bullet, causing it to shoot out of the chamber, through the barrel, and toward its destination. The gun
 	then uses the recoil, or some other way, to eject the empty casing from the last bullet and push the next bullet in the
 	magazine into the chamber so it's ready to fire again.
@@ -94,33 +94,35 @@ DEFINES in conflict.dm, referenced here.
 	guns don't need to be cocked to fire when first loading. It's the default behavior, as though your character is doing it
 	manually. Think of it as if you're cocking the gun after a reload, but done automatically.
 
-	Note: This was recently changed so that you need at least basic firearm skill to auto-cock your weapon after a reload.
-	If you don't have basic fire arms skill, SMGs, semi-auto shotguns, rifles, and pistols will require cocking to fire after a
-	reloading with nothing chambered.
-
 	cycle_chamber() is the manual command to do the above. Since the gun is usually auto-cocked, this only cycles the chambered round out
-	and replaces it with another round, which is more or less expected behavior.
+	and replaces it with another round, which is more or less expected behavior. If there is nothing in the chamber, it would
+	put something in the chamber. Speaking of the chamber, it's controlled by in_chamber, a very important variable.
 
-	Let's go over the firing process in the code then. It goes something like this:
-	able_to_fire() ---->  load_into_chamber() ----> ready_in_chamber() ----> fire() ----> reload_into_chamber()
+	Projectiles in now created when the gun is being fired, and consequently in_chamber is a reference to an ammo datum that stores
+	information about the projectile. It should never be deleted, and nulling it should only be done when the projectile leaves
+	the gun to do its own thing.
 
-	You check if the gun is even able to fire first, then you need a bullet to fire. able_to_fire() checks for a bunch of
+	Let's go over the firing process in the code then. It goes something like this with Fire() and other related procs:
+	able_to_fire() ---->  load_into_chamber() ----> ready_in_chamber() ----> projectile stuff ----> reload_into_chamber()
+
+	You check if the gun is able to fire first, then you need a bullet to fire. able_to_fire() checks for a bunch of
 	stuff, but most of it has nothing to do with the actual process of the gun firing a bullet.
 
-	During load_into_chamber() It also looks for things like attachments to see if they are the ones that are being fired..
+	During load_into_chamber() it also checks for things like attachments to see if they are the ones that are being fired..
 	What's in the chamber is tracked through var/in_chamber and is a reference to the ammo datum the gun will use to create
 	a projectile later. This information is retrieved through the magazine of the gun, which is in itself a reference
-	to some bullet datum.
+	to some bullet datum path [default_ammo].
 
 	IMPORTANT: The default behavior is the gun will attempt to fire regardless if there is anything in the chamber or not. If it doesn't
-	have something in the chamber, the gun will attempt to make something. You can override this behavior.
+	have something in the chamber, the gun will attempt to make something. You can override this behavior with various flags.
 
-	Most CM guns used to auto-cock as a convenience, but I've tweaked that behavior. The default is still not to require it,
+	Most CM guns used to auto-cock as a convenience, but I've tweaked that behavior. The default is still not to require it.
+	Your character will auto-cock if they have basic firearms skills, which almost all of them do.
 	You can see a little more advanced examples of how this can be changed in boltaction.dm, where the chamber must be cycled
 	each individual fire and on reload.
 
 	ready_in_chamber() prepares the actual in_chamber to be referenced. Think of this as loading the actual bullet.
-	So then the gun will attempt to actually fire something with Fire(). This goes through some checks for bursting/pointblanking
+	So then the gun will attempt to actually fire some projectil. This goes through some checks for bursting/pointblanking
 	and so on. If the gun fires successfully, it will try to chamber the next round (this behavior can be changed), with
 	reload_into_chamber(). And if the gun is automatic or bursting, it will continue to fire again. reload_into_chamber()
 	is also where empty casings are created. This can be changed if the gun only creates casings when cocked. reload_into_chamber()
@@ -131,7 +133,54 @@ DEFINES in conflict.dm, referenced here.
 	they can remain in auto-fire, but you generally don't need to worry about how all that works. Understanding the basic gun
 	process should account for most of your needs.
 
+	It's important that load_into_chamber() and reload_into_chamber() don't get overrides as they handle a lot of the secondary behavior of
+	the gun. It's best to make other procs work with them.  ready_in_chamber(), however, should be overriden for any specific behavior.
+	It serves to check for resources necessary to fire, subtract them, and then return an ammo datum based on some condition.
+
 	///////////////////////////////////////////
+
+	Q&A and Design Principles
+
+	Q: Why do guns have magazines in them? Can they work without them?
+	A: Yes, they can work without them, but having a magazine cuts down on a lot of uncertainty. It also means you don't need to track
+	some variables through the gun itself. Since individual bullets are themselves magazines, it's more convenient to keep the magazine
+	in the gun rather than ditch it. A magazine would also need somewhere to go if it's inserted into a gun but not kept.
+
+	Q: Why are there so many override procs for different behavior? Isn't it better and more robust for guns to have a main proc that handles
+	all of the edge cases?
+	A: Not really. First, a large proc that handles all edge cases will take longer to run as it has more to conditions to check. Since bullets
+	are fired constantly, this is less efficient and slows down the process. Second, if everything is wrapped in a host process, it makes
+	understanding how it works a lot more difficult. The more complex a proc is, the harder it's going to be change it. At the same time,
+	you shouldn't make helper procs for absolutely everything as proc calls are a factor in the overall computation. Negligible, but it exists.
+
+	Q: Why do guns use ammo datum references for in_chamber and not make the actual projectile then and there?
+	A: That's how it used to work. It was changed because creating objects keeps them in memory, and their variables, and there is no actual reason
+	to keep unnecessary objects in memory when it can be avoided with no downsides. Ammo datums are largely how the system functions in terms of
+	projectile effects, so using them as a reference for the bullet until a bullet is actually needed is the better way to go.
+
+	Q: I'm making a gun, what type path should I use?
+	A: Usually you want the pathing that makes the most real-world sense. If it's some kind of rifle, make it a child of gun/rifle. If it's a
+	handgun that shoot monkeys, you could place it under handguns. Leave unique things in their own category if you really feel your firearm is
+	unlike anything else in the game. If you find that all of the functions are already present in another category, that may be worthwhile instead.
+
+	Q: Why are there so many bitflags and why are there three different bitflags for guns?
+	A: Most of the bitflags provide some functionality or another. The reason there are three categories is that BYOND cannot handle bitfields after
+	24 bitflags are set. But more importantly, there were so many flags it was important to keep them organized in different categories that all
+	provided unique functionality. Using bitflags over variables when possible is also preferable to cut down on variable memory as variables are
+	initiated for each isntance of the object in the world. The only downside is that bitflags cannot be used with switch().
+
+	Q: There is a lot of inconsistency in how the code is written. For example, src., return, spacing, and . = ..() aren't really consistent. What
+	gives?
+	A: The gun code was largely (re)written by one person, then it was changed by other people over some years. Not everyone knows the best and most
+	elegant ways of doing things, writing code, or even creating systems. This goes for code formatting. In general, it should be fine if the code is
+	legible and works well. Some simple conventions to keep in mind: declare your variables outside of for() or while() loops. return FALSE and
+	return TRUE whenever it actually matters, instead of . = TRUE / . = FALSE or just return. Use switch() when possible. If you have a parent
+	proc call, set it as such: . = ..(). src. of something is the atom/datum/whatever itself, so you can avoid using it. null and 0 are not the same thing.
+	FALSE and null are not the same either. If you want to check the absence of something, null is what you want. Also to point out, set null on /obj
+	variables instead of leaving them blank as it makes it easier to determine what may go into the variable field. var = FALSE / TRUE is also good for booleans.
+	It's fine and expected to leave temporary variables blank until you need them. Regular variable names should be descriptive. Temp variables, especially
+	those that iterated or referenced only a few times, can be shorthand letters or some such. If you have an important temp variable that you reference
+	several times throughout the proc, call it something one can remember.And very important, comment your code.
 
 	OLD NOTES
 
@@ -214,6 +263,37 @@ DEFINES in conflict.dm, referenced here.
 	If you want a silenced gun, attach a silencer to it on New() that cannot be removed.
 
 	~N
+
+Handle_fire
+Fire(), Attack() etc
+in_chamber is nulled when the bullet is fired, unless it's static.
+
+load_into_chamber()
+This functions to determine whether or not an attachable is used.
+It will return true if there is something in_chamber already without an attachable.
+Then if we are not using an attachable, and we don't have anything loaded, we use ready_in_chamber().
+ready_in_chamber() is only called when the gun isn't a chamber cycle. Meaning, it has to either be racked first to chamber,
+or it has to fire and then reload_into_chamber() a new ammo.
+
+Returns a projectile for attachemnts or an ammo datum for regular fire through ready_in_chamber(). Or null if unsuccessful.
+
+ready_in_chamber()
+If the gun uses static ammo via flag, it returns in_chamber as it never gets nulled.
+This subtracts ammo from the mag, if there is one, then return an ammo datum based on current_mag default ammo.
+
+Returns an ammo datum if successful.
+
+reload_into_chamber()
+Will check for attachable casings first, if possible. Then will try to see if it needs to make a casing for the main gun.
+If it's a manual cycle gun, it won't attempt it.
+If it detects a mag it will attempt to ready_in_chamber().
+Then handles the mag dropping out with auto-ejector after checking for ammo count. I need to come back to this later.
+Will then try to display ammo.
+Returns true for any static in_chamber weapons.
+
+create_bullet() is usually followed by apply_traits(). create_bullet() needs an ammo datum to work and returns the projectile.
+apply_traits() goes through a list of weapon traits to give to the bullet. Then it goes through different lists of all the
+attachments to give attachment traits to the projectile. Seems very ineffecient.
 
 	TODO:
 

@@ -54,15 +54,21 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		if(HAS_TRAIT_FROM_ONLY(src, TRAIT_GUN_LIGHT_DEACTIVATED, user))
 			force_light(on = TRUE)
 			REMOVE_TRAIT(src, TRAIT_GUN_LIGHT_DEACTIVATED, user)
+
+		if(flags_gun_features & GUN_AMMO_COUNTER) //Display ammo already checks for this, but this only runs when the weapon is equipped, not per shot.
+			vis_contents += ammo_counter.counter //And I don't want this to be an extra condition per shot.
+			display_ammo(user, TRUE)
+
+	else if(flags_gun_features & GUN_AMMO_COUNTER)
+		vis_contents -= ammo_counter.counter
+		for(var/i in ammo_counter_tracker)
+			vis_contents -= ammo_counter_tracker[i]
+			ammo_counter_tracker[i] = null
+
 	else
 		set_gun_user(null)
 		force_light(on = FALSE)
 		ADD_TRAIT(src, TRAIT_GUN_LIGHT_DEACTIVATED, user)
-
-	if(flags_gun_features & GUN_AMMO_COUNTER)
-		displaying_ammo = TRUE
-		vis_contents += ammo_counter.counter
-		display_ammo(user, TRUE, parent_proc = "equipped()")
 
 	return ..()
 
@@ -78,7 +84,6 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 			current_stock.activate_attachment(src, user, turn_off = TRUE)
 
 	if(flags_gun_features & GUN_AMMO_COUNTER)
-		displaying_ammo = FALSE
 		vis_contents -= ammo_counter.counter
 		for(var/i in ammo_counter_tracker)
 			vis_contents -= ammo_counter_tracker[i]
@@ -86,6 +91,21 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 
 	unwield(user)
 	set_gun_user(null)
+
+/obj/item/weapon/gun/pickup(mob/user)
+	..()
+
+	unwield(user)
+
+/obj/item/weapon/gun/on_enter_storage() //We do not want the ammo tracker showing in storage.
+	..()
+
+	if(flags_gun_features & GUN_AMMO_COUNTER)
+		vis_contents -= ammo_counter.counter
+		for(var/i in ammo_counter_tracker)
+			vis_contents -= ammo_counter_tracker[i]
+			ammo_counter_tracker[i] = null
+
 
 /obj/item/weapon/gun/wield(mob/living/user)
 	if(!(flags_item & TWOHANDED) || flags_item & WIELDED)
@@ -142,11 +162,6 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		attachment.activate_attachment(src, bearer)
 		return TRUE
 	return FALSE
-
-/obj/item/weapon/gun/pickup(mob/user)
-	..()
-
-	unwield(user)
 
 /obj/item/weapon/gun/proc/wy_allowed_check(mob/living/carbon/human/user)
 	if(CONFIG_GET(flag/remove_gun_restrictions))

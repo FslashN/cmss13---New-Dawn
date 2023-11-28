@@ -140,17 +140,17 @@
 	cylinder.handle_item_insertion(I, TRUE, user)
 
 
-/obj/item/weapon/gun/launcher/grenade/able_to_fire(mob/living/user) //Skillchecks and fire blockers go in the child items.
+/obj/item/weapon/gun/launcher/grenade/check_additional_able_to_fire(mob/living/user) //Skillchecks and fire blockers go in the child items.
 	. = ..()
-	if(.)
-		if(!length(cylinder.contents))
-			to_chat(user, SPAN_WARNING("The [name] is empty."))
-			return FALSE
-		var/obj/item/explosive/grenade/G = cylinder.contents[1]
-		if(G.antigrief_protection && user.faction == FACTION_MARINE && explosive_antigrief_check(G, user))
-			to_chat(user, SPAN_WARNING("\The [name]'s safe-area accident inhibitor prevents you from firing!"))
-			msg_admin_niche("[key_name(user)] attempted to prime \a [G.name] in [get_area(src)] [ADMIN_JMP(src.loc)]")
-			return FALSE
+
+	if(!length(cylinder.contents))
+		to_chat(user, SPAN_WARNING("The [name] is empty."))
+		return FALSE
+	var/obj/item/explosive/grenade/G = cylinder.contents[1]
+	if(G.antigrief_protection && user.faction == FACTION_MARINE && explosive_antigrief_check(G, user))
+		to_chat(user, SPAN_WARNING("\The [name]'s safe-area accident inhibitor prevents you from firing!"))
+		msg_admin_niche("[key_name(user)] attempted to prime \a [G.name] in [get_area(src)] [ADMIN_JMP(src.loc)]")
+		return FALSE
 
 
 /obj/item/weapon/gun/launcher/grenade/afterattack(atom/target, mob/user, flag) //Not actually after the attack. After click, more like.
@@ -207,10 +207,6 @@
 	return
 /obj/item/weapon/gun/launcher/grenade/reload_into_chamber()
 	return
-
-/obj/item/weapon/gun/launcher/grenade/has_ammunition()
-	return length(cylinder.contents)
-
 //-------------------------------------------------------
 //Toggle firing level special action for grenade launchers
 
@@ -273,12 +269,12 @@
 	..()
 	set_fire_delay(FIRE_DELAY_TIER_4*4)
 
-/obj/item/weapon/gun/launcher/grenade/m92/able_to_fire(mob/living/user)
+/obj/item/weapon/gun/launcher/grenade/m92/check_additional_able_to_fire(mob/living/user)
 	. = ..()
-	if (. && istype(user))
-		if(!skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_GRENADIER)
-			to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
-			return FALSE
+
+	if(!skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_GRENADIER)
+		to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
+		return FALSE
 
 
 //-------------------------------------------------------
@@ -304,12 +300,12 @@
 	..()
 	playsound(usr, unload_sound, 30, 1)
 
-/obj/item/weapon/gun/launcher/grenade/m81/riot/able_to_fire(mob/living/user)
+/obj/item/weapon/gun/launcher/grenade/m81/riot/check_additional_able_to_fire(mob/living/user)
 	. = ..()
-	if (. && istype(user))
-		if(!skillcheck(user, SKILL_POLICE, SKILL_POLICE_SKILLED))
-			to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
-			return FALSE
+
+	if(!skillcheck(user, SKILL_POLICE, SKILL_POLICE_SKILLED))
+		to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
+		return FALSE
 
 
 /obj/item/weapon/gun/launcher/grenade/m81/riot

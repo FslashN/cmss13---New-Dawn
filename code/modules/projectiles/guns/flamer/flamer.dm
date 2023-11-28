@@ -89,11 +89,11 @@
 		I.pixel_x += nozzle && nozzle == active_attachable ? 6 : 1
 		overlays += I
 
-/obj/item/weapon/gun/flamer/able_to_fire(mob/user)
+/obj/item/weapon/gun/flamer/check_additional_able_to_fire(mob/user)
 	. = ..()
-	if(.)
-		if(!current_mag || !current_mag.current_rounds)
-			return NONE
+
+	if(!current_mag || !current_mag.current_rounds) //Can this be false? Todo: investigate.
+		return FALSE
 
 /obj/item/weapon/gun/flamer/proc/get_fire_sound()
 	var/list/fire_sounds = list(
@@ -339,15 +339,12 @@
 		return
 	..()
 
-/obj/item/weapon/gun/flamer/M240T/able_to_fire(mob/user)
+/obj/item/weapon/gun/flamer/M240T/check_additional_able_to_fire(mob/user)
 	. = ..()
-	if(.)
-		if(!current_mag || !current_mag.current_rounds)
-			return FALSE
 
-		if(!skillcheck(user, SKILL_SPEC_WEAPONS,  SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_PYRO)
-			to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-			return FALSE
+	if(!skillcheck(user, SKILL_SPEC_WEAPONS,  SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_PYRO)
+		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
+		return FALSE
 
 /obj/item/weapon/gun/flamer/M240T/proc/link_fuelpack(mob/user)
 	if (fuelpack)

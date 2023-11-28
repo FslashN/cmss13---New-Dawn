@@ -26,7 +26,6 @@
 	var/requires_battery = TRUE
 	/// Whether the smartgun requires a harness to use
 	var/requires_harness = TRUE
-	in_chamber = /datum/ammo/bullet/smartgun
 	actions_types = list(
 		/datum/action/item_action/smartgun/toggle_accuracy_improvement,
 		/datum/action/item_action/smartgun/toggle_ammo_type,
@@ -61,11 +60,11 @@
 
 
 /obj/item/weapon/gun/smartgun/Initialize(mapload, ...)
+	. = ..()
 	ammo_primary = GLOB.ammo_list[ammo_primary]
 	ammo_secondary = GLOB.ammo_list[ammo_secondary]
 	MD = new(src)
 	battery = new /obj/item/smartgun_battery(src)
-	. = ..()
 	update_icon()
 
 /obj/item/weapon/gun/smartgun/Destroy()
@@ -296,22 +295,22 @@
 
 //more general procs
 
-/obj/item/weapon/gun/smartgun/able_to_fire(mob/living/user)
+/obj/item/weapon/gun/smartgun/check_additional_able_to_fire(mob/living/user)
 	. = ..()
-	if(.)
-		if(!ishuman(user))
+
+	if(!ishuman(user))
+		return FALSE
+	var/mob/living/carbon/human/H = user
+	if(!skillcheckexplicit(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_SMARTGUN) && !skillcheckexplicit(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL))
+		to_chat(H, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
+		return FALSE
+	if(requires_harness)
+		if(!H.wear_suit || !(H.wear_suit.flags_inventory & SMARTGUN_HARNESS))
+			to_chat(H, SPAN_WARNING("You need a harness suit to be able to fire [src]..."))
 			return FALSE
-		var/mob/living/carbon/human/H = user
-		if(!skillcheckexplicit(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_SMARTGUN) && !skillcheckexplicit(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL))
-			to_chat(H, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
-			return FALSE
-		if(requires_harness)
-			if(!H.wear_suit || !(H.wear_suit.flags_inventory & SMARTGUN_HARNESS))
-				to_chat(H, SPAN_WARNING("You need a harness suit to be able to fire [src]..."))
-				return FALSE
-		if(cover_open)
-			to_chat(H, SPAN_WARNING("You can't fire \the [src] with the feed cover open! (alt-click to close)"))
-			return FALSE
+	if(cover_open)
+		to_chat(H, SPAN_WARNING("You can't fire \the [src] with the feed cover open! (alt-click to close)"))
+		return FALSE
 
 /obj/item/weapon/gun/smartgun/unique_action(mob/user)
 	if(isobserver(usr) || isxeno(usr))
@@ -357,7 +356,8 @@
 /obj/item/weapon/gun/smartgun/ready_in_chamber()
 	if(current_mag && current_mag.current_rounds > 0)
 		current_mag.current_rounds--
-		return flags_gun_toggles & GUN_SECONDARY_MODE_ON ? ammo_secondary : ammo_primary
+		in_chamber = flags_gun_toggles & GUN_SECONDARY_MODE_ON ? ammo_secondary : ammo_primary
+		return in_chamber
 
 /obj/item/weapon/gun/smartgun/proc/drain_battery(override_drain)
 
@@ -562,8 +562,9 @@
 	LAZYADD(actions_types, /datum/action/item_action/co_sg/toggle_id_lock)
 	. = ..()
 
-/obj/item/weapon/gun/smartgun/co/able_to_fire(mob/user)
+/obj/item/weapon/gun/smartgun/co/check_additional_able_to_fire(mob/user)
 	. = ..()
+
 	if(flags_gun_toggles & GUN_ID_LOCK_ON && linked_human && linked_human != user)
 		if(linked_human.is_revivable() || linked_human.stat != DEAD)
 			to_chat(user, SPAN_WARNING("[icon2html(src, usr)] Trigger locked by [src]. Unauthorized user."))

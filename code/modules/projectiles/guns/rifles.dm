@@ -544,8 +544,9 @@
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 	fa_max_scatter = SCATTER_AMOUNT_TIER_7
 
-/obj/item/weapon/gun/rifle/m46c/able_to_fire(mob/user)
+/obj/item/weapon/gun/rifle/m46c/check_additional_able_to_fire(mob/user)
 	. = ..()
+
 	if(flags_gun_toggles & GUN_ID_LOCK_ON && linked_human && linked_human != user)
 		if(linked_human.is_revivable() || linked_human.stat != DEAD)
 			to_chat(user, SPAN_WARNING("[icon2html(src, usr)] Trigger locked by [src]. Unauthorized user."))

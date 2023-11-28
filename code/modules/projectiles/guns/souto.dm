@@ -46,23 +46,21 @@
 	to_chat(user, SPAN_WARNING("You cannot unload the [src]."))
 	return
 
-/obj/item/weapon/gun/souto/able_to_fire(mob/user)
+/obj/item/weapon/gun/souto/check_additional_able_to_fire(mob/user)
 	. = ..()
-	if(.)
-		if(!current_mag || !current_mag.current_rounds)
-			return
-		if(!skillcheck(user, SKILL_SPEC_WEAPONS,  SKILL_SPEC_ALL))
-			to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-			return FALSE
 
-		var/mob/living/carbon/human/H = user
-		if(!istype(H))
-			return FALSE
-		if(!istype(H.back, /obj/item/storage/backpack/souto))
-			click_empty(H)
-			return FALSE
-		if(!current_mag) //This can apparently be false becauase the mag spawns later. Something to fix.
-			return
+	if(!current_mag || !current_mag.current_rounds) //Can apparently be false. Todo: fix this whatever it is.
+		return FALSE
+	if(!skillcheck(user, SKILL_SPEC_WEAPONS,  SKILL_SPEC_ALL))
+		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
+		return FALSE
+
+	var/mob/living/carbon/human/H = user
+	if(!istype(H))
+		return FALSE
+	if(!istype(H.back, /obj/item/storage/backpack/souto))
+		click_empty(H)
+		return FALSE
 
 //Ughhh.
 /obj/item/weapon/gun/souto/create_bullet(datum/ammo/chambered, bullet_source)

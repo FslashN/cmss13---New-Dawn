@@ -54,18 +54,18 @@
 /obj/item/weapon/gun/launcher/rocket/get_additional_gun_examine_text(mob/user)
 	. = ..() + ( current_mag.current_rounds <= 0 ? "It's not loaded." : "It has an 84mm [in_chamber.name] loaded." )
 
-/obj/item/weapon/gun/launcher/rocket/able_to_fire(mob/living/user)
+/obj/item/weapon/gun/launcher/rocket/check_additional_able_to_fire(mob/living/user)
 	. = ..()
-	if (. && istype(user)) //Let's check all that other stuff first.
-		if(skill_locked && !skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_ROCKET)
-			to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
-			return 0
-		if(user.faction == FACTION_MARINE && explosive_antigrief_check(src, user))
-			to_chat(user, SPAN_WARNING("\The [name]'s safe-area accident inhibitor prevents you from firing!"))
-			msg_admin_niche("[key_name(user)] attempted to fire \a [name] in [get_area(src)] [ADMIN_JMP(loc)]")
-			return FALSE
-		if(current_mag && current_mag.current_rounds > 0)
-			make_rocket(user, 0, 1)
+
+	if(skill_locked && !skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_ROCKET)
+		to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
+		return FALSE
+	if(user.faction == FACTION_MARINE && explosive_antigrief_check(src, user))
+		to_chat(user, SPAN_WARNING("\The [name]'s safe-area accident inhibitor prevents you from firing!"))
+		msg_admin_niche("[key_name(user)] attempted to fire \a [name] in [get_area(src)] [ADMIN_JMP(loc)]")
+		return FALSE
+	if(current_mag && current_mag.current_rounds > 0)
+		make_rocket(user, 0, 1) //Why through able_to_fire?
 
 /obj/item/weapon/gun/launcher/rocket/load_into_chamber(mob/user)
 // if(active_attachable) active_attachable = null

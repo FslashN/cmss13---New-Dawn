@@ -711,6 +711,7 @@
 
 /obj/item/weapon/gun/smg/nailgun/compact/able_to_fire(mob/living/user)
 	. = ..()
+
 	if(.)
 		click_empty(user)
 	return FALSE

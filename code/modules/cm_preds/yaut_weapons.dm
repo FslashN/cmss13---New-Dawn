@@ -838,7 +838,8 @@
 	))
 
 /obj/item/weapon/gun/launcher/spike/get_examine_text(mob/user) //This overrides the whole thing.
-	if(!isyautja(user)) . = list( SPAN_NOTICE("Looks like some kind of...mechanical donut.") )
+	if(!isyautja(user)) return list( SPAN_NOTICE("Looks like some kind of...mechanical donut.") )
+	. = ..()
 
 /obj/item/weapon/gun/launcher/spike/get_additional_gun_examine_text(mob/user)
 	. += ..() + SPAN_NOTICE("It currently has <b>[spikes]/[max_spikes]</b> spikes.")
@@ -848,36 +849,30 @@
 	var/new_icon_state = spikes <=1 ? null : icon_state + "[round(spikes/4, 1)]"
 	update_special_overlay(new_icon_state)
 
-/obj/item/weapon/gun/launcher/spike/able_to_fire(mob/user)
+/obj/item/weapon/gun/launcher/spike/check_additional_able_to_fire(mob/user)
+	. = ..()
+
 	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
 		to_chat(user, SPAN_WARNING("You have no idea how this thing works!"))
-		return
+		return FALSE
 
-	return ..()
-
-/obj/item/weapon/gun/launcher/spike/load_into_chamber()
+/obj/item/weapon/gun/launcher/spike/ready_in_chamber()
 	if(spikes > 0)
 		spikes--
-		return in_chamber
-
-/obj/item/weapon/gun/launcher/spike/has_ammunition()
-	if(spikes > 0)
-		return TRUE //Enough spikes for a shot.
-
-/obj/item/weapon/gun/launcher/spike/reload_into_chamber()
-	update_icon()
-	return TRUE
+		return in_chamber //Enough spikes for a shot.
 
 /obj/item/weapon/gun/launcher/spike/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
 	qdel(projectile_to_fire)
-	if(refund) spikes++
+	if(refund)
+		spikes++
+		log_debug("[src] refunded a shot.")
 	return TRUE
-
 
 /obj/item/weapon/gun/energy/yautja
 	icon = 'icons/obj/items/hunter/pred_gear.dmi'
 	icon_state = null
 	works_in_recharger = FALSE
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	item_icons = list(
 		WEAR_BACK = 'icons/mob/humans/onmob/hunter/pred_gear.dmi',
 		WEAR_L_HAND = 'icons/mob/humans/onmob/hunter/items_lefthand.dmi',
@@ -903,8 +898,8 @@
 	w_class = SIZE_HUGE
 	var/charge_time = 0
 	var/last_regen = 0
-	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	flags_item = ITEM_PREDATOR|TWOHANDED
+	gun_category = GUN_CATEGORY_RIFLE
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -936,7 +931,8 @@
 
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/get_examine_text(mob/user)
-	if(!isyautja(user)) . = list( SPAN_NOTICE("This thing looks like an alien rifle of some kind. Strange.") )
+	if(!isyautja(user)) return list( SPAN_NOTICE("This thing looks like an alien rifle of some kind. Strange.") )
+	. = ..()
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/get_additional_gun_examine_text(mob/user)
 	. = ..() + SPAN_NOTICE("It currently has <b>[charge_time]/100</b> charge.")
@@ -947,31 +943,27 @@
 		update_special_overlay(new_icon_state)
 		last_regen = charge_time
 
-/obj/item/weapon/gun/energy/yautja/plasmarifle/able_to_fire(mob/user)
+/obj/item/weapon/gun/energy/yautja/plasmarifle/check_additional_able_to_fire(mob/user)
+	. = ..()
+
 	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
 		to_chat(user, SPAN_WARNING("You have no idea how this thing works!"))
-		return
+		return FALSE
 	if(charge_time < 7)
 		to_chat(user, SPAN_WARNING("The rifle does not have enough power remaining!"))
-		return
+		return FALSE
 
-	return ..()
-
-/obj/item/weapon/gun/energy/yautja/plasmarifle/load_into_chamber()
-	charge_time -= 7
+/obj/item/weapon/gun/energy/yautja/plasmarifle/ready_in_chamber(mob/user)
+	to_chat(user, SPAN_NOTICE("It currently has <b>[charge_time]</b> energy remaining.."))
+	charge_time -= 7 //This is already safety checked.
+	to_chat(user, SPAN_NOTICE("Now it has <b>[charge_time]</b> energy remaining.."))
 	return in_chamber
-
-/obj/item/weapon/gun/energy/yautja/plasmarifle/has_ammunition()
-	return TRUE //Plasma rifle appears to have infinite ammunition.
-
-/obj/item/weapon/gun/energy/yautja/plasmarifle/reload_into_chamber()
-	update_icon()
-	return TRUE
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
 	qdel(projectile_to_fire)
 	if(refund)
 		charge_time += 7
+		log_debug("[src] refunded a shot.")
 	return TRUE
 
 #define FIRE_MODE_STANDARD "Standard"
@@ -994,7 +986,6 @@
 	var/shot_cost = 1
 	/// standard (sc = 1) or incendiary (sc = 5)
 	var/mode = FIRE_MODE_STANDARD
-	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	flags_item = ITEM_PREDATOR|IGNITING_ITEM|TWOHANDED
 
 	heat_source = 1500 // Plasma Pistols fire burning hot bounbs of plasma. Makes sense they're hot
@@ -1006,20 +997,15 @@
 	verbs -= /obj/item/weapon/gun/verb/use_toggle_burst
 	verbs -= /obj/item/weapon/gun/verb/empty_mag
 
-
-
 /obj/item/weapon/gun/energy/yautja/plasmapistol/Destroy()
 	. = ..()
 	STOP_PROCESSING(SSobj, src)
-
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/process()
 	if(charge_time < 40)
 		charge_time++
 		if(charge_time == 39)
 			if(ismob(loc)) to_chat(loc, SPAN_NOTICE("[src] hums as it achieves maximum charge."))
-
-
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/set_gun_config_values()
 	..()
@@ -1031,7 +1017,8 @@
 	damage_mult = BASE_BULLET_DAMAGE_MULT
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/get_examine_text(mob/user)
-	if(!isyautja(user)) . = list ( SPAN_NOTICE("This thing looks like an alien gun of some kind. Strange.") )
+	if(!isyautja(user)) return list ( SPAN_NOTICE("This thing looks like an alien gun of some kind. Strange.") )
+	. = ..()
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/get_additional_gun_examine_text(mob/user)
 	. = ..()
@@ -1039,31 +1026,23 @@
 	. += SPAN_NOTICE("It currently has <b>[charge_time]/40</b> charge.")
 	. += mode == FIRE_MODE_INCENDIARY ? SPAN_RED("It is set to fire incendiary plasma bolts.") : SPAN_ORANGE("It is set to fire plasma bolts.")
 
-/obj/item/weapon/gun/energy/yautja/plasmapistol/able_to_fire(mob/user)
+/obj/item/weapon/gun/energy/yautja/plasmapistol/check_additional_able_to_fire(mob/user)
+	. = ..()
+
 	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
 		to_chat(user, SPAN_WARNING("You have no idea how this thing works!"))
-		return
-	else
-		return ..()
+		return FALSE
 
-/obj/item/weapon/gun/energy/yautja/plasmapistol/load_into_chamber()
-	if(charge_time < 1)
-		return
-	charge_time -= shot_cost
-	return in_chamber
-
-/obj/item/weapon/gun/energy/yautja/plasmapistol/has_ammunition()
-	if(charge_time >= 1)
-		return TRUE //Enough charge for a shot.
-
-/obj/item/weapon/gun/energy/yautja/plasmapistol/reload_into_chamber()
-	return TRUE
+/obj/item/weapon/gun/energy/yautja/plasmapistol/ready_in_chamber()
+	if(charge_time >= shot_cost)
+		charge_time -= shot_cost
+		return in_chamber
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
 	qdel(projectile_to_fire)
 	if(refund)
 		charge_time += shot_cost
-		log_debug("Plasma Pistol refunded shot.")
+		log_debug("[src] refunded a shot.")
 	return TRUE
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/use_unique_action()
@@ -1109,7 +1088,7 @@
 	fire_delay = 3
 	flags_atom = FPRINT|CONDUCT
 	flags_item = NOBLUDGEON|DELONDROP|IGNITING_ITEM //Can't bludgeon with this.
-	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
+	gun_category = GUN_CATEGORY_HEAVY
 	has_empty_icon = FALSE
 	indestructible = TRUE
 
@@ -1212,7 +1191,8 @@
 			in_chamber = GLOB.ammo_list[/datum/ammo/energy/yautja/caster/stun]
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/get_examine_text(mob/user) //Just to standardize it.
-	if(!isyautja(user)) . = list( SPAN_NOTICE("What is this strange contraption?") )
+	if(!isyautja(user)) return list( SPAN_NOTICE("What is this strange contraption?") )
+	. = ..()
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/get_additional_gun_examine_text(mob/user)
 	. = ..()
@@ -1228,24 +1208,18 @@
 		return
 	..()
 
-/obj/item/weapon/gun/energy/yautja/plasma_caster/able_to_fire(mob/user)
+/obj/item/weapon/gun/energy/yautja/plasma_caster/check_additional_able_to_fire(mob/user)
+	. = ..()
+
 	if(!source)
-		return
+		return FALSE
 	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
 		to_chat(user, SPAN_WARNING("You have no idea how this thing works!"))
-		return
-	return ..()
+		return FALSE
 
-/obj/item/weapon/gun/energy/yautja/plasma_caster/load_into_chamber(mob/user)
+/obj/item/weapon/gun/energy/yautja/plasma_caster/ready_in_chamber(mob/user)
 	if(source.drain_power(user, charge_cost))
 		return in_chamber
-
-/obj/item/weapon/gun/energy/yautja/plasma_caster/has_ammunition()
-	if(source?.charge >= charge_cost)
-		return TRUE //Enough charge for a shot.
-
-/obj/item/weapon/gun/energy/yautja/plasma_caster/reload_into_chamber()
-	return TRUE
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
 	qdel(projectile_to_fire)
@@ -1254,6 +1228,7 @@
 		var/perc = source.charge / source.charge_max * 100
 		var/mob/living/carbon/human/user = usr //Hacky...
 		user.update_power_display(perc)
+		log_debug("[src] refunded a [in_chamber] shot.")
 	return TRUE
 
 #undef FLAY_STAGE_SCALP

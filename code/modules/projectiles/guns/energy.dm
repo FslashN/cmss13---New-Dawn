@@ -2,9 +2,9 @@
 //-------------------------------------------------------
 //ENERGY GUNS/LASER GUNS/ETC
 
-
-
-/obj/item/weapon/gun/energy //whoever delegated all behavior to the taser instead of a parent object needs to dig themselves a hole to die in. Fuck you old dev.
+//Having energy start with an energy cell is actually hugely inconvenient because it cuts proper parent/child access to a lot of procs for yautja energy weapons.
+//It would be possible to override all of these behaviors, but that's not optimal. Another option is to used a bitfield to track this stuff.
+/obj/item/weapon/gun/energy
 	name = "energy pistol"
 	desc = "It shoots lasers by drawing power from an internal cell battery. Can be recharged at most convection stations."
 
@@ -71,16 +71,10 @@
 	cell.use(round(cell.maxcharge / severity))
 	update_icon()
 
-/obj/item/weapon/gun/energy/load_into_chamber()
-	if(!cell || cell.charge < charge_cost)
-		return
-
-	cell.charge -= charge_cost
-	return in_chamber
-
-/obj/item/weapon/gun/energy/has_ammunition()
-	if(cell?.charge >= charge_cost)
-		return TRUE //Enough charge for a shot.
+/obj/item/weapon/gun/energy/ready_in_chamber()
+	if(cell?.charge <= charge_cost)
+		cell.charge -= charge_cost
+		return in_chamber
 
 /obj/item/weapon/gun/energy/Fire(atom/target, mob/living/user, params, reflex, dual_wield)
 	. = ..()
@@ -91,10 +85,6 @@
 		user.visible_message(SPAN_DANGER("[user] fires \the [src]!"),
 		SPAN_DANGER("[to_firer]"), message_flags = CHAT_TYPE_WEAPON_USE)
 		return AUTOFIRE_CONTINUE
-
-/obj/item/weapon/gun/energy/reload_into_chamber()
-	update_icon()
-	return TRUE
 
 /obj/item/weapon/gun/energy/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
 	qdel(projectile_to_fire)
@@ -228,12 +218,12 @@
 	scatter = 0
 	scatter_unwielded = 0
 
-/obj/item/weapon/gun/energy/taser/able_to_fire(mob/living/user)
+/obj/item/weapon/gun/energy/taser/check_additional_able_to_fire(mob/living/user)
 	. = ..()
-	if (. && istype(user)) //Let's check all that other stuff first.
-		if(skilllock && !skillcheck(user, SKILL_POLICE, skilllock))
-			to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-			return FALSE
+
+	if(skilllock && !skillcheck(user, SKILL_POLICE, skilllock))
+		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
+		return FALSE
 
 /obj/item/weapon/gun/energy/taser/unique_action(mob/user)
 	change_mode(user)
