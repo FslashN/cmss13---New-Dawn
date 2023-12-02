@@ -17,7 +17,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	var/seal_sound = 'sound/weapons/handling/gun_mou_close.ogg'
 	accuracy_mult = 1.15
 	flags_gun_features = GUN_CAN_POINTBLANK
-	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE|GUN_ACCEPTS_HANDFUL
 	gun_category = GUN_CATEGORY_SHOTGUN
 	aim_slowdown = SLOWDOWN_ADS_SHOTGUN
 	wield_delay = WIELD_DELAY_NORMAL //Shotguns are as hard to pull up as a rifle. They're quite bulky afterall
@@ -25,7 +25,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	has_open_icon = FALSE
 	fire_delay_group = list(FIRE_DELAY_GROUP_SHOTGUN)
 	projectile_casing = PROJECTILE_CASING_SHELL
-	var/gauge = "12g"
 
 /obj/item/weapon/gun/shotgun/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -50,40 +49,23 @@ This is better than "empty" as a text string has value. null is easier to accoun
 /obj/item/weapon/gun/shotgun/play_chamber_cycle_sound(mob/user, cocked_sound, volume = 20, sound_delay)
 	. = ..()
 
-/obj/item/weapon/gun/shotgun/get_additional_gun_examine_text(mob/user)
-	. = ..()
-	if(flags_gun_features & GUN_AMMO_COUNTER) . += "The ammo counter readout shows [current_mag? (current_mag.current_rounds + (in_chamber? 1 : 0) ) : (in_chamber? 1 : 0) ] round\s remaining."
+/obj/item/weapon/gun/shotgun/replace_magazine(mob/user, selection) //Shells are added forward.
+	//We move the position up when loading ammo. New rounds are always fired first though, in position 1. Index tracks where the last shell was inserted.
+	current_mag.chamber_contents[++current_mag.chamber_position] = selection //Just moves up one, unless the mag is full.
 
-/obj/item/weapon/gun/shotgun/unload(mob/user)
-	if(flags_gun_toggles & GUN_BURST_FIRING)
-		return
-
-	empty_chamber(user)
-
-/obj/item/weapon/gun/shotgun/proc/add_to_tube(mob/user, selection, do_not_chamber = FALSE) //Shells are added forward.
-	if(!current_mag)
-		return
-	current_mag.chamber_position++ //We move the position up when loading ammo. New rounds are always fired next, in order loaded.
-	current_mag.chamber_contents[current_mag.chamber_position] = selection //Just moves up one, unless the mag is full.
-
-	if(!do_not_chamber && current_mag.current_rounds && !in_chamber) //Round has been loaded but nothing is chambered.
+	if(!(flags_gun_receiver & GUN_MANUAL_CYCLE) && !in_chamber) //Round has been loaded but nothing is chambered, for semi-auto shotguns.
 		if(user?.skills?.get_skill_level(SKILL_FIREARMS) > SKILL_FIREARMS_CIVILIAN) //If we're skilled with firearms, automatically cock the gun.
 			ready_in_chamber()
 			play_chamber_cycle_sound(user, null, null, 0.5 SECONDS) //To account for loading the shell.
-	if(user)
-		playsound(user, reload_sound, 25, TRUE)
-		if(flags_gun_features & GUN_AMMO_COUNTER)
-			var/chambered = in_chamber ? TRUE : FALSE
-			to_chat(user, SPAN_DANGER("[current_mag.current_rounds][chambered ? "+1" : ""] / [current_mag.max_rounds] ROUNDS REMAINING"))
-	return TRUE
 
-/obj/item/weapon/gun/shotgun/proc/empty_chamber(mob/user, check_chamber_first = FALSE)
-	if(!current_mag || !current_mag.chamber_contents.len)
+	playsound(user, reload_sound, 25, TRUE)
+
+/obj/item/weapon/gun/shotgun/unload(mob/user, check_chamber_first = FALSE)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
 	//Default behavior is that it will attempt to remove whatever is in the tube first, not the chamber.
 	//We want to override that for pump actions and such.
-
 	if(!current_mag.current_rounds && !in_chamber)
 		if(user) to_chat(user, SPAN_WARNING("[src] is already empty."))	//If the gun is dry, cancel out.
 		update_icon()
@@ -103,8 +85,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		if("tube")
 			new_handful = retrieve_shell(current_mag.chamber_contents[current_mag.chamber_position])
 			current_mag.current_rounds--
-			current_mag.chamber_contents[current_mag.chamber_position] = null
-			current_mag.chamber_position--
+			current_mag.chamber_contents[current_mag.chamber_position--] = null
 
 		if("chamber")
 			new_handful = retrieve_shell(in_chamber.type)
@@ -118,61 +99,15 @@ This is better than "empty" as a text string has value. null is easier to accoun
 /obj/item/weapon/gun/shotgun/proc/retrieve_shell(selection)
 	var/datum/ammo/A = GLOB.ammo_list[selection]
 	var/obj/item/ammo_magazine/handful/new_handful = new A.handful_type()
-	new_handful.generate_handful(selection, gauge, 5, 1, /obj/item/weapon/gun/shotgun)
+	new_handful.generate_handful(selection, caliber, 5, 1, /obj/item/weapon/gun/shotgun)
 	return new_handful
 
-/obj/item/weapon/gun/shotgun/proc/check_chamber_position()
-	return 1
-
-/obj/item/weapon/gun/shotgun/reload(mob/user, obj/item/ammo_magazine/magazine)
-	if(flags_gun_toggles & GUN_BURST_FIRING)
-		return
-
-	if(!magazine || !istype(magazine,/obj/item/ammo_magazine/handful)) //Can only reload with handfuls.
-		to_chat(user, SPAN_WARNING("You can't use that to reload!"))
-		return
-
-	if(!check_chamber_position()) //For the double barrel.
-		to_chat(user, SPAN_WARNING("[src] has to be open!"))
-		return
-
-	//From here we know they are using shotgun type ammo and reloading via handful.
-	//Makes some of this a lot easier to determine.
-
-	var/mag_caliber = magazine.default_ammo //Handfuls can get deleted, so we need to keep this on hand for later.
-	if(current_mag.transfer_ammo(magazine,user,1))
-		add_to_tube(user,mag_caliber) //This will check the other conditions.
-
-	display_ammo(user)
-
 /obj/item/weapon/gun/shotgun/ready_in_chamber()
-	return ready_shotgun_tube()
-
-/obj/item/weapon/gun/shotgun/proc/ready_shotgun_tube()
-	if(isnull(current_mag) || !length(current_mag.chamber_contents))
-		return
 	if(current_mag.current_rounds > 0)
 		in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
 		current_mag.current_rounds--
-		current_mag.chamber_contents[current_mag.chamber_position] = null
-		current_mag.chamber_position--
+		current_mag.chamber_contents[current_mag.chamber_position--] = null
 		return in_chamber
-
-/obj/item/weapon/gun/shotgun/reload_into_chamber(mob/user)
-	if(active_attachable)
-		make_casing(active_attachable.projectile_casing)
-	else
-		make_casing(projectile_casing)
-		in_chamber = null
-
-		//Time to move the tube position.
-		ready_in_chamber() //We're going to try and reload. If we don't get anything, icon change.
-		if(!current_mag.current_rounds && !in_chamber) //No rounds, nothing chambered.
-			update_icon()
-
-		display_ammo(user)
-
-	return TRUE
 
 //-------------------------------------------------------
 //GENERIC MERC SHOTGUN //Not really based on anything.
@@ -261,10 +196,9 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	var/obj/item/attachable/attached_gun/grenade/ugl = new(src)
 	var/obj/item/attachable/stock/tactical/stock = new(src)
 	ugl.flags_attach_features &= ~ATTACH_REMOVABLE
-	ugl.hidden = TRUE
+	ugl.vis_flags |= VIS_HIDE
 	ugl.Attach(src)
 	update_attachable(ugl.slot)
-	stock.hidden = FALSE
 	stock.Attach(src)
 	update_attachable(stock.slot)
 
@@ -289,7 +223,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	item_state = "mp220"
 	desc = "The Weyland-Yutani MK221 Shotgun, a semi-automatic shotgun with a quick fire rate. Equipped with a steel blue finish to signify use in riot control. It has been modified to only fire 20G beanbags."
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/combat/riot
-	gauge = "20g"
 
 /obj/item/weapon/gun/shotgun/combat/guard
 	desc = "The Weyland-Yutani MK221 Shotgun, a semi-automatic shotgun with a quick fire rate. Equipped with a red handle to signify its use with Military Police Honor Guards."
@@ -321,9 +254,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		if(..(user, WEAR_WAIST)) //...first try to put it onto the waist.
 			return TRUE
 	return ..()
-
-/*obj/item/weapon/gun/shotgun/combat/marsoc/handle_starting_attachment()
-	return */ //we keep the UGL
 
 /obj/item/weapon/gun/shotgun/combat/marsoc/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 14, "under_y" = 16, "stock_x" = 14, "stock_y" = 16)
@@ -370,7 +300,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	flags_equip_slot = SLOT_BACK
 	map_specific_decoration = FALSE
-	gauge = "8g"
 	starting_attachment_types = list(/obj/item/attachable/stock/type23)
 
 /obj/item/weapon/gun/shotgun/type23/set_gun_attachment_offsets()
@@ -458,7 +387,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	flags_equip_slot = SLOT_BACK
 	map_specific_decoration = FALSE
-	gauge = "8g"
 	starting_attachment_types = list(/obj/item/attachable/stock/type23)
 
 /obj/item/weapon/gun/shotgun/type23/riot_control/handle_starting_attachment()
@@ -496,7 +424,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		/obj/item/attachable/stock/double,
 	)
 
-	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_MANUAL_CYCLE|GUN_CHAMBER_CAN_OPEN|GUN_ACCEPTS_HANDFUL
 	burst_delay = 0 //So doubleshotty can doubleshot
 	has_open_icon = TRUE
 	civilian_usable_override = TRUE // Come on. It's THE survivor shotgun.
@@ -520,72 +448,24 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 
 /obj/item/weapon/gun/shotgun/double/get_additional_gun_examine_text(mob/user)
-	. = ..() + ( current_mag.chamber_closed ? "It's closed." : "It's open with [current_mag.current_rounds? current_mag.current_rounds : "no"] shell\s loaded." )
+	. = ..() + ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "It's open with [current_mag.current_rounds? current_mag.current_rounds : "no"] shell\s loaded." : "It's closed." )
 
 /obj/item/weapon/gun/shotgun/double/unique_action(mob/user)
 	if(flags_item & WIELDED) unwield(user)
 	cycle_chamber(user)
 
-/obj/item/weapon/gun/shotgun/double/check_chamber_position()
-	if(!current_mag)
-		return FALSE
-	if(current_mag.chamber_closed)
-		return FALSE
-	return TRUE
-
-/obj/item/weapon/gun/shotgun/double/add_to_tube(mob/user, selection, do_not_chamber = TRUE) //Load it on the go, nothing chambered.
-	. = ..()
-
 /obj/item/weapon/gun/shotgun/double/check_additional_able_to_fire(mob/user)
 	. = ..()
 
-	if(!current_mag.chamber_closed)
-		to_chat(user, SPAN_DANGER("Close the chamber!"))
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
+		to_chat(user, SPAN_WARNING("Close the chamber first to fire!"))
 		return FALSE
 
-/obj/item/weapon/gun/shotgun/double/empty_chamber(mob/user)
-	if(!current_mag)
-		return
-	if(current_mag.chamber_closed)
-		cycle_chamber(user)
+/obj/item/weapon/gun/shotgun/double/unload(mob/user)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
+		..()
 	else
-		..()
-
-/obj/item/weapon/gun/shotgun/double/ready_in_chamber() //Ignoring this proc so that the double shotty doesn't chamber anything on spawn.
-	return
-
-/obj/item/weapon/gun/shotgun/double/load_into_chamber()
-	//Trimming down the unnecessary stuff.
-	//This doesn't chamber, creates a bullet on the go.
-
-	if(!current_mag)
-		return
-	if(current_mag.current_rounds > 0)
-		in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
-		current_mag.current_rounds--
-		return in_chamber
-	//We can't make a projectile without a mag or active attachable.
-
-/obj/item/weapon/gun/shotgun/double/make_casing()
-	if(current_mag.used_casings)
-		..()
-		current_mag.used_casings = 0
-
-/obj/item/weapon/gun/shotgun/double/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
-	qdel(projectile_to_fire)
-	if(!current_mag)
-		return
-	if(refund) current_mag.current_rounds++
-	return TRUE
-
-/obj/item/weapon/gun/shotgun/double/reload_into_chamber(mob/user)
-	if(!current_mag) return
-	in_chamber = null
-	current_mag.chamber_contents[current_mag.chamber_position] = null
-	current_mag.chamber_position--
-	current_mag.used_casings++
-	display_ammo(user) //Unlikely to have an ammo counter but capable.
-	return TRUE
+		cycle_chamber(user)
 
 //This opens or closes the shotgun.
 /obj/item/weapon/gun/shotgun/double/cycle_chamber(mob/user)
@@ -594,16 +474,15 @@ This is better than "empty" as a text string has value. null is easier to accoun
 
 	cycle_chamber_cooldown = world.time + cycle_chamber_delay
 
-	current_mag.chamber_closed = !current_mag.chamber_closed
+	flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
 	make_casing(projectile_casing)
 	update_icon()
 
-	play_chamber_cycle_sound(user, ( current_mag.chamber_closed ? break_sound : seal_sound ), 20)
+	play_chamber_cycle_sound(user, ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? seal_sound : break_sound ), 20)
 
 /obj/item/weapon/gun/shotgun/double/with_stock/handle_starting_attachment()
 	. = ..()
 	var/obj/item/attachable/stock/double/S = new(src)
-	S.hidden = FALSE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
 	S.Attach(src)
 	update_attachable(S.slot)
@@ -664,13 +543,10 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		WEAR_L_HAND = 'icons/mob/humans/onmob/items_lefthand_0.dmi',
 		WEAR_R_HAND = 'icons/mob/humans/onmob/items_righthand_0.dmi'
 		)
-	caliber = ".44"
-	gauge = ".44"
 	force = 15 // hollow. also too hollow to support one's weight like normal canes
 	attack_speed = 1.5 SECONDS
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/double/cane
-	fire_sound = null
-	fire_sounds = list('sound/weapons/gun_silenced_oldshot1.ogg', 'sound/weapons/gun_silenced_oldshot2.ogg') // Uses the old sounds because they're more 'James Bond'-y
+	fire_sound = list('sound/weapons/gun_silenced_oldshot1.ogg', 'sound/weapons/gun_silenced_oldshot2.ogg') // Uses the old sounds because they're more 'James Bond'-y
 	break_sound = 'sound/weapons/handling/pkd_open_chamber.ogg'
 	seal_sound = 'sound/weapons/handling/pkd_close_chamber.ogg'
 	attachable_allowed = list()
@@ -704,7 +580,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		to_chat(user, SPAN_DANGER("You unlock the safety and change [src] into its gun stance!"))
 		playsound(user, 'sound/weapons/handling/smg_reload.ogg', 25, 1)
 
-	if(current_mag.chamber_closed == FALSE) // close the chamber
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN) // close the chamber
 		cycle_chamber(user, TRUE)
 
 	update_desc()
@@ -730,7 +606,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
 		icon_state = initial(icon_state)
 
-	else if(current_mag.chamber_closed == FALSE)
+	else if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		icon_state = initial(icon_state) + "_gun_open"
 	else
 		icon_state = initial(icon_state) + "_gun"
@@ -742,8 +618,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	desc = "A limited production Kerchner MOU53 triple break action classic. Respectable damage output at medium ranges, while the ARMAT M37 is the king of CQC, the Kerchner MOU53 is what hits the broadside of that barn. This specific model cannot safely fire buckshot shells."
 	icon_state = "mou"
 	item_state = "mou"
-	var/max_rounds = 3
-	var/current_rounds = 0
 	fire_sound = 'sound/weapons/gun_mou53.ogg'
 	reload_sound = 'sound/weapons/handling/gun_mou_reload.ogg'//unique shell insert
 	flags_equip_slot = SLOT_BACK
@@ -837,7 +711,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	item_state = "twobore"
 	force = 20 //Big heavy elephant gun.
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/double/twobore
-	gauge = "2 bore"
 	fire_sound = 'sound/weapons/gun_mateba.ogg'
 	break_sound = 'sound/weapons/handling/gun_mou_open.ogg'
 	seal_sound = 'sound/weapons/handling/gun_mou_close.ogg'//replace w/ uniques
@@ -1020,7 +893,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	fire_sound = 'sound/weapons/gun_shotgun.ogg'
 	firesound_volume = 60
 	cocked_sound = "shotgunpump"
-	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE|GUN_MANUAL_CYCLE
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE|GUN_MANUAL_CYCLE|GUN_ACCEPTS_HANDFUL
 
 	attachable_allowed = list(
 		/obj/item/attachable/bayonet,
@@ -1069,10 +942,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 
-/obj/item/weapon/gun/shotgun/pump/empty_chamber(mob/user, check_chamber_first = TRUE)
-	. = ..()
-
-/obj/item/weapon/gun/shotgun/pump/add_to_tube(mob/user, selection, do_not_chamber = TRUE)
+/obj/item/weapon/gun/shotgun/pump/unload(mob/user, check_chamber_first = TRUE)
 	. = ..()
 
 //Modern shotguns normally lock after being pumped; this lock is undone by operating the slide release i.e. unloading a shell manually from the chamber.
@@ -1090,28 +960,12 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		to_chat(user, SPAN_WARNING("<i>[src] already has a shell in the chamber and is locked! Interact with it to release the slide.<i>"))
 		return
 
-	//Eject used first.
-	if(current_mag.used_casings)
-		current_mag.used_casings--
-		make_casing(projectile_casing)
+	make_casing(projectile_casing)
 
 	//Chamber as needed.
 	play_chamber_cycle_sound(user, null, 25)
 	ready_in_chamber()
-	//We cannot eject shells with this, so counting ammo here is unnecessary here.
-
-/obj/item/weapon/gun/shotgun/pump/reload_into_chamber(mob/user)
-	if(active_attachable)
-		make_casing(active_attachable.projectile_casing)
-	else
-		current_mag.used_casings++ //The shell was fired successfully. Add it to used.
-		in_chamber = null
-		if(!current_mag.current_rounds)
-			update_icon()//No rounds, nothing chambered.
-
-		display_ammo(user)
-
-	return TRUE
+	//We cannot eject shells with this, so counting ammo here is unnecessary.
 
 //You can manually unload a shell when the lock is engaged. Ie, something is chambered.
 /obj/item/weapon/gun/shotgun/pump/unload(mob/user)

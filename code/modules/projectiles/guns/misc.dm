@@ -39,7 +39,7 @@
 	..()
 	//invisible mag harness
 	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
-	Integrated.hidden = TRUE
+	Integrated.vis_flags |= VIS_HIDE
 	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
 	Integrated.Attach(src)
 	update_attachable(Integrated.slot)
@@ -197,7 +197,7 @@
 
 	//invisible mag harness
 	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
-	Integrated.hidden = TRUE
+	Integrated.vis_flags |= VIS_HIDE
 	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
 	Integrated.Attach(src)
 	update_attachable(Integrated.slot)
@@ -354,7 +354,7 @@
 /obj/item/weapon/gun/rifle/techweb_railgun/handle_starting_attachment()
 	..()
 	var/obj/item/attachable/scope/S = new(src)
-	S.hidden = TRUE
+	S.vis_flags |= VIS_HIDE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
 	S.Attach(src)
 	update_attachable(S.slot)

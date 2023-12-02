@@ -15,7 +15,7 @@ DEFINES in conflict.dm, referenced here.
 //These are basic features of a gun.
 #define GUN_CAN_POINTBLANK (1<<0) ///Can gun the shoot point-blank? Add it if it can.
 #define GUN_NO_SAFETY_SWITCH (1<<1) ///Some guns don't have a safety switch at all. You will not be able to set GUN_TRIGGER_SAFETY_ON via interaction, but does not safety check beyond that.
-#define GUN_AMMO_COUNTER (1<<3) ///Most USCM and UPP primaries have this set. This shows an active ammo counter on the weapon when picked up.
+#define GUN_counter_datum (1<<3) ///Most USCM and UPP primaries have this set. This shows an active ammo counter on the weapon when picked up.
 #define GUN_AUTO_EJECTOR (1<<4) ///This will kick it out the magazine automatically once it runs dry. Most rifles and SMGs have this set.
 #define GUN_RECOIL_BUILDUP (1<<5) /// Whether the gun has been fired by its current user (reset upon `dropped()`)
 #define GUN_IS_SILENCED (1<<6) ///Only from an attachment, add an attachment on spawn if wanted. Temporary until attachement is removed.
@@ -301,14 +301,13 @@ attachments to give attachment traits to the projectile. Seems very ineffecient.
 	I commented out a line in attachments.
 		//G.in_chamber.apply_bullet_trait(L)
 
-	Bullet holds leave the wrong sprite.
+	Come back to executions. attempt_battlefield_execution needs to properly check if the user can fire the gun after the wait.
+	Bullet holes leave the wrong sprite.
 	Fix lever action
 	Touch up revolvers
 	Check on jamming.
 	Check on dual wielding
 	Check on pointblaking
-	add spawn on human spawn with a gun for ammo counter
-	also check how it goes into containers
 	Check attachments too
 	Gun click after the last round is fired
 

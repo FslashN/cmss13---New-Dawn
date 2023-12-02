@@ -96,8 +96,6 @@
 	default_ammo = /datum/ammo/pill
 	caliber = "pill"
 	max_rounds = 1
-	chamber_closed = FALSE
-
 	var/list/pills
 
 /obj/item/ammo_magazine/internal/pillgun/Initialize(mapload, spawn_empty)

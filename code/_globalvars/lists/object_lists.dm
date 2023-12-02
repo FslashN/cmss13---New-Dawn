@@ -34,3 +34,6 @@ GLOBAL_LIST_EMPTY_TYPED(lifeboat_doors, /obj/structure/machinery/door/airlock/mu
 
 GLOBAL_LIST_EMPTY_TYPED(teleporters, /datum/teleporter)
 GLOBAL_LIST_EMPTY(teleporters_by_id)
+
+//For guns. Pools ammo counters so they aren't created as frequently.
+GLOBAL_LIST_EMPTY(ammo_counters_pool)

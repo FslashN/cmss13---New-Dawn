@@ -344,7 +344,6 @@
 /obj/item/weapon/gun/launcher/grenade/m81/m79/handle_starting_attachment()
 	..()
 	var/obj/item/attachable/stock/m79/S = new(src)
-	S.hidden = FALSE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
 	S.Attach(src)
 	update_attachable(S.slot)

@@ -64,7 +64,6 @@ Similar to shotguns.dm but not exactly.
 	default_ammo = /datum/ammo/bullet/lever_action
 	caliber = "45-70"
 	max_rounds = 9
-	chamber_closed = 0
 
 /obj/item/ammo_magazine/internal/lever_action/xm88
 	name = "\improper XM88 heavy rifle tube"
@@ -72,7 +71,6 @@ Similar to shotguns.dm but not exactly.
 	default_ammo = /datum/ammo/bullet/lever_action/xm88
 	caliber = ".458"
 	max_rounds = 9
-	chamber_closed = 0
 
 //-------------------------------------------------------
 

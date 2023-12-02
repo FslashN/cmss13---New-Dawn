@@ -15,6 +15,7 @@
 	gun_type = /obj/item/weapon/gun/revolver/m44
 	ammo_band_icon = "+m44_tip"
 	ammo_band_icon_empty = "empty"
+	magazine_type = MAGAZINE_TYPE_SPEEDLOADER
 
 /obj/item/ammo_magazine/revolver/marksman
 	name = "\improper M44 marksman speed loader (.44)"

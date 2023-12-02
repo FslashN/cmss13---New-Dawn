@@ -339,13 +339,12 @@
 	..()
 	var/obj/item/attachable/suppressor/xm40_integral/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.hidden = FALSE
 	S.Attach(src)
 	update_attachable(S.slot)
 
 	var/obj/item/attachable/magnetic_harness/H = new(src)//integrated mag harness, no rail attachies
 	H.flags_attach_features &= ~ATTACH_REMOVABLE
-	H.hidden = TRUE
+	H.vis_flags |=  VIS_HIDE //This prevents it from being seen as an overlay.
 	H.Attach(src)
 	update_attachable(H.slot)
 
@@ -950,7 +949,6 @@
 /obj/item/weapon/gun/rifle/m16/handle_starting_attachment()
 	..()
 	var/obj/item/attachable/stock/m16/S = new(src)
-	S.hidden = FALSE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
 	S.Attach(src)
 	update_attachable(S.slot)
@@ -1010,7 +1008,6 @@
 	..()
 	var/obj/item/attachable/attached_gun/grenade/m203/integrated = new(src)
 	integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	integrated.hidden = FALSE
 	integrated.Attach(src)
 	update_attachable(integrated.slot)
 
@@ -1065,7 +1062,6 @@
 /obj/item/weapon/gun/rifle/xm177/handle_starting_attachment()
 	..()
 	var/obj/item/attachable/stock/m16/xm177/integrated = new(src)
-	integrated.hidden = FALSE
 	integrated.flags_attach_features &= ~ATTACH_REMOVABLE
 	integrated.Attach(src)
 	update_attachable(integrated.slot)
@@ -1140,7 +1136,6 @@
 /obj/item/weapon/gun/rifle/ar10/handle_starting_attachment()
 	..()
 	var/obj/item/attachable/stock/ar10/S = new(src)
-	S.hidden = FALSE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
 	S.Attach(src)
 	update_attachable(S.slot)
@@ -1522,7 +1517,7 @@
 	update_attachable(suppressor.slot)
 	//scope
 	var/obj/item/attachable/scope/mini/scope = new(src)
-	scope.hidden = TRUE
+	scope.vis_flags |= VIS_HIDE
 	scope.flags_attach_features &= ~ATTACH_REMOVABLE
 	scope.Attach(src)
 	update_attachable(scope.slot)
@@ -1812,7 +1807,7 @@
 	..()
 	var/obj/item/attachable/angledgrip/f90_agrip = new(src)
 	f90_agrip.flags_attach_features &= ~ATTACH_REMOVABLE
-	f90_agrip.hidden = TRUE
+	f90_agrip.vis_flags |= VIS_HIDE
 	f90_agrip.Attach(src)
 	update_attachable(f90_agrip.slot)
 
@@ -1844,9 +1839,8 @@
 	f90_scope.flags_attach_features &= ~ATTACH_REMOVABLE
 	f90_agrip.flags_attach_features &= ~ATTACH_REMOVABLE
 	f90_dmr_barrel.flags_attach_features &= ~ATTACH_REMOVABLE
-	f90_scope.hidden = TRUE
-	f90_agrip.hidden = TRUE
-	f90_dmr_barrel.hidden = FALSE
+	f90_scope.vis_flags |= VIS_HIDE
+	f90_agrip.vis_flags |= VIS_HIDE
 	f90_agrip.Attach(src)
 	f90_scope.Attach(src)
 	f90_dmr_barrel.Attach(src)
@@ -1883,8 +1877,7 @@
 	var/obj/item/attachable/f90_dmr_barrel/f90_shotgun_barrel = new(src)
 	f90_shotgun.flags_attach_features &= ~ATTACH_REMOVABLE
 	f90_shotgun_barrel.flags_attach_features &= ~ATTACH_REMOVABLE
-	f90_shotgun_barrel.hidden = FALSE
-	f90_shotgun.hidden = TRUE
+	f90_shotgun.vis_flags |= VIS_HIDE
 	f90_shotgun.Attach(src)
 	f90_shotgun_barrel.Attach(src)
 	update_attachable(f90_shotgun.slot)

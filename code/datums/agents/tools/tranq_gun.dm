@@ -19,7 +19,7 @@
 /obj/item/weapon/gun/pistol/tranquilizer/handle_starting_attachment()//Making the gun have an invisible silencer since it's supposed to have one.
 	..()
 	var/obj/item/attachable/suppressor/S = new(src)
-	S.hidden = TRUE
+	S.vis_flags |= VIS_HIDE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
 	S.Attach(src)
 	update_attachable(S.slot)

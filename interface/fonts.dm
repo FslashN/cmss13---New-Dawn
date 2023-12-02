@@ -8,3 +8,7 @@
 /datum/font/vcr_osd_mono
 	name = "VCR OSD Mono"
 	font_family = 'interface/VCR_OSD_Mono.ttf'
+
+/datum/font/digital_counter
+	name = "DigitalCounter"
+	font_family = 'interface/Digital_Counter.ttf'

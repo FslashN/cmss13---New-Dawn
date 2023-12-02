@@ -57,3 +57,23 @@
 #define CO_GUN_DEAGLE "Desert Eagle"
 #define CO_GUN_MATEBA_COUNCIL "Colonel's Mateba"
 #define CO_GUN_DEAGLE_COUNCIL "Golden Desert Eagle"
+
+//This determines how many max objects are allowed for the ammo counter pool.
+//So they are not constantly generated when marines drop their guns.
+#define AMMO_COUNTER_OBJ_POOL_MAX 5
+
+//Easy switching between magazines instead of type casting.
+#define MAGAZINE_TYPE_INTERNAL 0
+#define MAGAZINE_TYPE_DETACHABLE 1
+#define MAGAZINE_TYPE_HANDFUL 2
+#define MAGAZINE_TYPE_SPEEDLOADER 3
+
+//Jam chance compounds with the weapon fired. They use the same defines right now, but the vast majority are set to 0.
+#define FIREARM_JAM_CHANCE_ZERO 0 //Default at the time of this comment.
+#define FIREARM_JAM_CHANCE_VERY_LOW 0.01 //Very unlikely to jam, probably elite weapons.
+#define FIREARM_JAM_CHANCE_LOW 0.1 //Base jam chance of the PPSH stick mag. Very reliable. This is a good baseline in the future.
+#define FIREARM_JAM_CHANCE_MED_LOW 0.5
+#define FIREARM_JAM_CHANCE_MEDIUM 1 //Jam chance of the PPSH drum mag. 1/100 bullets will jam.
+#define FIREARM_JAM_CHANCE_HIGH 5 //Getting into unreliable teritory. 5/100 bullets will jam.
+#define FIREARM_JAM_CHANCE_MED_HIGH 7.5 //Poor, very poor.
+#define FIREARM_JAM_CHANCE_VERY_HIGH 10 //Unacceptable. The firearm could be damaged or something.

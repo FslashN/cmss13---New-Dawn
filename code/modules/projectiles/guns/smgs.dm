@@ -255,8 +255,6 @@
 //-------------------------------------------------------
 //PPSH //Based on the PPSh-41.
 
-#define PPSH_UNJAM_CHANCE 25
-
 /obj/item/weapon/gun/smg/ppsh
 	name = "\improper PPSh-17b submachinegun"
 	desc = "An unauthorized copy of a replica of a prototype submachinegun developed in a third world shit hole somewhere."
@@ -267,7 +265,6 @@
 	fire_sound = 'sound/weapons/smg_heavy.ogg'
 	current_mag = /obj/item/ammo_magazine/smg/ppsh
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ANTIQUE|GUN_NO_SAFETY_SWITCH //Prototype copy, so no safety.
-	var/jammed = FALSE
 
 /obj/item/weapon/gun/smg/ppsh/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 17,"rail_x" = 15, "rail_y" = 19, "under_x" = 26, "under_y" = 15, "stock_x" = 26, "stock_y" = 15)
@@ -289,40 +286,6 @@
 
 /obj/item/weapon/gun/smg/ppsh/with_drum_mag
 	current_mag = /obj/item/ammo_magazine/smg/ppsh/extended
-
-// Special feature! The PPSH can jam with the drum magazine, and will also receive handling debuffs when using one.
-
-/obj/item/weapon/gun/smg/ppsh/Fire(atom/target, mob/living/user, params, reflex = 0, dual_wield)
-	var/obj/item/ammo_magazine/smg/ppsh/ppsh_mag =  current_mag
-	if(jammed)
-		if(world.time % 3)
-			playsound(src, 'sound/weapons/handling/gun_jam_click.ogg', 35, TRUE)
-			to_chat(user, SPAN_WARNING("Your gun is jammed! Mash Unique-Action to unjam it!"))
-			balloon_alert(user, "*jammed*")
-		return NONE
-	else if(prob(ppsh_mag?.jam_chance))
-		jammed = TRUE
-		playsound(src, 'sound/weapons/handling/gun_jam_initial_click.ogg', 50, FALSE)
-		user.visible_message(SPAN_DANGER("[src] makes a noticeable clicking noise!"), SPAN_HIGHDANGER("\The [src] suddenly jams and refuses to fire! Mash Unique-Action to unjam it."))
-		balloon_alert(user, "*jammed*")
-		return NONE
-	else
-		return ..()
-
-/obj/item/weapon/gun/smg/ppsh/unique_action(mob/user)
-	if(jammed)
-		if(prob(PPSH_UNJAM_CHANCE))
-			to_chat(user, SPAN_GREEN("You succesfully unjam \the [src]!"))
-			playsound(src, 'sound/weapons/handling/gun_jam_rack_success.ogg', 50, FALSE)
-			jammed = FALSE
-			cycle_chamber_cooldown += 1 SECONDS //so they dont accidentally cock a bullet away
-			balloon_alert(user, "*unjammed!*")
-		else
-			to_chat(user, SPAN_NOTICE("You start wildly racking the bolt back and forth attempting to unjam \the [src]!"))
-			playsound(src, "gun_jam_rack", 50, FALSE)
-			balloon_alert(user, "*rack*")
-		return
-	. = ..()
 
 /obj/item/weapon/gun/smg/ppsh/unload(mob/user, reload_override, drop_override, loc_override)
 	. = ..()
@@ -346,8 +309,6 @@
 	if(ppsh_mag && ppsh_mag.new_item_state)
 		item_state = ppsh_mag.new_item_state
 		ppsh_mag.update_icon()
-
-#undef PPSH_UNJAM_CHANCE
 
 //-------------------------------------------------------
 //Type-19,

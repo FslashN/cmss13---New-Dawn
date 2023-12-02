@@ -16,12 +16,12 @@
 	var/hand_reload_sound = 'sound/weapons/gun_revolver_load3.ogg'
 	var/spin_sound = 'sound/effects/spin.ogg'
 	var/thud_sound = 'sound/effects/thud.ogg'
-	var/trick_delay = 2 SECONDS //Yeah, 4 seconds is too long.
+	var/trick_delay = 2.5 SECONDS //Yeah, 4 seconds is too long.
 	var/recent_trick //So they're not spamming tricks.
 	var/list/cylinder_click = list('sound/weapons/gun_empty.ogg')
 	var/russian_roulette = FALSE //God help you if you do this.
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH //Revolvers by and large don't have safeties.
-	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES|GUN_ACCEPTS_HANDFUL|GUN_ACCEPTS_SPEEDLOADER
 	gun_category = GUN_CATEGORY_HANDGUN
 	wield_delay = WIELD_DELAY_VERY_FAST //If you modify your revolver to be two-handed, it will still be fast to aim
 	movement_onehanded_acc_penalty_mult = 3
@@ -47,18 +47,11 @@
 	movement_onehanded_acc_penalty_mult = 3
 
 /obj/item/weapon/gun/revolver/get_additional_gun_examine_text(mob/user)
-	. = ..() + ( current_mag.chamber_closed ? "The cylinder is closed.": "The cylinder is open with [current_mag.current_rounds] round\s loaded." )
+	. = ..() + ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "The cylinder is open with [current_mag.current_rounds] round\s loaded." : "The cylinder is closed." )
 
 /obj/item/weapon/gun/revolver/proc/rotate_cylinder(mob/user) //Cylinder moves backward.
 	if(current_mag)
 		current_mag.chamber_position = current_mag.chamber_position == 1 ? current_mag.max_rounds : current_mag.chamber_position - 1
-
-/obj/item/weapon/gun/revolver/proc/spin_cylinder(mob/user)
-	if(current_mag?.chamber_closed) //We're not spinning while it's open. Could screw up reloading.
-		current_mag.chamber_position = rand(1,current_mag.max_rounds)
-		to_chat(user, SPAN_NOTICE("You spin the cylinder."))
-		playsound(user, cocked_sound, 25, 1)
-		russian_roulette = TRUE //Sets to play RR. Resets when the gun is emptied.
 
 //Make sure to create handful before running this.
 /obj/item/weapon/gun/revolver/proc/empty_cylinder()
@@ -67,87 +60,45 @@
 			current_mag.chamber_contents[i] = null
 
 //The cylinder is always emptied out before a reload takes place.
-/obj/item/weapon/gun/revolver/proc/add_to_cylinder(mob/user, ammunition_reference) //Bullets are added forward.
-	if(current_mag)
-		//First we're going to try and replace the current bullet.
-		if(!current_mag.current_rounds)
-			current_mag.chamber_contents[current_mag.chamber_position] = ammunition_reference
-		else //Failing that, we'll try to replace the next bullet in line.
-			if((current_mag.chamber_position + 1) > current_mag.max_rounds)
-				current_mag.chamber_contents[1] = ammunition_reference
-				current_mag.chamber_position = 1
-			else
-				current_mag.chamber_contents[current_mag.chamber_position + 1] = ammunition_reference
-				current_mag.chamber_position++
-		playsound(user, hand_reload_sound, 25, 1)
-		return TRUE
+/obj/item/weapon/gun/revolver/replace_magazine(mob/user, ammunition_reference) //Bullets are added forward.
 
-/obj/item/weapon/gun/revolver/reload(mob/user, obj/item/ammo_magazine/magazine)
-	if(flags_gun_toggles & GUN_BURST_FIRING) return
-
-	if(!magazine || !istype(magazine))
-		to_chat(user, SPAN_WARNING("That's not gonna work!"))
-		return
-
-	if(magazine.current_rounds <= 0)
-		to_chat(user, SPAN_WARNING("That [magazine.name] is empty!"))
-		return
-
-	if(current_mag)
-		//These should be flags in the future.
-		if(istype(magazine, /obj/item/ammo_magazine/handful)) //Looks like we're loading via handful.
-			if(current_mag.chamber_closed) //This one you need to have the chamber open to reload.
-				to_chat(user, SPAN_WARNING("You can't load anything when the cylinder is closed!"))
-				return
-			if(current_mag.caliber == magazine.caliber) //Make sure calibers match.
-				to_chat(user, SPAN_WARNING("Got to the loading part."))
-				var/ammunition_reference = magazine.default_ammo //Handfuls can get deleted, so we remember what it had.
-				if(current_mag.transfer_ammo(magazine,user,1)) //Poorly named proc, this only transfers the "current_rounds", not ammo, which is a different variable.
-					to_chat(user, SPAN_WARNING("Passed the transfer check."))
-					add_to_cylinder(user, ammunition_reference) //Pop a round in.
-
-		else //If it's not a handful, we need a speeloader. These are all or nothing.
-			if(current_mag.gun_type == magazine.gun_type) //Has to be the same gun type.
-				if(current_mag.chamber_closed && !(user?.skills?.get_skill_level(SKILL_FIREARMS) > SKILL_FIREARMS_CIVILIAN)) // If the chamber is closed unload it automatically load it if you are skilled.
-					unload(user, reloading_override = TRUE) //Pop open the chamber first.
-				else
-					to_chat(user, SPAN_WARNING("You can't load anything when the cylinder is closed!"))
-					return
-
-				if(current_mag.transfer_ammo(magazine,user,magazine.current_rounds))//Make sure we're successful.
-					for(var/i = 1 to current_mag.current_rounds) add_to_cylinder(user, magazine.default_ammo) //Re-populates the cylinder with the speedloader rounds.
-					playsound(user, reload_sound, 25, 1) // Reloading via speedloader.
-					if(!current_mag.chamber_closed) // If the chamber is open, we close it
-						unload(user)
-			else
-				to_chat(user, SPAN_WARNING("\The [magazine] doesn't fit!"))
-				return
+	//First we're going to try and replace the current bullet.
+	if(!current_mag.current_rounds)
+		current_mag.chamber_contents[current_mag.chamber_position] = ammunition_reference
+	else //Failing that, we'll try to replace the next bullet in line.
+		if((current_mag.chamber_position + 1) > current_mag.max_rounds)
+			current_mag.chamber_contents[1] = ammunition_reference
+			current_mag.chamber_position = 1
+		else
+			current_mag.chamber_contents[current_mag.chamber_position + 1] = ammunition_reference
+			current_mag.chamber_position++
+	playsound(user, hand_reload_sound, 25, 1)
+	return TRUE
 
 /obj/item/weapon/gun/revolver/unload(mob/user, reloading_override = FALSE)
 	if(flags_gun_toggles & GUN_BURST_FIRING) return
 
-	if(current_mag)
-		if(current_mag.chamber_closed) //If it's actually closed.
-			current_mag.chamber_closed = !current_mag.chamber_closed //Open it.
-			if(make_casing(projectile_casing) || reloading_override) //If we have some spent rounds in the chamber or we're reloading manually,
-				sort_cylinder_ammo(user) //This first before the cylinder is dumped.
-				empty_cylinder() //dump everything out.
-				to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
-			//current_mag.create_handful(user)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN) //If it's actually closed.
+		flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
+		playsound(src, unload_sound, 25, 1)
+	else
+		flags_gun_receiver |= GUN_CHAMBER_IS_OPEN
+		if(make_casing(projectile_casing) || reloading_override) //If we have some spent rounds in the chamber or we're reloading manually,
+			sort_cylinder_ammo(user) //This first before the cylinder is dumped.
+			empty_cylinder() //dump everything out.
+			to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
+		//current_mag.create_handful(user)
 
-			russian_roulette = FALSE //Resets the RR variable.
-			playsound(src, chamber_close_sound, 25, 1)
-		else
-			current_mag.chamber_closed = !current_mag.chamber_closed
-			playsound(src, unload_sound, 25, 1)
-		update_icon()
+		russian_roulette = FALSE //Resets the RR variable.
+		playsound(src, chamber_close_sound, 25, 1)
+	update_icon()
 
 /obj/item/weapon/gun/revolver/proc/sort_cylinder_ammo(mob/user)
 	if(current_mag)
 		var/list/ammo_available = list() //we need a list of all the different ammo in the cylinder.
 		var/h
 		var/c = 0
-		var/list/L = list()
+		var/L[0]
 
 		for(var/i = 1 to current_mag.max_rounds) //This will give us an associated list of the ammo and how many "rounds" each ammo had.
 			h = current_mag.chamber_contents[i]
@@ -186,17 +137,10 @@
 				to_chat(user, SPAN_WARNING("Sending [ammo_available[i]] rounds of [i]"))
 				current_mag.create_handful(user, ammo_available[i], null, i)
 
-
-/obj/item/weapon/gun/revolver/make_casing()
-	if(current_mag.used_casings)
-		..()
-		current_mag.used_casings = 0 //Always dump out everything.
-		return TRUE
-
 /obj/item/weapon/gun/revolver/check_additional_able_to_fire(mob/user)
 	. = ..()
 
-	if(!current_mag.chamber_closed)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		to_chat(user, SPAN_WARNING("Close the cylinder!"))
 		playsound(user, pick(cylinder_click), 25, 1, 5)
 		return FALSE
@@ -207,7 +151,7 @@
 			in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
 			current_mag.current_rounds-- //Subtract the round from the mag.
 			return in_chamber
-	else if(current_mag.chamber_closed)
+	else if(!(flags_gun_receiver & GUN_CHAMBER_IS_OPEN))
 		unload(null)
 
 /obj/item/weapon/gun/revolver/load_into_chamber(mob/user)
@@ -223,21 +167,22 @@
 		rotate_cylinder()
 		return TRUE
 
-/obj/item/weapon/gun/revolver/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
-	qdel(projectile_to_fire)
-	if(refund && current_mag)
-		current_mag.current_rounds++
-	return TRUE
-
 // FLUFF
 /obj/item/weapon/gun/revolver/unique_action(mob/user)
-	if(current_mag?.chamber_closed)
-		spin_cylinder(user)
-	else
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		make_casing(projectile_casing)
 		sort_cylinder_ammo(user)
 		empty_cylinder()
 		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
+	else
+		spin_cylinder(user)
+
+/obj/item/weapon/gun/revolver/proc/spin_cylinder(mob/user)
+	if(!(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)) //We're not spinning while it's open. Could screw up reloading.
+		current_mag.chamber_position = rand(1,current_mag.max_rounds)
+		to_chat(user, SPAN_NOTICE("You spin the cylinder."))
+		playsound(user, cocked_sound, 25, 1)
+		russian_roulette = TRUE //Sets to play RR. Resets when the gun is emptied.
 
 /obj/item/weapon/gun/revolver/proc/revolver_basic_spin(mob/living/carbon/human/user, direction = 1, obj/item/weapon/gun/revolver/double)
 	set waitfor = 0
@@ -342,7 +287,6 @@
 	item_state = "m44r"
 	current_mag = /obj/item/ammo_magazine/internal/revolver/m44
 	force = 8
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	attachable_allowed = list(
 		/obj/item/attachable/bayonet,
 		/obj/item/attachable/bayonet/upp,
@@ -565,20 +509,25 @@
 	recoil_unwielded = 0
 
 /obj/item/weapon/gun/revolver/small/unique_action(mob/user)
-	if(current_mag?.chamber_closed)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
+		make_casing(projectile_casing)
+		sort_cylinder_ammo(user)
+		empty_cylinder()
+		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
+	else
 		if(revolver_trick(user))
 			to_chat(user, SPAN_NOTICE("Your badass trick inspires you. Your next few shots will be focused!"))
 			accuracy_mult = BASE_ACCURACY_MULT * 2
 			accuracy_mult_unwielded = BASE_ACCURACY_MULT * 2
 			addtimer(CALLBACK(src, PROC_REF(recalculate_attachment_bonuses)), 2 SECONDS)
-	else
-		make_casing(projectile_casing)
-		sort_cylinder_ammo(user)
-		empty_cylinder()
-		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
 
 //-------------------------------------------------------
-//BURST REVOLVER //Mateba is pretty well known. The cylinder folds up instead of to the side.
+//BURST REVOLVER //Mateba is pretty well known. The cylinder folds up instead of to the side. <----- This is the 2006M.
+//TODO: Revise. There appears to be some confusion here. The sprite looks more like the Sei Unica auto-revolver, but the function is more like
+//the 2006M. The difference is that the 2006M is more like a traditional revolver but has an non-standard barrel position, and the cylinder is
+//essentially flipped over. The Unica functions as a combination of a revolver and handgun. It has a moving "slide" just like most pistols
+//and it has a cylinder chamber with a non-standard barrel position. It also has an exposed cylinder, meaning there is nothing above it holding
+//it in place.
 
 /obj/item/weapon/mateba_key
 	name = "mateba barrel key"
@@ -701,7 +650,7 @@
 	current_mag = /obj/item/ammo_magazine/internal/revolver/mateba/explosive
 	color = "#FF0000"
 	fire_sound = null
-	fire_sounds = list('sound/voice/alien_queen_xmas.ogg', 'sound/voice/alien_queen_xmas_2.ogg')
+	fire_sound = list('sound/voice/alien_queen_xmas.ogg', 'sound/voice/alien_queen_xmas_2.ogg')
 	starting_attachment_types = list(/obj/item/attachable/heavy_barrel)
 
 /obj/item/weapon/gun/revolver/mateba/engraved
@@ -752,7 +701,7 @@
 	icon_state = "spearhead"
 	item_state = "spearhead"
 	fire_sound = null
-	fire_sounds = list('sound/weapons/gun_cmb_1.ogg', 'sound/weapons/gun_cmb_2.ogg')
+	fire_sound = list('sound/weapons/gun_cmb_1.ogg', 'sound/weapons/gun_cmb_2.ogg')
 	fire_rattle = 'sound/weapons/gun_cmb_rattle.ogg'
 	cylinder_click = list('sound/weapons/handling/gun_cmb_click1.ogg', 'sound/weapons/handling/gun_cmb_click2.ogg')
 	current_mag = /obj/item/ammo_magazine/internal/revolver/cmb/hollowpoint

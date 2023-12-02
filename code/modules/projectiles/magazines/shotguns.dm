@@ -91,12 +91,10 @@ also doesn't really matter. You can only reload them with handfuls.
 	default_ammo = /datum/ammo/bullet/shotgun/slug
 	caliber = "12g"
 	max_rounds = 9
-	chamber_closed = 0
 
 /obj/item/ammo_magazine/internal/shotgun/double //For a double barrel.
 	default_ammo = /datum/ammo/bullet/shotgun/buckshot
 	max_rounds = 2
-	chamber_closed = 1 //Starts out with a closed tube.
 
 /obj/item/ammo_magazine/internal/shotgun/double/cane
 	default_ammo = /datum/ammo/bullet/revolver/marksman

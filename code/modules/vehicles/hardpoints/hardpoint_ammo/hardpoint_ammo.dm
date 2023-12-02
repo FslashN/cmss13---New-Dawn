@@ -7,9 +7,9 @@
 		to_chat(user, SPAN_WARNING("You need another [initial(name)] to be able to transfer ammo."))
 		return
 
-	transfer_ammo(O, user)
+	transfer_bullet_number(O, user)
 
-/obj/item/ammo_magazine/hardpoint/transfer_ammo(obj/item/ammo_magazine/source, mob/user)
+/obj/item/ammo_magazine/hardpoint/transfer_bullet_number(obj/item/ammo_magazine/source, mob/user)
 	if(current_rounds == max_rounds)
 		to_chat(user, SPAN_WARNING("[src] is already full."))
 		return

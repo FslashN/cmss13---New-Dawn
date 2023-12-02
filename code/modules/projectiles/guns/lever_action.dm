@@ -110,7 +110,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 		return
 
 	var/mag_caliber = magazine.default_ammo //Handfuls can get deleted, so we need to keep this on hand for later.
-	if(current_mag.transfer_ammo(magazine,user,1))
+	if(current_mag.transfer_bullet_number(magazine,user,1))
 		add_to_internal_mag(user,mag_caliber) //This will check the other conditions.
 
 /obj/item/weapon/gun/lever_action/unload(mob/user)

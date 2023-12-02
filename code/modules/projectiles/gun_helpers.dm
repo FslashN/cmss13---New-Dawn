@@ -56,14 +56,13 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 			REMOVE_TRAIT(src, TRAIT_GUN_LIGHT_DEACTIVATED, user)
 
 		if(flags_gun_features & GUN_AMMO_COUNTER) //Display ammo already checks for this, but this only runs when the weapon is equipped, not per shot.
-			vis_contents += ammo_counter.counter //And I don't want this to be an extra condition per shot.
+			create_ammo_counter()
+			vis_contents += ammo_counter
 			display_ammo(user, TRUE)
 
 	else if(flags_gun_features & GUN_AMMO_COUNTER)
-		vis_contents -= ammo_counter.counter
-		for(var/i in ammo_counter_tracker)
-			vis_contents -= ammo_counter_tracker[i]
-			ammo_counter_tracker[i] = null
+		create_ammo_counter()
+		vis_contents -= ammo_counter //We don't want to show it anywhere but the hand.
 
 	else
 		set_gun_user(null)
@@ -83,11 +82,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		if(current_stock.stock_activated)
 			current_stock.activate_attachment(src, user, turn_off = TRUE)
 
-	if(flags_gun_features & GUN_AMMO_COUNTER)
-		vis_contents -= ammo_counter.counter
-		for(var/i in ammo_counter_tracker)
-			vis_contents -= ammo_counter_tracker[i]
-			ammo_counter_tracker[i] = null
+	remove_ammo_counter()
 
 	unwield(user)
 	set_gun_user(null)
@@ -99,13 +94,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 
 /obj/item/weapon/gun/on_enter_storage() //We do not want the ammo tracker showing in storage.
 	..()
-
-	if(flags_gun_features & GUN_AMMO_COUNTER)
-		vis_contents -= ammo_counter.counter
-		for(var/i in ammo_counter_tracker)
-			vis_contents -= ammo_counter_tracker[i]
-			ammo_counter_tracker[i] = null
-
+	remove_ammo_counter()
 
 /obj/item/weapon/gun/wield(mob/living/user)
 	if(!(flags_item & TWOHANDED) || flags_item & WIELDED)
@@ -382,7 +371,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		var/obj/item/attachable/attached_attachment = attachments[attachment.slot]
 		if(attached_attachment && !(attached_attachment.flags_attach_features & ATTACH_REMOVABLE))
 			to_chat(user, SPAN_WARNING("The attachment on [src]'s [attachment.slot] cannot be removed!"))
-			return 0
+			return FALSE
 	//to prevent headaches with lighting stuff
 	if(attachment.light_mod)
 		for(var/slot in attachments)
@@ -391,8 +380,8 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 				continue
 			if(attached_attachment.light_mod)
 				to_chat(user, SPAN_WARNING("You already have a light source attachment on [src]."))
-				return 0
-	return 1
+				return FALSE
+	return TRUE
 
 /obj/item/weapon/gun/proc/attach_to_gun(mob/user, obj/item/attachable/attachment)
 	if(!can_attach_to_gun(user, attachment))
@@ -414,7 +403,6 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	return
 
 /obj/item/weapon/gun/proc/update_attachables() //Updates everything. You generally don't need to use this.
-	//overlays.Cut()
 	if(attachable_offset) //Even if the attachment doesn't exist, we're going to try and remove it.
 		for(var/slot in attachments)
 			var/obj/item/attachable/attached_attachment = attachments[slot]
@@ -426,19 +414,20 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		update_overlays(attachments[attachable], attachable)
 
 /obj/item/weapon/gun/proc/update_overlays(obj/item/attachable/attachment, slot)
-	var/image/gun_image = attachable_overlays[slot]
-	overlays -= gun_image
-	attachable_overlays[slot] = null
-	if(attachment && !attachment.hidden) //Only updates if the attachment exists for that slot.
-		var/item_icon = attachment.icon_state
-		if(attachment.attach_icon)
-			item_icon = attachment.attach_icon
-		gun_image = image(attachment.icon,src, item_icon)
-		gun_image.pixel_x = attachable_offset["[slot]_x"] - attachment.pixel_shift_x + x_offset_by_attachment_type(attachment.type)
-		gun_image.pixel_y = attachable_offset["[slot]_y"] - attachment.pixel_shift_y + y_offset_by_attachment_type(attachment.type)
-		attachable_overlays[slot] = gun_image
-		overlays += gun_image
-	else attachable_overlays[slot] = null
+	//We'll try to remove anything that may have been there previously, in case they're hotswapping it.
+	var/obj/item/attachable/previous_attachment = attachments[slot] //In case there is one.
+	if(previous_attachment)
+		vis_contents -= previous_attachment
+		previous_attachment.pixel_x = initial(pixel_x) //We want to reset these.
+		previous_attachment.pixel_y = initial(pixel_y)
+		previous_attachment.icon_state = initial(icon_state)
+		previous_attachment.select_gamemode_skin(previous_attachment.type) //Since the icon_state is reset, we want to reset this too. //TODO: bit flag
+
+	if(attachment) //Only updates if the attachment exists for that slot.
+		attachment.pixel_x = attachable_offset["[slot]_x"] - attachment.pixel_shift_x + x_offset_by_attachment_type(attachment.type) //We want to make sure to set these up first.
+		attachment.pixel_y = attachable_offset["[slot]_y"] - attachment.pixel_shift_y + y_offset_by_attachment_type(attachment.type)
+		attachment.icon_state = attachment.attach_icon ? attachment.attach_icon : attachment.icon_state
+		vis_contents += attachment //And add it to overlays. If it doesn't have an icon, it will be transparent.
 
 /obj/item/weapon/gun/proc/x_offset_by_attachment_type(attachment_type)
 	return 0

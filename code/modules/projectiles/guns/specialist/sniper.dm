@@ -312,7 +312,7 @@
 /obj/item/weapon/gun/rifle/sniper/M42A/handle_starting_attachment()
 	..()
 	var/obj/item/attachable/scope/variable_zoom/S = new(src)
-	S.hidden = TRUE
+	S.vis_flags |= VIS_HIDE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
 	S.Attach(src)
 	update_attachable(S.slot)
@@ -488,7 +488,7 @@
 
 	var/obj/item/attachable/scope/variable_zoom/integrated/type88sight = new(src)
 	type88sight.flags_attach_features &= ~ATTACH_REMOVABLE
-	type88sight.hidden = TRUE
+	type88sight.vis_flags |= VIS_HIDE
 	type88sight.Attach(src)
 	update_attachable(type88sight.slot)
 

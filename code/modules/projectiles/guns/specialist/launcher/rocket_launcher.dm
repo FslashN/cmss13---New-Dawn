@@ -75,14 +75,6 @@
 /obj/item/weapon/gun/launcher/rocket/reload_into_chamber(mob/user)
 	return TRUE
 
-/obj/item/weapon/gun/launcher/rocket/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
-	if(!current_mag)
-		return
-	qdel(projectile_to_fire)
-	if(refund)
-		current_mag.current_rounds++
-	return TRUE
-
 /obj/item/weapon/gun/launcher/rocket/proc/make_rocket(mob/user, drop_override = 0, empty = 1)
 	if(!current_mag)
 		return
@@ -337,7 +329,7 @@
 	update_attachables()
 
 	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
-	Integrated.hidden = TRUE
+	Integrated.vis_flags |= VIS_HIDE
 	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
 	Integrated.Attach(src)
 	update_attachable(Integrated.slot)

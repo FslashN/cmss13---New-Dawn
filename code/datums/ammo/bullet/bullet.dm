@@ -50,7 +50,7 @@
 	user.next_move += 1.1 SECONDS //PB has no click delay; readding it here to prevent people accidentally queuing up multiple executions.
 
 	if(!do_after(user, 1 SECONDS, INTERRUPT_ALL, BUSY_ICON_HOSTILE) || !user.Adjacent(execution_target))
-		fired_from.delete_bullet(firing_projectile, TRUE)
+		//Removed delete_bullet.
 		return
 
 	if(!(fired_from.flags_gun_features & GUN_IS_SILENCED))

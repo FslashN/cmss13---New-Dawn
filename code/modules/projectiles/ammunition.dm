@@ -33,6 +33,8 @@ They're all essentially identical when it comes to getting the job done.
 	var/transfer_handful_amount = 8 //amount of bullets to transfer, 5 for 12g, 9 for 45-70
 	var/handful_state = "bullet" //used for generating handfuls from boxes and setting their sprite when loading/unloading
 	var/used_casings = 0
+	var/magazine_type = MAGAZINE_TYPE_DETACHABLE
+	var/jam_chance = FIREARM_JAM_CHANCE_ZERO
 
 	/// If this and ammo_band_icon aren't null, run update_ammo_band(). Is the color of the band, such as green on AP.
 	var/ammo_band_color
@@ -123,7 +125,7 @@ They're all essentially identical when it comes to getting the job done.
 				var/obj/item/ammo_magazine/handful/transfer_from = I
 				if(src == user.get_inactive_hand() || bypass_hold_check) //It has to be held.
 					if(default_ammo == transfer_from.default_ammo)
-						if(transfer_ammo(transfer_from,user,transfer_from.current_rounds)) // This takes care of the rest.
+						if(transfer_bullet_number(transfer_from,user,transfer_from.current_rounds)) // This takes care of the rest.
 							to_chat(user, SPAN_NOTICE("You transfer rounds to [src] from [transfer_from]."))
 					else
 						to_chat(user, SPAN_NOTICE("Those aren't the same rounds. Better not mix them up."))
@@ -131,7 +133,7 @@ They're all essentially identical when it comes to getting the job done.
 					to_chat(user, SPAN_NOTICE("Try holding [src] before you attempt to restock it."))
 
 //Generic proc to transfer ammo between ammo mags. Can work for anything, mags, handfuls, etc.
-/obj/item/ammo_magazine/proc/transfer_ammo(obj/item/ammo_magazine/source, mob/user, transfer_amount = 1)
+/obj/item/ammo_magazine/proc/transfer_bullet_number(obj/item/ammo_magazine/source, mob/user, transfer_amount = 1)
 	if(current_rounds == max_rounds) //Does the mag actually need reloading?
 		to_chat(user, "[src] is already full.")
 		return
@@ -214,9 +216,9 @@ They're all essentially identical when it comes to getting the job done.
 	name = "internal chamber"
 	desc = "You should not be able to examine it."
 	//For revolvers and shotguns.
+	magazine_type = MAGAZINE_TYPE_INTERNAL
 	var/chamber_contents[] //What is actually in the chamber. Initiated on New().
 	var/chamber_position = 1 //Where the firing pin is located. We usually move this instead of the contents.
-	var/chamber_closed = 1 //Starts out closed. Depends on firearm.
 
 //Helper proc, to allow us to see a percentage of how full the magazine is.
 /obj/item/ammo_magazine/proc/get_ammo_percent() // return % charge of cell
@@ -246,6 +248,7 @@ bullets/shells. ~N
 	flags_atom = FPRINT|CONDUCT
 	flags_magazine = AMMUNITION_HANDFUL
 	attack_speed = 3 // should make reloading less painful
+	magazine_type = MAGAZINE_TYPE_HANDFUL
 
 /obj/item/ammo_magazine/handful/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -275,7 +278,7 @@ If it is the same and the other stack isn't full, transfer an amount (default 1)
 /obj/item/ammo_magazine/handful/attackby(obj/item/ammo_magazine/handful/transfer_from, mob/user)
 	if(istype(transfer_from)) // We have a handful. They don't need to hold it.
 		if(default_ammo == transfer_from.default_ammo) //Has to match.
-			transfer_ammo(transfer_from,user, transfer_from.current_rounds) // Transfer it from currently held to src
+			transfer_bullet_number(transfer_from,user, transfer_from.current_rounds) // Transfer it from currently held to src
 		else to_chat(user, "Those aren't the same rounds. Better not mix them up.")
 
 /obj/item/ammo_magazine/handful/proc/generate_handful(new_ammo, new_caliber, new_max_rounds, new_rounds, new_gun_type)
@@ -347,7 +350,6 @@ Turn() or Shift() as there is virtually no overhead other than generating a few 
 		switch(current_casings)
 			if(3 to 5) w_class = SIZE_SMALL //Slightly heavier.
 			if(9 to 10) w_class = SIZE_MEDIUM //Can't put it in your pockets and stuff.
-
 
 //Making child objects so that locate() and istype() doesn't screw up.
 /obj/item/ammo_casing/bullet

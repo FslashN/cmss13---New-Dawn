@@ -861,13 +861,6 @@
 		spikes--
 		return in_chamber //Enough spikes for a shot.
 
-/obj/item/weapon/gun/launcher/spike/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
-	qdel(projectile_to_fire)
-	if(refund)
-		spikes++
-		log_debug("[src] refunded a shot.")
-	return TRUE
-
 /obj/item/weapon/gun/energy/yautja
 	icon = 'icons/obj/items/hunter/pred_gear.dmi'
 	icon_state = null
@@ -959,13 +952,6 @@
 	to_chat(user, SPAN_NOTICE("Now it has <b>[charge_time]</b> energy remaining.."))
 	return in_chamber
 
-/obj/item/weapon/gun/energy/yautja/plasmarifle/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
-	qdel(projectile_to_fire)
-	if(refund)
-		charge_time += 7
-		log_debug("[src] refunded a shot.")
-	return TRUE
-
 #define FIRE_MODE_STANDARD "Standard"
 #define FIRE_MODE_INCENDIARY "Incendiary"
 /obj/item/weapon/gun/energy/yautja/plasmapistol
@@ -1037,13 +1023,6 @@
 	if(charge_time >= shot_cost)
 		charge_time -= shot_cost
 		return in_chamber
-
-/obj/item/weapon/gun/energy/yautja/plasmapistol/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
-	qdel(projectile_to_fire)
-	if(refund)
-		charge_time += shot_cost
-		log_debug("[src] refunded a shot.")
-	return TRUE
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/use_unique_action()
 	switch(mode)
@@ -1220,16 +1199,6 @@
 /obj/item/weapon/gun/energy/yautja/plasma_caster/ready_in_chamber(mob/user)
 	if(source.drain_power(user, charge_cost))
 		return in_chamber
-
-/obj/item/weapon/gun/energy/yautja/plasma_caster/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
-	qdel(projectile_to_fire)
-	if(refund)
-		source.charge += charge_cost
-		var/perc = source.charge / source.charge_max * 100
-		var/mob/living/carbon/human/user = usr //Hacky...
-		user.update_power_display(perc)
-		log_debug("[src] refunded a [in_chamber] shot.")
-	return TRUE
 
 #undef FLAY_STAGE_SCALP
 #undef FLAY_STAGE_STRIP

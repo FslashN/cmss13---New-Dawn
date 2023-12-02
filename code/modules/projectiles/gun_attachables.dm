@@ -20,41 +20,16 @@ Defined in conflicts.dm of the #defines folder.
 #define ATTACH_WEAPON 16
 */
 
-/datum/ammo_counter
-	var/obj/effect/ammo_counter_object/counter = null
-	var/list/digits = list()
-
-/obj/effect/ammo_counter_object
-	icon = 'icons/obj/items/weapons/guns/attachments/ammo_counter.dmi'
-	icon_state = "counter"
-	vis_flags = VIS_INHERIT_LAYER|VIS_INHERIT_PLANE|VIS_INHERIT_ID
-
-/obj/effect/ammo_counter_digits
-	icon = 'icons/obj/items/weapons/guns/attachments/ammo_counter.dmi'
-	vis_flags = VIS_INHERIT_LAYER|VIS_INHERIT_PLANE|VIS_INHERIT_ID
-
-/datum/ammo_counter/New()
-	var/obj/effect/ammo_counter_digits/C
-	counter = new
-	for(var/i = 0 to 9)
-		C = new
-		C.icon_state = "[i]"
-		digits["[i]"] =  C
-		C = new
-		C.icon_state = "[i]0"
-		digits["[i]0"] =  C
-		C = new
-		C.icon_state = "[i]00"
-		digits["[i]00"] =  C
-
-var/datum/ammo_counter/ammo_counter = new
-
 /obj/item/attachable
 	name = "attachable item"
 	desc = "It's the very theoretical concept of an attachment. You should never see this."
 	icon = 'icons/obj/items/weapons/guns/attachments/barrel.dmi'
 	icon_state = null
 	item_state = null
+
+	//Thing to keep in mind about vis_flags is that they act as overlays and are drawn over regular overlays as of right now.
+	vis_flags = VIS_INHERIT_LAYER|VIS_INHERIT_PLANE|VIS_INHERIT_ID
+
 	var/attach_icon //the sprite to show when the attachment is attached when we want it different from the icon_state.
 	var/pixel_shift_x = 16 //Determines the amount of pixels to move the icon state for the overlay.
 	var/pixel_shift_y = 16 //Uses the bottom left corner of the item.
@@ -106,8 +81,6 @@ var/datum/ammo_counter/ammo_counter = new
 	var/max_rounds = 0 //How much ammo it can store
 
 	var/attachment_action_type
-
-	var/hidden = FALSE //Render on gun?
 
 	/// An assoc list in the format list(/datum/element/bullet_trait_to_give = list(...args))
 	/// that will be given to a projectile with the current ammo datum
@@ -182,18 +155,7 @@ var/datum/ammo_counter/ammo_counter = new
 
 	for(var/trait in gun_traits)
 		ADD_TRAIT(G, trait, TRAIT_SOURCE_ATTACHMENT(slot))
-	for(var/entry in traits_to_give)
-		if(!G.in_chamber)
-			break
-		var/list/L
-		// Check if this is an ID'd bullet trait
-		if(istext(entry))
-			L = traits_to_give[entry].Copy()
-		else
-			// Prepend the bullet trait to the list
-			L = list(entry) + traits_to_give[entry]
-		// Apply bullet traits from attachment to gun's current projectile
-		//G.in_chamber.apply_bullet_trait(L)
+	//Viva no more dang projectiles in_chamber.
 
 /obj/item/attachable/proc/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
 	if(!istype(detaching_gun)) return //Guns only
@@ -205,7 +167,7 @@ var/datum/ammo_counter/ammo_counter = new
 
 	detaching_gun.attachments[slot] = null
 	detaching_gun.recalculate_attachment_bonuses()
-	detaching_gun.attachable_overlays -= detaching_gun.attachable_overlays[slot]
+	detaching_gun.update_overlays(src, slot)
 
 	for(var/X in detaching_gun.actions)
 		var/datum/action/DA = X
@@ -220,16 +182,6 @@ var/datum/ammo_counter/ammo_counter = new
 
 	for(var/trait in gun_traits)
 		REMOVE_TRAIT(detaching_gun, trait, TRAIT_SOURCE_ATTACHMENT(slot))
-	for(var/entry in traits_to_give)
-		if(!detaching_gun.in_chamber)
-			break
-		var/list/L
-		if(istext(entry))
-			L = traits_to_give[entry].Copy()
-		else
-			L = list(entry) + traits_to_give[entry]
-		// Remove bullet traits of attachment from gun's current projectile
-		detaching_gun.in_chamber._RemoveElement(L)
 
 /obj/item/attachable/ui_action_click(mob/living/user, obj/item/weapon/gun/G)
 	activate_attachment(G, user)
@@ -793,7 +745,6 @@ var/datum/ammo_counter/ammo_counter = new
 		icon_state = original_state
 		attach_icon = original_attach
 		playsound(user, activation_sound, 15, 1)
-	attached_gun.update_attachable(slot)
 
 	for(var/X in attached_gun.actions)
 		var/datum/action/A = X
@@ -2048,7 +1999,6 @@ var/datum/ammo_counter/ammo_counter = new
 		wield_delay_mod = WIELD_DELAY_NONE //stock is folded so no wield delay
 
 	gun.recalculate_attachment_bonuses()
-	gun.update_overlays(src, "stock")
 
 /obj/item/attachable/stock/m16
 	name = "\improper M16 bump stock"
@@ -2117,8 +2067,6 @@ var/datum/ammo_counter/ammo_counter = new
 		wield_delay_mod = WIELD_DELAY_NONE //stock is folded so no wield delay
 		sprite_pixel_width = 3
 	gun.recalculate_attachment_bonuses()
-	gun.update_overlays(src, "stock")
-
 
 /obj/item/attachable/stock/ar10
 	name = "\improper AR10 wooden stock"
@@ -2460,7 +2408,6 @@ var/datum/ammo_counter/ammo_counter = new
 		sprite_pixel_width = 9
 
 	gun.recalculate_attachment_bonuses()
-	gun.update_overlays(src, "stock")
 
 /obj/item/attachable/stock/smg/collapsible/brace
 	name = "\improper submachinegun arm brace"
@@ -2514,7 +2461,6 @@ var/datum/ammo_counter/ammo_counter = new
 		sprite_pixel_width = 10
 
 	G.recalculate_attachment_bonuses()
-	G.update_overlays(src, "stock")
 
 /obj/item/attachable/stock/revolver
 	name = "\improper M44 magnum sharpshooter stock"
@@ -2592,7 +2538,6 @@ var/datum/ammo_counter/ammo_counter = new
 		sprite_pixel_width = 12
 		G.recalculate_attachment_bonuses()
 	folded = !folded
-	G.update_overlays(src, "stock")
 
 // If it is activated/folded when we attach it, re-apply the things
 /obj/item/attachable/stock/revolver/Attach(obj/item/weapon/gun/G)
@@ -2745,7 +2690,7 @@ var/datum/ammo_counter/ammo_counter = new
 	else . += "It's empty."
 
 /obj/item/attachable/attached_gun/grenade/unique_action(mob/user)
-	if(!ishuman(usr))
+	if(!ishuman(user))
 		return
 	if(user.is_mob_incapacitated() || !isturf(usr.loc))
 		to_chat(user, SPAN_WARNING("Not right now."))
@@ -3354,7 +3299,6 @@ var/datum/ammo_counter/ammo_counter = new
 
 	if(istype(loc, /obj/item/weapon/gun))
 		var/obj/item/weapon/gun/gun = loc
-		gun.update_attachable(slot)
 		for(var/datum/action/A as anything in gun.actions)
 			A.update_button_icon()
 

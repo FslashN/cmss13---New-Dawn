@@ -58,7 +58,7 @@
 		if(PC.loaded)
 			if(istype(PC.loaded, /obj/structure/ship_ammo))
 				var/obj/structure/ship_ammo/SA = PC.loaded
-				SA.transfer_ammo(src, user)
+				SA.transfer_bullet_number(src, user)
 				return FALSE
 		else
 			if(ammo_count < 1)
@@ -90,7 +90,7 @@
 /obj/structure/ship_ammo/proc/can_fire_at(turf/impact, mob/user)
 	return TRUE
 
-/obj/structure/ship_ammo/proc/transfer_ammo(obj/structure/ship_ammo/target, mob/user)
+/obj/structure/ship_ammo/proc/transfer_bullet_number(obj/structure/ship_ammo/target, mob/user)
 	if(type != target.type)
 		to_chat(user, SPAN_NOTICE("\The [src] and \the [target] use incompatible types of ammunition!"))
 		return

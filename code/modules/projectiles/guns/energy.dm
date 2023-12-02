@@ -86,11 +86,6 @@
 		SPAN_DANGER("[to_firer]"), message_flags = CHAT_TYPE_WEAPON_USE)
 		return AUTOFIRE_CONTINUE
 
-/obj/item/weapon/gun/energy/delete_bullet(obj/projectile/projectile_to_fire, refund = 0)
-	qdel(projectile_to_fire)
-	if(refund) cell.charge += charge_cost
-	return TRUE
-
 /obj/item/weapon/gun/energy/get_additional_gun_examine_text(mob/user)
 	. = ..()
 	if(has_charge_meter && cell)

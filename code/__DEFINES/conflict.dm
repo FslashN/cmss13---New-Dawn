@@ -87,6 +87,7 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 #define GUN_SECONDARY_MODE_ON (1<<8) ///If the gun has a secondary mode, like an alternative ammo to fire, this is used.
 #define GUN_MOTION_DETECTOR_ON (1<<9) //If the gun comes with a motion detection module built in, this can be toggled too.
 #define GUN_ID_LOCK_ON (1<<10) ///If the gun can lock itself from use, requiring a specific ID to unlock or something.
+//////////////////////////////////
 
 //================================
 //These are receiver features set through flags_gun_receiver
@@ -97,6 +98,10 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 #define GUN_CHAMBER_IS_OPEN (1<<4)///If the above is set, this means the receiver is currently open.
 #define GUN_CHAMBER_ROTATES (1<<5)///The chamber position can move around, typically with a cylinder.
 #define GUN_CHAMBER_IS_STATIC (1<<6)///in_chamber is always "on" acting as the default ammo for the gun and ignores most of the fire cycle. It should never be nulled.
+#define GUN_ACCEPTS_SPEEDLOADER (1<<7) //The receiver is loaded with speedloaders, only really affects revolvers.
+#define GUN_ACCEPTS_HANDFUL (1<<8) //Some guns with internal mags use this loading method.
+#define GUN_CHAMBER_EMPTY_CASING (1<<9) ///If there is an empty casing in the chamber. For jams and edge case guns that don't have internal mags (bolt).
+#define GUN_CHAMBER_IS_JAMMED (1<<10) ///When a gun jams during the fire cycle, this is set. Can happen in reload_into_chamber().
 
 //Gun weapon categories, currently used for firing while dualwielding. Changed these to bitflags in case I want to mix and match. Unique from the flags above, could combine with gun designs.
 #define GUN_CATEGORY_HANDGUN (1<<0)
@@ -141,6 +146,7 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 #define AMMUNITION_CANNOT_REMOVE_BULLETS (1<<4)
 /// If this magazine can transfer to other magazines of the same type by slapping one with the other
 #define AMMUNITION_SLAP_TRANSFER (1<<5)
+
 //Slowdown from various armors.
 
 /// How much shoes slow you down by default. Negative values speed you up

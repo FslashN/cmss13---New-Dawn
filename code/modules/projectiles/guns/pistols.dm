@@ -372,7 +372,7 @@
 	..()
 	var/obj/item/attachable/lasersight/TT = new(src)
 	TT.flags_attach_features &= ~ATTACH_REMOVABLE
-	TT.hidden = TRUE
+	TT.vis_flags |= VIS_HIDE
 	TT.Attach(src)
 	update_attachable(TT.slot)
 
@@ -690,7 +690,6 @@
 	..()
 	var/obj/item/attachable/flashlight/laser_light_combo/VP = new(src)
 	VP.flags_attach_features &= ~ATTACH_REMOVABLE
-	VP.hidden = FALSE
 	VP.Attach(src)
 	update_attachable(VP.slot)
 
