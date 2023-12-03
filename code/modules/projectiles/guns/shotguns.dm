@@ -197,10 +197,8 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	var/obj/item/attachable/stock/tactical/stock = new(src)
 	ugl.flags_attach_features &= ~ATTACH_REMOVABLE
 	ugl.vis_flags |= VIS_HIDE
-	ugl.Attach(src)
-	update_attachable(ugl.slot)
-	stock.Attach(src)
-	update_attachable(stock.slot)
+	Attach(ugl)
+	Attach(stock)
 
 /obj/item/weapon/gun/shotgun/combat/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 14, "under_y" = 16, "stock_x" = 11, "stock_y" = 13.)
@@ -393,8 +391,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	. = ..()
 	var/obj/item/attachable/verticalgrip/integrated_grip = new(src)
 	integrated_grip.flags_attach_features &= ~ATTACH_REMOVABLE
-	integrated_grip.Attach(src)
-	update_attachable(integrated_grip.slot)
+	Attach(integrated_grip)
 
 //-------------------------------------------------------
 //DOUBLE SHOTTY
@@ -484,8 +481,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	. = ..()
 	var/obj/item/attachable/stock/double/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/weapon/gun/shotgun/double/damaged
 	name = "semi-sawn-off Spearhead Rival 78"

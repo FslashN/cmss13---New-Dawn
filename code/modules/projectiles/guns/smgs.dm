@@ -444,8 +444,6 @@
 //-------------------------------------------------------
 // DAS REAL UZI
 
-#define UZI_UNJAM_CHANCE 25
-
 /obj/item/weapon/gun/smg/uzi
 	name = "\improper UZI"
 	desc = "Exported to over 90 countries, somehow this relic has managed to end up here. Couldn't be simpler to use."
@@ -493,42 +491,6 @@
 	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_2
 	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 
-// The UZI can also jam, though it's less likely.
-
-/obj/item/weapon/gun/smg/uzi/Fire(atom/target, mob/living/user, params, reflex = 0, dual_wield)
-	var/obj/item/ammo_magazine/smg/uzi/uzi_mag = current_mag
-	if(jammed)
-		if(world.time % 3)
-			playsound(src, 'sound/weapons/handling/gun_jam_click.ogg', 35, TRUE)
-			to_chat(user, SPAN_WARNING("Your gun is jammed! Mash Unique-Action to unjam it!"))
-			balloon_alert(user, "*jammed*")
-		return NONE
-	else if(prob(uzi_mag.jam_chance))
-		jammed = TRUE
-		playsound(src, 'sound/weapons/handling/gun_jam_initial_click.ogg', 35, TRUE)
-		user.visible_message(SPAN_DANGER("[src] makes a noticeable clicking noise!"), SPAN_HIGHDANGER("\The [src] suddenly jams and refuses to fire! Mash Unique-Action to unjam it."))
-		balloon_alert(user, "*jammed*")
-		return NONE
-	else
-		return ..()
-
-/obj/item/weapon/gun/smg/uzi/unique_action(mob/user)
-	if(jammed)
-		if(prob(UZI_UNJAM_CHANCE))
-			to_chat(user, SPAN_GREEN("You succesfully unjam \the [src]!"))
-			playsound(src, 'sound/weapons/handling/gun_jam_rack_success.ogg', 35, TRUE)
-			jammed = FALSE
-			cycle_chamber_cooldown += 1 SECONDS //so they dont accidentally cock a bullet away
-			balloon_alert(user, "*unjammed!*")
-		else
-			to_chat(user, SPAN_NOTICE("You start wildly racking the bolt back and forth attempting to unjam \the [src]!"))
-			playsound(src, "gun_jam_rack", 50, FALSE)
-			balloon_alert(user, "*rack*")
-		return
-	. = ..()
-
-#undef UZI_UNJAM_CHANCE
-
 //-------------------------------------------------------
 //FP9000 //Based on the FN P90
 
@@ -565,8 +527,7 @@
 	S.icon_state = "miniscope_fp9000"
 	S.attach_icon = "miniscope_fp9000_a" // Custom
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/weapon/gun/smg/fp9000/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 20, "rail_y" = 21, "under_x" = 26, "under_y" = 16, "stock_x" = 22, "stock_y" = 16)

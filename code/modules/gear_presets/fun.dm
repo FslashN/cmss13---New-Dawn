@@ -130,8 +130,7 @@
 
 		// give it a magharness
 		var/obj/item/attachable/magnetic_harness/magharn = new(launcher)
-		magharn.Attach(launcher)
-		launcher.update_attachable(magharn.slot)
+		launcher.Attach(magharn)
 
 		// the M92 New() proc sleeps off into the background 1 second after it's called, so the nades aren't actually in at this point in execution
 		spawn(5)

@@ -325,14 +325,12 @@
 	..()
 	var/obj/item/attachable/upp_rpg_breech/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachables()
+	Attach(S)
 
 	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
 	Integrated.vis_flags |= VIS_HIDE
 	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	Integrated.Attach(src)
-	update_attachable(Integrated.slot)
+	Attach(Integrated)
 
 /obj/item/weapon/gun/launcher/rocket/upp/apply_bullet_effects(obj/projectile/projectile_to_fire, mob/user, i = 1, reflex = 0)
 	. = ..()

@@ -21,8 +21,7 @@
 	var/obj/item/attachable/suppressor/S = new(src)
 	S.vis_flags |= VIS_HIDE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/ammo_magazine/pistol/tranq
 	name = "\improper Tranquilizer magazine (Horse Tranquilizer)"

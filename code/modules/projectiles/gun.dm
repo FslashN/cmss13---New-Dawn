@@ -75,8 +75,10 @@
 	var/obj/item/ammo_magazine/internal/current_mag = null
 
 	//Basic stats.'
-	///Guns can jam, though right now it's not set up for anything other than the PPSH. Jam chance compounds for the weapon and mag used, if non-zero.
-	var/jam_chance = FIREARM_JAM_CHANCE_ZERO
+	///Guns can jam, though right now it's not set up for anything other than the PPSH. Jam chance compounds for the weapon and mag used, if non-zero. This is the base chance for the gun.
+	var/malfunction_chance_base = FIREARM_MALFUNCTION_CHANCE_ZERO
+	//This accumulates as the gun is fired. More rounds = higher chance to jam.
+	var/malfunction_chance_mod = FIREARM_MALFUNCTION_CHANCE_ZERO
 	///Multiplier. Increased and decreased through attachments. Multiplies the projectile's accuracy by this number.
 	var/accuracy_mult = 0
 	///Multiplier. Increased and decreased through attachments. Multiplies the projectile's damage by this number.
@@ -373,102 +375,6 @@
 	for(var/entry in bullet_traits)
 		LAZYREMOVE(traits_to_give, entry)
 
-/obj/item/weapon/gun/proc/recalculate_attachment_bonuses()
-	//reset weight and force mods
-	force = initial(force)
-	w_class = initial(w_class)
-
-	//reset HUD and pixel offsets
-	hud_offset = initial(hud_offset)
-	pixel_x = initial(hud_offset)
-
-	//reset traits from attachments
-	for(var/slot in attachments)
-		REMOVE_TRAITS_IN(src, TRAIT_SOURCE_ATTACHMENT(slot))
-
-	//Get default gun config values
-	set_gun_config_values()
-
-	//Add attachment bonuses
-	var/obj/item/attachable/R
-	for(var/slot in attachments)
-		R = attachments[slot]
-		if(!R)
-			continue
-		modify_fire_delay(R.delay_mod)
-		accuracy_mult += R.accuracy_mod
-		accuracy_mult_unwielded += R.accuracy_unwielded_mod
-		scatter += R.scatter_mod
-		scatter_unwielded += R.scatter_unwielded_mod
-		damage_mult += R.damage_mod
-		velocity_add += R.velocity_mod
-		damage_falloff_mult += R.damage_falloff_mod
-		damage_buildup_mult += R.damage_buildup_mod
-		effective_range_min += R.range_min_mod
-		effective_range_max += R.range_max_mod
-		recoil += R.recoil_mod
-		burst_scatter_mult += R.burst_scatter_mod
-		modify_burst_amount(R.burst_mod)
-		recoil_unwielded += R.recoil_unwielded_mod
-		aim_slowdown += R.aim_speed_mod
-		wield_delay += R.wield_delay_mod
-		movement_onehanded_acc_penalty_mult += R.movement_onehanded_acc_penalty_mod
-		force += R.melee_mod
-		w_class += R.size_mod
-
-		for(var/trait in R.gun_traits)
-			ADD_TRAIT(src, trait, TRAIT_SOURCE_ATTACHMENT(slot))
-
-	//Refresh location in HUD.
-	if(ishuman(loc))
-		var/mob/living/carbon/human/M = loc
-		if(M.l_hand == src)
-			M.update_inv_l_hand()
-		else if(M.r_hand == src)
-			M.update_inv_r_hand()
-
-	setup_firemodes()
-
-	SEND_SIGNAL(src, COMSIG_GUN_RECALCULATE_ATTACHMENT_BONUSES)
-
-/obj/item/weapon/gun/proc/handle_random_attachments()
-	var/attachmentchoice
-
-	if(!prob(random_spawn_chance))
-		return
-
-	if(prob(random_rail_chance) && !attachments["rail"]) // Rail
-		attachmentchoice = SAFEPICK(random_spawn_rail)
-		if(attachmentchoice)
-			var/obj/item/attachable/R = new attachmentchoice(src)
-			R.Attach(src)
-			update_attachable(R.slot)
-			attachmentchoice = FALSE
-
-	if(prob(random_muzzle_chance) && !attachments["muzzle"]) // Muzzle
-		attachmentchoice = SAFEPICK(random_spawn_muzzle)
-		if(attachmentchoice)
-			var/obj/item/attachable/M = new attachmentchoice(src)
-			M.Attach(src)
-			update_attachable(M.slot)
-			attachmentchoice = FALSE
-
-	if(prob(random_under_chance) && !attachments["under"]) // Underbarrel
-		attachmentchoice = SAFEPICK(random_spawn_under)
-		if(attachmentchoice)
-			var/obj/item/attachable/U = new attachmentchoice(src)
-			U.Attach(src)
-			update_attachable(U.slot)
-			attachmentchoice = FALSE
-
-	if(prob(random_stock_chance) && !attachments["stock"]) // Stock
-		attachmentchoice = SAFEPICK(random_spawn_stock)
-		if(attachmentchoice)
-			var/obj/item/attachable/S = new attachmentchoice(src)
-			S.Attach(src)
-			update_attachable(S.slot)
-			attachmentchoice = FALSE
-
 /obj/item/weapon/gun/emp_act(severity)
 	. = ..()
 	for(var/obj/O in contents)
@@ -493,7 +399,6 @@
 
 	icon_state = new_icon_state
 	update_mag_overlay()
-	update_attachables()
 
 //===============================EXAMINING THE GUN======================================\\
 //======================================================================================\\
@@ -1502,8 +1407,8 @@ User can be passed as null. Tries to account for most reloading methods now.
 				// 							\\
 //----------------------------------------------------------
 
-#define RELOAD_INTO_CHAMBER_JAM_BULLET 1
-#define RELOAD_INTO_CHAMBER_JAM_CASING 2
+#define RELOAD_INTO_CHAMBER_MALFUNCTION_BULLET 1
+#define RELOAD_INTO_CHAMBER_MALFUNCTION_CASING 2
 
 //What happens after the gun is fired.
 /obj/item/weapon/gun/proc/reload_into_chamber(mob/user)
@@ -1517,25 +1422,25 @@ User can be passed as null. Tries to account for most reloading methods now.
 
 	else
 		//If the gun fired, we will need to add a bit of jam chance. The more rounds, the higher it gets. Unused feature for now.
-		//jam_chance += FIREARM_JAM_CHANCE_VERY_LOW //Could be cool to use oil to clean the gun to reset this.
+		//malfunction_chance_mod += FIREARM_MALFUNCTION_CHANCE_VERY_LOW //Could be cool to use oil to clean the gun to reset this.
 		//Let's find out if the gun jams before we proceed. We need to simulate whether it's a jammed bullet from a new cycle or jammed casing from the last cycle.
-		if(user && prob((jam_chance + (current_mag ? current_mag.jam_chance : 0) )) )  //Requires a user present to jam. Objects firing guns won't jam.
+		if(user && prob((malfunction_chance_base + malfunction_chance_mod + (current_mag ? current_mag.malfunction_chance_added : 0) )) )  //Requires a user present to jam. Objects firing guns won't jam.
 
 			var/simulate_gun_jam = NONE
-			switch(pick(40; RELOAD_INTO_CHAMBER_JAM_BULLET,60; RELOAD_INTO_CHAMBER_JAM_CASING)) //This just checks what we try first. Casing jams are more common.
-				if(RELOAD_INTO_CHAMBER_JAM_BULLET)
+			switch(pick(40; RELOAD_INTO_CHAMBER_MALFUNCTION_BULLET,60; RELOAD_INTO_CHAMBER_MALFUNCTION_CASING)) //This just checks what we try first. Casing jams are more common.
+				if(RELOAD_INTO_CHAMBER_MALFUNCTION_BULLET)
 					if(ready_in_chamber(user)) //If we don't find a bullet we'll try the casing method.
-						simulate_gun_jam = RELOAD_INTO_CHAMBER_JAM_CASING
+						simulate_gun_jam = RELOAD_INTO_CHAMBER_MALFUNCTION_CASING
 					else if(projectile_casing)
 						flags_gun_receiver |= GUN_CHAMBER_EMPTY_CASING
-						simulate_gun_jam = RELOAD_INTO_CHAMBER_JAM_CASING
+						simulate_gun_jam = RELOAD_INTO_CHAMBER_MALFUNCTION_CASING
 
-				if(RELOAD_INTO_CHAMBER_JAM_CASING)
+				if(RELOAD_INTO_CHAMBER_MALFUNCTION_CASING)
 					if(projectile_casing) //Casings are easy to deal with.
 						flags_gun_receiver |= GUN_CHAMBER_EMPTY_CASING
-						simulate_gun_jam = RELOAD_INTO_CHAMBER_JAM_CASING
+						simulate_gun_jam = RELOAD_INTO_CHAMBER_MALFUNCTION_CASING
 					else if(ready_in_chamber(user))
-						simulate_gun_jam = RELOAD_INTO_CHAMBER_JAM_CASING
+						simulate_gun_jam = RELOAD_INTO_CHAMBER_MALFUNCTION_CASING
 
 			if(simulate_gun_jam)//Still jammed? If all checks fail, the gun doesn't jam.
 				SEND_SIGNAL(src, COMSIG_GUN_INTERRUPT_FIRE) //Interrupt any sort of burst or whatever.
@@ -1574,8 +1479,8 @@ User can be passed as null. Tries to account for most reloading methods now.
 
 	return in_chamber //Returns an ammot datum if it's actually successful.
 
-#undef RELOAD_INTO_CHAMBER_JAM_BULLET
-#undef RELOAD_INTO_CHAMBER_JAM_CASING
+#undef RELOAD_INTO_CHAMBER_MALFUNCTION_BULLET
+#undef RELOAD_INTO_CHAMBER_MALFUNCTION_CASING
 
 //This is only a visual effect, it does nothing by itself.
 /obj/effect/digital_counter

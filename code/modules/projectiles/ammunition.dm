@@ -34,7 +34,7 @@ They're all essentially identical when it comes to getting the job done.
 	var/handful_state = "bullet" //used for generating handfuls from boxes and setting their sprite when loading/unloading
 	var/used_casings = 0
 	var/magazine_type = MAGAZINE_TYPE_DETACHABLE
-	var/jam_chance = FIREARM_JAM_CHANCE_ZERO
+	var/malfunction_chance_added = FIREARM_MALFUNCTION_CHANCE_ZERO //For guns jamming.
 
 	/// If this and ammo_band_icon aren't null, run update_ammo_band(). Is the color of the band, such as green on AP.
 	var/ammo_band_color

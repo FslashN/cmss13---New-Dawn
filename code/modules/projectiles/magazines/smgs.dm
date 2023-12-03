@@ -126,7 +126,7 @@
 	max_rounds = 35
 	gun_type = /obj/item/weapon/gun/smg/ppsh
 	default_ammo = /datum/ammo/bullet/smg/ppsh
-	jam_chance = FIREARM_JAM_CHANCE_LOW
+	malfunction_chance_added = FIREARM_MALFUNCTION_CHANCE_LOW
 	var/bonus_mag_aim_slowdown = 0
 	var/bonus_mag_wield_delay = 0
 	var/new_item_state = "ppsh17b"
@@ -141,7 +141,7 @@
 	w_class = SIZE_MEDIUM
 	bonus_mag_aim_slowdown = SLOWDOWN_ADS_QUICK_MINUS
 	bonus_mag_wield_delay = WIELD_DELAY_VERY_FAST
-	jam_chance = FIREARM_JAM_CHANCE_MEDIUM
+	malfunction_chance_added = FIREARM_MALFUNCTION_CHANCE_MEDIUM
 	new_item_state = "ppsh17b_d"
 
 //-------------------------------------------------------
@@ -218,7 +218,7 @@
 	icon_state = "uzi_extended"
 	bonus_overlay = "uzi_ext"
 	max_rounds = 32
-	jam_chance = FIREARM_JAM_CHANCE_MEDIUM
+	malfunction_chance_added = FIREARM_MALFUNCTION_CHANCE_MEDIUM
 
 //-------------------------------------------------------
 //FP9000 //Based on the FN P90

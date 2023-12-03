@@ -190,8 +190,7 @@
 	..()
 	var/obj/item/attachable/stock/nsg23/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 //has no scope or underbarrel
 /obj/item/weapon/gun/rifle/nsg23/stripped
@@ -339,14 +338,12 @@
 	..()
 	var/obj/item/attachable/suppressor/xm40_integral/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 	var/obj/item/attachable/magnetic_harness/H = new(src)//integrated mag harness, no rail attachies
 	H.flags_attach_features &= ~ATTACH_REMOVABLE
 	H.vis_flags |=  VIS_HIDE //This prevents it from being seen as an overlay.
-	H.Attach(src)
-	update_attachable(H.slot)
+	Attach(H)
 
 /obj/item/weapon/gun/rifle/m41a/elite/xm40/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 12, "rail_y" = 23, "under_x" = 24, "under_y" = 13, "stock_x" = 24, "stock_y" = 13)
@@ -521,8 +518,7 @@
 	..()
 	var/obj/item/attachable/stock/rifle/collapsible/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 
 /obj/item/weapon/gun/rifle/m46c/set_gun_attachment_offsets()
@@ -950,8 +946,7 @@
 	..()
 	var/obj/item/attachable/stock/m16/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/weapon/gun/rifle/m16/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 9, "rail_y" = 20, "under_x" = 22, "under_y" = 14, "stock_x" = 15, "stock_y" = 14)
@@ -1008,8 +1003,7 @@
 	..()
 	var/obj/item/attachable/attached_gun/grenade/m203/integrated = new(src)
 	integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	integrated.Attach(src)
-	update_attachable(integrated.slot)
+	Attach(integrated)
 
 //-------------------------------------------------------
 //XM177 carbine
@@ -1063,8 +1057,7 @@
 	..()
 	var/obj/item/attachable/stock/m16/xm177/integrated = new(src)
 	integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	integrated.Attach(src)
-	update_attachable(integrated.slot)
+	Attach(integrated)
 
 /obj/item/weapon/gun/rifle/xm177/set_gun_config_values()
 	..()
@@ -1137,8 +1130,7 @@
 	..()
 	var/obj/item/attachable/stock/ar10/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/weapon/gun/rifle/ar10/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 8, "rail_y" = 20, "under_x" = 22, "under_y" = 14, "stock_x" = 15, "stock_y" = 14)
@@ -1339,8 +1331,7 @@
 	..()
 	var/obj/item/attachable/stock/type71/STOCK = new(src)
 	STOCK.flags_attach_features &= ~ATTACH_REMOVABLE
-	STOCK.Attach(src)
-	update_attachable(STOCK.slot)
+	Attach(STOCK)
 
 /obj/item/weapon/gun/rifle/type71/rifleman
 	//add GL
@@ -1416,8 +1407,7 @@
 	..()
 	var/obj/item/attachable/attached_gun/flamer/advanced/integrated/S = new(src)
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/weapon/gun/rifle/type71/flamer/leader
 	random_spawn_chance = 100
@@ -1513,15 +1503,12 @@
 	//suppressor
 	var/obj/item/attachable/type73suppressor/suppressor = new(src)
 	suppressor.flags_attach_features &= ~ATTACH_REMOVABLE
-	suppressor.Attach(src)
-	update_attachable(suppressor.slot)
+	Attach(suppressor)
 	//scope
 	var/obj/item/attachable/scope/mini/scope = new(src)
 	scope.vis_flags |= VIS_HIDE
 	scope.flags_attach_features &= ~ATTACH_REMOVABLE
-	scope.Attach(src)
-	update_attachable(scope.slot)
-
+	Attach(scope)
 
 /obj/item/weapon/gun/rifle/type71/carbine/commando/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 35, "muzzle_y" = 17,"rail_x" = 10, "rail_y" = 22, "under_x" = 23, "under_y" = 14, "stock_x" = 21, "stock_y" = 18)
@@ -1592,8 +1579,7 @@
 	..()
 	var/obj/item/attachable/m4ra_barrel/integrated = new(src)
 	integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	integrated.Attach(src)
-	update_attachable(integrated.slot)
+	Attach(integrated)
 
 /obj/item/weapon/gun/rifle/m4ra/racked/Initialize(mapload, spawn_empty = TRUE)
 	. = ..()
@@ -1808,9 +1794,7 @@
 	var/obj/item/attachable/angledgrip/f90_agrip = new(src)
 	f90_agrip.flags_attach_features &= ~ATTACH_REMOVABLE
 	f90_agrip.vis_flags |= VIS_HIDE
-	f90_agrip.Attach(src)
-	update_attachable(f90_agrip.slot)
-
+	Attach(f90_agrip)
 /obj/item/weapon/gun/rifle/rmc_f90/scope
 	name = "\improper F903A1 Marksman Rifle"
 	desc = "A variation of the F903 rifle used by the royal marines commando. This weapon only accepts the smaller 20 round magazines of 10x24mm."
@@ -1841,13 +1825,9 @@
 	f90_dmr_barrel.flags_attach_features &= ~ATTACH_REMOVABLE
 	f90_scope.vis_flags |= VIS_HIDE
 	f90_agrip.vis_flags |= VIS_HIDE
-	f90_agrip.Attach(src)
-	f90_scope.Attach(src)
-	f90_dmr_barrel.Attach(src)
-	update_attachable(f90_agrip.slot)
-	update_attachable(f90_scope.slot)
-	update_attachable(f90_dmr_barrel.slot)
-
+	Attach(f90_agrip)
+	Attach(f90_scope)
+	Attach(f90_dmr_barrel)
 /obj/item/weapon/gun/rifle/rmc_f90/shotgun
 	name = "\improper F903A1/B 'Breacher' Rifle"
 	desc = "A variation of the F903 rifle used by the royal marines commando. Modified to be used in one hand with a shield. Uses 10x24mm caseless ammunition."
@@ -1878,7 +1858,5 @@
 	f90_shotgun.flags_attach_features &= ~ATTACH_REMOVABLE
 	f90_shotgun_barrel.flags_attach_features &= ~ATTACH_REMOVABLE
 	f90_shotgun.vis_flags |= VIS_HIDE
-	f90_shotgun.Attach(src)
-	f90_shotgun_barrel.Attach(src)
-	update_attachable(f90_shotgun.slot)
-	update_attachable(f90_shotgun_barrel.slot)
+	Attach(f90_shotgun)
+	Attach(f90_shotgun_barrel)

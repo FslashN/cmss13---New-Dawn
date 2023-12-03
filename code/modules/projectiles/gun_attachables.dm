@@ -88,100 +88,27 @@ Defined in conflicts.dm of the #defines folder.
 	/// List of traits to be given to the gun itself.
 	var/list/gun_traits
 
+//NOTE: The actual attachment actions, like attaching, detaching, and updating overlays are in gun_helpers.dm.
+
 /obj/item/attachable/Initialize(mapload, ...)
 	. = ..()
 	set_bullet_traits()
 
+/obj/item/attachable/proc/handle_attachment_description(client_target)
+	switch(slot)
+		if("rail") //This was set incorrectly before. icon2html requires a target client to be set.
+			. = "It has a [icon2html(src,client_target)] [name] mounted on the top."
+		if("muzzle")
+			. = "It has a [icon2html(src, client_target)] [name] mounted on the front."
+		if("stock")
+			. = "It has a [icon2html(src, client_target)] [name] mounted on the back." //back instead of stock, so it doesn't have so and so stock mounted on the stock.
+		if("under")
+			. = "It has a [icon2html(src, client_target)] [name][flags_attach_features & ATTACH_WEAPON ? (" ([current_rounds]/[max_rounds])")  : ""] mounted underneath."
+		else
+			. = "It has a [icon2html(src, client_target)] [name] attached."
+
 /obj/item/attachable/proc/set_bullet_traits()
 	return
-
-/obj/item/attachable/attackby(obj/item/I, mob/user)
-	if(flags_attach_features & ATTACH_RELOADABLE)
-		if(user.get_inactive_hand() != src)
-			to_chat(user, SPAN_WARNING("You have to hold [src] to do that!"))
-		else
-			reload_attachment(I, user)
-		return TRUE
-	else
-		. = ..()
-
-/obj/item/attachable/proc/can_be_attached_to_gun(mob/user, obj/item/weapon/gun/G)
-	if(G.attachable_allowed && !(type in G.attachable_allowed) )
-		to_chat(user, SPAN_WARNING("[src] doesn't fit on [G]!"))
-		return FALSE
-	return TRUE
-
-/obj/item/attachable/proc/Attach(obj/item/weapon/gun/G)
-	if(!istype(G)) return //Guns only
-
-	/*
-	This does not check if the attachment can be removed.
-	Instead of checking individual attachments, I simply removed
-	the specific guns for the specific attachments so you can't
-	attempt the process in the first place if a slot can't be
-	removed on a gun. can_be_removed is instead used when they
-	try to strip the gun.
-	*/
-	if(G.attachments[slot])
-		var/obj/item/attachable/A = G.attachments[slot]
-		A.Detach(detaching_gun = G)
-
-	if(ishuman(loc))
-		var/mob/living/carbon/human/M = src.loc
-		M.drop_held_item(src)
-	forceMove(G)
-
-	G.attachments[slot] = src
-	G.recalculate_attachment_bonuses()
-
-	G.setup_firemodes()
-	G.update_force_list() //This updates the gun to use proper force verbs.
-
-	var/mob/living/living
-	if(isliving(G.loc))
-		living = G.loc
-
-	if(attachment_action_type)
-		var/given_action = FALSE
-		if(living && (G == living.l_hand || G == living.r_hand))
-			give_action(living, attachment_action_type, src, G)
-			given_action = TRUE
-		if(!given_action)
-			new attachment_action_type(src, G)
-
-	// Sharp attachments (bayonet) make weapons sharp as well.
-	if(sharp)
-		G.sharp = sharp
-
-	for(var/trait in gun_traits)
-		ADD_TRAIT(G, trait, TRAIT_SOURCE_ATTACHMENT(slot))
-	//Viva no more dang projectiles in_chamber.
-
-/obj/item/attachable/proc/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
-	if(!istype(detaching_gun)) return //Guns only
-
-	detaching_gun.on_detach(user)
-
-	if(flags_attach_features & ATTACH_ACTIVATION)
-		activate_attachment(detaching_gun, null, TRUE)
-
-	detaching_gun.attachments[slot] = null
-	detaching_gun.recalculate_attachment_bonuses()
-	detaching_gun.update_overlays(src, slot)
-
-	for(var/X in detaching_gun.actions)
-		var/datum/action/DA = X
-		if(DA.target == src)
-			qdel(X)
-			break
-
-	forceMove(get_turf(detaching_gun))
-
-	if(sharp)
-		detaching_gun.sharp = 0
-
-	for(var/trait in gun_traits)
-		REMOVE_TRAIT(detaching_gun, trait, TRAIT_SOURCE_ATTACHMENT(slot))
 
 /obj/item/attachable/ui_action_click(mob/living/user, obj/item/weapon/gun/G)
 	activate_attachment(G, user)
@@ -196,6 +123,16 @@ Defined in conflicts.dm of the #defines folder.
 /obj/item/attachable/proc/unique_action(mob/user)
 	return
 
+/obj/item/attachable/attackby(obj/item/I, mob/user)
+	if(flags_attach_features & ATTACH_RELOADABLE)
+		if(user.get_inactive_hand() != src)
+			to_chat(user, SPAN_WARNING("You have to hold [src] to do that!"))
+		else
+			reload_attachment(I, user)
+		return TRUE
+	else
+		. = ..()
+
 ///Returns TRUE if its functionality is successfully used, FALSE if gun's own unloading should proceed instead.
 /obj/item/attachable/proc/unload_attachment(mob/user, reload_override = 0, drop_override = 0, loc_override = 0)
 	return FALSE
@@ -204,19 +141,6 @@ Defined in conflicts.dm of the #defines folder.
 	SHOULD_CALL_PARENT(TRUE)
 	SEND_SIGNAL(user, COMSIG_MOB_FIRED_GUN_ATTACHMENT, src) // Because of this, the . = ..() check should be called last, just before firing
 	return TRUE
-
-/obj/item/attachable/proc/handle_attachment_description(client_target)
-	switch(slot)
-		if("rail") //This was set incorrectly before. icon2html requires a target client to be set.
-			. = "It has a [icon2html(src,client_target)] [name] mounted on the top."
-		if("muzzle")
-			. = "It has a [icon2html(src, client_target)] [name] mounted on the front."
-		if("stock")
-			. = "It has a [icon2html(src, client_target)] [name] mounted on the back." //back instead of stock, so it doesn't have so and so stock mounted on the stock.
-		if("under")
-			. = "It has a [icon2html(src, client_target)] [name][flags_attach_features & ATTACH_WEAPON ? (" ([current_rounds]/[max_rounds])")  : ""] mounted underneath."
-		else
-			. = "It has a [icon2html(src, client_target)] [name] attached."
 
 // ======== Muzzle Attachments ======== //
 
@@ -378,12 +302,9 @@ Defined in conflicts.dm of the #defines folder.
 
 	accuracy_unwielded_mod = -HIT_ACCURACY_MULT_TIER_7
 
-/obj/item/attachable/heavy_barrel/Attach(obj/item/weapon/gun/G)
-	if(G.gun_category == GUN_CATEGORY_SHOTGUN)
-		damage_mod = BULLET_DAMAGE_MULT_TIER_1
-	else
-		damage_mod = BULLET_DAMAGE_MULT_TIER_6
-	..()
+/obj/item/attachable/heavy_barrel/handle_attaching(mob/user, obj/item/weapon/gun/G)
+	. = ..()
+	damage_mod = G.gun_category == GUN_CATEGORY_SHOTGUN ? BULLET_DAMAGE_MULT_TIER_1 : BULLET_DAMAGE_MULT_TIER_6
 
 /obj/item/attachable/compensator
 	name = "recoil compensator"
@@ -541,12 +462,12 @@ Defined in conflicts.dm of the #defines folder.
 	..()
 	accuracy_mod = HIT_ACCURACY_MULT_TIER_3
 
-/obj/item/attachable/mateba/Attach(obj/item/weapon/gun/G)
-	..()
+/obj/item/attachable/mateba/handle_attaching(mob/user, obj/item/weapon/gun/G)
+	. = ..()
 	G.attachable_offset["muzzle_x"] = 27
 
-/obj/item/attachable/mateba/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
-	..()
+/obj/item/attachable/mateba/handle_detaching(mob/user, obj/item/weapon/gun/detaching_gun)
+	. = ..()
 	detaching_gun.attachable_offset["muzzle_x"] = 20
 
 /obj/item/attachable/mateba/dark
@@ -565,8 +486,8 @@ Defined in conflicts.dm of the #defines folder.
 	scatter_mod = -SCATTER_AMOUNT_TIER_6
 	delay_mod = FIRE_DELAY_TIER_7
 
-/obj/item/attachable/mateba/long/Attach(obj/item/weapon/gun/G)
-	..()
+/obj/item/attachable/mateba/long/handle_attaching(mob/user, obj/item/weapon/gun/G)
+	. = ..()
 	G.attachable_offset["muzzle_x"] = 27
 
 /obj/item/attachable/mateba/long/dark
@@ -584,8 +505,8 @@ Defined in conflicts.dm of the #defines folder.
 	scatter_mod = SCATTER_AMOUNT_TIER_6
 	delay_mod = -FIRE_DELAY_TIER_7
 
-/obj/item/attachable/mateba/short/Attach(obj/item/weapon/gun/G)
-	..()
+/obj/item/attachable/mateba/short/handle_attaching(mob/user, obj/item/weapon/gun/G)
+	. = ..()
 	G.attachable_offset["muzzle_x"] = 27
 
 /obj/item/attachable/mateba/short/dark
@@ -831,13 +752,13 @@ Defined in conflicts.dm of the #defines folder.
 		return FALSE
 	return ..()
 
-/obj/item/attachable/magnetic_harness/Attach(obj/item/weapon/gun/G)
+/obj/item/attachable/magnetic_harness/handle_attaching(mob/user, obj/item/weapon/gun/G)
 	. = ..()
 	G.AddElement(/datum/element/drop_retrieval/gun, retrieval_slot)
 
-/obj/item/attachable/magnetic_harness/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
+/obj/item/attachable/magnetic_harness/handle_detaching(mob/user, obj/item/weapon/gun/G)
 	. = ..()
-	detaching_gun.RemoveElement(/datum/element/drop_retrieval/gun, retrieval_slot)
+	G.RemoveElement(/datum/element/drop_retrieval/gun, retrieval_slot)
 
 /obj/item/attachable/magnetic_harness/lever_sling
 	name = "R4T magnetic sling" //please don't make this attachable to any other guns...
@@ -848,21 +769,21 @@ Defined in conflicts.dm of the #defines folder.
 	slot = "under"
 	wield_delay_mod = WIELD_DELAY_VERY_FAST
 	retrieval_slot = WEAR_BACK
+	flags_attach_features = ATTACH_REMOVABLE|ATTACH_SKIN_SELECTION
 
 /obj/item/attachable/magnetic_harness/lever_sling/New()
 	..()
 	select_gamemode_skin(type)
 
-/obj/item/attachable/magnetic_harness/lever_sling/Attach(obj/item/weapon/gun/G) //this is so the sling lines up correctly
+/obj/item/attachable/magnetic_harness/lever_sling/handle_attaching(mob/user, obj/item/weapon/gun/G) //this is so the sling lines up correctly
 	. = ..()
 	G.attachable_offset["under_x"] = 15
 	G.attachable_offset["under_y"] = 12
 
-
-/obj/item/attachable/magnetic_harness/lever_sling/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
+/obj/item/attachable/magnetic_harness/lever_sling/handle_detaching(mob/user, obj/item/weapon/gun/G)
 	. = ..()
-	detaching_gun.attachable_offset["under_x"] = 24
-	detaching_gun.attachable_offset["under_y"] = 16
+	G.attachable_offset["under_x"] = 24
+	G.attachable_offset["under_y"] = 16
 
 /obj/item/attachable/magnetic_harness/lever_sling/select_gamemode_skin(expected_type, list/override_icon_state, list/override_protection)
 	. = ..()
@@ -907,14 +828,13 @@ Defined in conflicts.dm of the #defines folder.
 	delay_scoped_nerf = FIRE_DELAY_TIER_11 //to compensate initial debuff. We want "high_fire_delay"
 	damage_falloff_scoped_buff = -0.4 //has to be negative
 
-/obj/item/attachable/scope/Attach(obj/item/weapon/gun/gun)
+/obj/item/attachable/scope/handle_attaching(/mob/user, obj/item/weapon/gun/G)
 	. = ..()
-	RegisterSignal(gun, COMSIG_GUN_RECALCULATE_ATTACHMENT_BONUSES, PROC_REF(handle_attachment_recalc))
+	RegisterSignal(G, COMSIG_GUN_RECALCULATE_ATTACHMENT_BONUSES, PROC_REF(handle_attachment_recalc))
 
-/obj/item/attachable/scope/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
+/obj/item/attachable/scope/handle_detaching(mob/user, obj/item/weapon/gun/G)
 	. = ..()
-	UnregisterSignal(detaching_gun, COMSIG_GUN_RECALCULATE_ATTACHMENT_BONUSES)
-
+	UnregisterSignal(G, COMSIG_GUN_RECALCULATE_ATTACHMENT_BONUSES)
 
 /// Due to the bipod's interesting way of handling stat modifications, this is necessary to prevent exploits.
 /obj/item/attachable/scope/proc/handle_attachment_recalc(obj/item/weapon/gun/source)
@@ -977,11 +897,11 @@ Defined in conflicts.dm of the #defines folder.
 	var/dynamic_aim_slowdown = SLOWDOWN_ADS_MINISCOPE_DYNAMIC
 	var/zoom_level = ZOOM_LEVEL_4X
 
-/obj/item/attachable/scope/variable_zoom/Attach(obj/item/weapon/gun/G)
+/obj/item/attachable/scope/variable_zoom/handle_attaching(mob/user, obj/item/weapon/gun/G)
 	. = ..()
-	var/mob/living/living
+	var/mob/living/living = user
 	var/given_zoom_action = FALSE
-	if(living && (G == living.l_hand || G == living.r_hand))
+	if(istype(living) && (G == living.l_hand || G == living.r_hand))
 		give_action(living, /datum/action/item_action/toggle_zoom_level, src, G)
 		given_zoom_action = TRUE
 	if(!given_zoom_action)
@@ -1113,6 +1033,7 @@ Defined in conflicts.dm of the #defines folder.
 	icon_state = "boomslang-scope"
 	zoom_offset = 7
 	dynamic_aim_slowdown = SLOWDOWN_ADS_NONE
+	flags_attach_features = ATTACH_REMOVABLE|ATTACH_SKIN_SELECTION
 
 /obj/item/attachable/scope/mini/xm88/New()
 	..()
@@ -1174,7 +1095,7 @@ Defined in conflicts.dm of the #defines folder.
 	slot = "rail"
 	aim_speed_mod = SLOWDOWN_ADS_SCOPE //Extra slowdown when wielded
 	wield_delay_mod = WIELD_DELAY_FAST
-	flags_attach_features = ATTACH_REMOVABLE|ATTACH_ACTIVATION
+	flags_attach_features = ATTACH_REMOVABLE|ATTACH_ACTIVATION|ATTACH_SKIN_SELECTION
 	attachment_action_type = /datum/action/item_action/toggle
 	/// Weakref to the user of the scope
 	var/datum/weakref/scope_user
@@ -1718,6 +1639,7 @@ Defined in conflicts.dm of the #defines folder.
 
 	matter = list("wood" = 2000)
 
+	flags_attach_features = ATTACH_REMOVABLE|ATTACH_SKIN_SELECTION
 	select_gamemode_skin(type)
 
 /obj/item/attachable/stock/double
@@ -1758,6 +1680,7 @@ Defined in conflicts.dm of the #defines folder.
 	wield_delay_mod = WIELD_DELAY_SLOW
 	hud_offset_mod = 6
 	sprite_pixel_width = 12
+	flags_attach_features = ATTACH_REMOVABLE|ATTACH_SKIN_SELECTION
 
 /obj/item/attachable/stock/r4t/New()
 	..()
@@ -1774,6 +1697,7 @@ Defined in conflicts.dm of the #defines folder.
 	wield_delay_mod = WIELD_DELAY_NORMAL
 	hud_offset_mod = 6
 	sprite_pixel_width = 8
+	flags_attach_features = ATTACH_REMOVABLE|ATTACH_SKIN_SELECTION
 
 /obj/item/attachable/stock/xm88/New()
 	..()
@@ -1788,6 +1712,7 @@ Defined in conflicts.dm of the #defines folder.
 	icon_state = "vulture_stock"
 	hud_offset_mod = 3
 	sprite_pixel_width = 6
+	flags_attach_features = ATTACH_SKIN_SELECTION
 
 /obj/item/attachable/stock/vulture/Initialize(mapload, ...)
 	. = ..()
@@ -1978,8 +1903,8 @@ Defined in conflicts.dm of the #defines folder.
 		scatter_unwielded_mod = SCATTER_AMOUNT_TIER_8
 		aim_speed_mod = CONFIG_GET(number/slowdown_med)
 		hud_offset_mod = 5
-		icon_state = "m41_folding_on"
-		attach_icon = "m41_folding_a_on"
+		attach_icon = "m41_folding_on"
+		icon_state = "m41_folding_a_on"
 		sprite_pixel_width = 8
 		wield_delay_mod = WIELD_DELAY_VERY_FAST //added 0.2 seconds for wield, basic solid stock adds 0.4
 
@@ -1993,8 +1918,8 @@ Defined in conflicts.dm of the #defines folder.
 		scatter_unwielded_mod = 0
 		aim_speed_mod = 0
 		hud_offset_mod = 3
-		icon_state = "m41_folding"
-		attach_icon = "m41_folding_a"
+		attach_icon = "m41_folding"
+		icon_state = "m41_folding_a"
 		sprite_pixel_width = 3
 		wield_delay_mod = WIELD_DELAY_NONE //stock is folded so no wield delay
 
@@ -2047,8 +1972,8 @@ Defined in conflicts.dm of the #defines folder.
 		scatter_mod = -SCATTER_AMOUNT_TIER_9
 		aim_speed_mod = CONFIG_GET(number/slowdown_med)
 		hud_offset_mod = 5
-		icon_state = "m16_folding"
-		attach_icon = "m16_folding_on"
+		attach_icon = "m16_folding"
+		icon_state = "m16_folding_on"
 		wield_delay_mod = WIELD_DELAY_VERY_FAST
 		sprite_pixel_width = 9
 
@@ -2062,8 +1987,8 @@ Defined in conflicts.dm of the #defines folder.
 		scatter_unwielded_mod = 0
 		aim_speed_mod = 0
 		hud_offset_mod = 3
-		icon_state = "m16_folding"
 		attach_icon = "m16_folding"
+		icon_state = "m16_folding"
 		wield_delay_mod = WIELD_DELAY_NONE //stock is folded so no wield delay
 		sprite_pixel_width = 3
 	gun.recalculate_attachment_bonuses()
@@ -2194,7 +2119,7 @@ Defined in conflicts.dm of the #defines folder.
 	attach_icon = "m4ra_barrel"
 	slot = "special"
 	wield_delay_mod = WIELD_DELAY_NONE
-	flags_attach_features = NO_FLAGS
+	flags_attach_features = ATTACH_SKIN_SELECTION
 	melee_mod = 0 //Integrated attachment for visuals, stats handled on main gun.
 	size_mod = 0
 
@@ -2220,7 +2145,7 @@ Defined in conflicts.dm of the #defines folder.
 	attach_icon = "m4ra_custom_barrel"
 	slot = "special"
 	wield_delay_mod = WIELD_DELAY_NONE
-	flags_attach_features = NO_FLAGS
+	flags_attach_features = ATTACH_SKIN_SELECTION
 	melee_mod = 0 //Integrated attachment for visuals, stats handled on main gun.
 	size_mod = 0
 
@@ -2387,8 +2312,8 @@ Defined in conflicts.dm of the #defines folder.
 		accuracy_unwielded_mod = -HIT_ACCURACY_MULT_TIER_3
 		recoil_unwielded_mod = RECOIL_AMOUNT_TIER_4
 		hud_offset_mod = 5
-		icon_state = "smgstockc"
-		attach_icon = "smgstockc_a"
+		attach_icon = "smgstockc"
+		icon_state = "smgstockc_a"
 		sprite_pixel_width = 9
 
 	else
@@ -2403,8 +2328,8 @@ Defined in conflicts.dm of the #defines folder.
 		accuracy_unwielded_mod = 0
 		recoil_unwielded_mod = 0
 		hud_offset_mod = 3
-		icon_state = "smgstockcc"
-		attach_icon = "smgstockcc_a"
+		attach_icon = "smgstockcc"
+		icon_state = "smgstockcc_a"
 		sprite_pixel_width = 9
 
 	gun.recalculate_attachment_bonuses()
@@ -2444,8 +2369,8 @@ Defined in conflicts.dm of the #defines folder.
 		recoil_unwielded_mod = -RECOIL_AMOUNT_TIER_4
 		movement_onehanded_acc_penalty_mod = -MOVEMENT_ACCURACY_PENALTY_MULT_TIER_4 //Does well if it isn't.
 		hud_offset_mod = 5
-		icon_state = "smg_brace_on"
-		attach_icon = "smg_brace_a_on"
+		attach_icon = "smg_brace_on"
+		icon_state = "smg_brace_a_on"
 		sprite_pixel_width = 12
 	else
 		G.flags_item &= ~NODROP
@@ -2456,8 +2381,8 @@ Defined in conflicts.dm of the #defines folder.
 		recoil_unwielded_mod = 0
 		movement_onehanded_acc_penalty_mod = 0 //Does pretty much nothing if it's not activated.
 		hud_offset_mod = 4
-		icon_state = "smg_brace"
-		attach_icon = "smg_brace_a"
+		attach_icon = "smg_brace"
+		icon_state = "smg_brace_a"
 		sprite_pixel_width = 10
 
 	G.recalculate_attachment_bonuses()
@@ -2540,11 +2465,11 @@ Defined in conflicts.dm of the #defines folder.
 	folded = !folded
 
 // If it is activated/folded when we attach it, re-apply the things
-/obj/item/attachable/stock/revolver/Attach(obj/item/weapon/gun/G)
-	..()
-	var/obj/item/weapon/gun/revolver/m44/R = G
+/obj/item/attachable/stock/revolver/handle_attaching(mob/user, obj/item/weapon/gun/revolver/m44/R)
+	. = ..()
+
 	if(!istype(R))
-		return 0
+		return FALSE
 
 	if(folded)
 		R.flags_equip_slot |= SLOT_WAIST
@@ -2553,11 +2478,11 @@ Defined in conflicts.dm of the #defines folder.
 		R.flags_equip_slot &= ~SLOT_WAIST //Can't wear it on the belt slot with stock on when we attach it first time.
 
 // When taking it off we want to undo everything not statwise
-/obj/item/attachable/stock/revolver/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
-	..()
-	var/obj/item/weapon/gun/revolver/m44/R = detaching_gun
+/obj/item/attachable/stock/revolver/handle_detaching(mob/user, obj/item/weapon/gun/revolver/m44/R)
+	. = ..()
+
 	if(!istype(R))
-		return 0
+		return FALSE
 
 	if(folded)
 		R.folded = FALSE
@@ -2714,9 +2639,6 @@ Defined in conflicts.dm of the #defines folder.
 	if(breech_open)
 		attach_icon += "-open"
 		icon_state += "-open"
-	if(istype(loc, /obj/item/weapon/gun))
-		var/obj/item/weapon/gun/gun = loc
-		gun.update_attachable(slot)
 
 /obj/item/attachable/attached_gun/grenade/proc/pump(mob/user) //for want of a better proc name
 	if(breech_open) // if it was ALREADY open
@@ -3224,13 +3146,9 @@ Defined in conflicts.dm of the #defines folder.
 	scatter_unwielded_mod = -SCATTER_AMOUNT_TIER_6
 	accuracy_unwielded_mod = HIT_ACCURACY_MULT_TIER_3
 
-/obj/item/attachable/gyro/Attach(obj/item/weapon/gun/G)
-	if(istype(G, /obj/item/weapon/gun/shotgun))
-		accuracy_unwielded_mod = HIT_ACCURACY_MULT_TIER_10 + HIT_ACCURACY_MULT_TIER_1
-	else
-		accuracy_unwielded_mod = HIT_ACCURACY_MULT_TIER_3
-	..()
-
+/obj/item/attachable/gyro/handle_attaching(mob/user, obj/item/weapon/gun/G)
+	. = ..()
+	accuracy_unwielded_mod = G.gun_category == GUN_CATEGORY_SHOTGUN ? HIT_ACCURACY_MULT_TIER_10 + HIT_ACCURACY_MULT_TIER_1 : HIT_ACCURACY_MULT_TIER_3
 
 /obj/item/attachable/lasersight
 	name = "laser sight"
@@ -3277,17 +3195,18 @@ Defined in conflicts.dm of the #defines folder.
 	scatter_mod = SCATTER_AMOUNT_TIER_9
 	recoil_mod = RECOIL_AMOUNT_TIER_5
 
-/obj/item/attachable/bipod/Attach(obj/item/weapon/gun/G)
-	..()
+/obj/item/attachable/bipod/handle_attaching(mob/user, obj/item/weapon/gun/G)
+	. = ..()
 
 	RegisterSignal(G, COMSIG_ITEM_DROPPED, PROC_REF(handle_drop))
 
-/obj/item/attachable/bipod/Detach(mob/user, obj/item/weapon/gun/detaching_gun)
-	UnregisterSignal(detaching_gun, COMSIG_ITEM_DROPPED)
+/obj/item/attachable/bipod/handle_detaching(mob/user, obj/item/weapon/gun/G)
+	. = ..()
+
+	UnregisterSignal(G, COMSIG_ITEM_DROPPED)
 
 	if(bipod_deployed)
-		undeploy_bipod(detaching_gun)
-	..()
+		undeploy_bipod(G)
 
 /obj/item/attachable/bipod/update_icon()
 	if(bipod_deployed)

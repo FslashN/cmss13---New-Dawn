@@ -139,49 +139,6 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	if(.)
 		slowdown = initial(slowdown)
 
-
-/// This function actually turns the lights on the gun off
-/obj/item/weapon/gun/proc/turn_off_light(mob/bearer)
-	if (!(flags_gun_toggles & GUN_FLASHLIGHT_ON))
-		return FALSE
-	for (var/slot in attachments)
-		var/obj/item/attachable/attachment = attachments[slot]
-		if (!attachment || !attachment.light_mod)
-			continue
-		attachment.activate_attachment(src, bearer)
-		return TRUE
-	return FALSE
-
-/obj/item/weapon/gun/proc/wy_allowed_check(mob/living/carbon/human/user)
-	if(CONFIG_GET(flag/remove_gun_restrictions))
-		return TRUE //Not if the config removed it.
-
-	if(user.mind)
-		switch(user.job)
-			if(
-				"PMC",
-				"WY Agent",
-				"Corporate Liaison",
-				"Event",
-				"UPP Armsmaster", //this rank is for the Fun - Ivan preset, it allows him to use the PMC guns randomly generated from his backpack
-			) return TRUE
-		switch(user.faction)
-			if(
-				FACTION_WY_DEATHSQUAD,
-				FACTION_PMC,
-				FACTION_MERCENARY,
-				FACTION_FREELANCER,
-			) return TRUE
-
-		for(var/faction in user.faction_group)
-			if(faction in FACTION_LIST_WY)
-				return TRUE
-
-		if(user.faction in FACTION_LIST_WY)
-			return TRUE
-
-	to_chat(user, SPAN_WARNING("[src] flashes a warning sign indicating unauthorized use!"))
-
 // Checks whether there is anything to put your harness
 /obj/item/weapon/gun/proc/retrieval_check(mob/living/carbon/human/user, retrieval_slot)
 	if(retrieval_slot == WEAR_J_STORE)
@@ -264,7 +221,6 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		else
 			return
 
-
 	if(istype(attack_item,/obj/item/attachable))
 		if(check_inactive_hand(user)) attach_to_gun(user,attack_item)
 
@@ -336,166 +292,6 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 			return
 	return TRUE
 
-//----------------------------------------------------------
-				//  					 \\
-				// GENERIC HELPER PROCS  \\
-				// 						 \\
-				//  					 \\
-//----------------------------------------------------------
-
-/obj/item/weapon/proc/unique_action(mob/user) //moved this up a path to make macroing for other weapons easier -spookydonut
-	return
-
-/obj/item/weapon/gun/proc/handle_starting_attachment()
-	if(starting_attachment_types && starting_attachment_types.len)
-		for(var/path in starting_attachment_types)
-			var/obj/item/attachable/A = new path(src)
-			A.Attach(src)
-			update_attachable(A.slot)
-
-/obj/item/weapon/gun/proc/has_attachment(attachment)
-	if(!attachment)
-		return FALSE
-	for(var/slot in attachments)
-		var/obj/item/attachable/attached_attachment = attachments[slot]
-		if(attached_attachment && istype(attached_attachment, attachment))
-			return TRUE
-	return FALSE
-
-/obj/item/weapon/gun/proc/can_attach_to_gun(mob/user, obj/item/attachable/attachment)
-	if(!attachment.can_be_attached_to_gun(user, src))
-		return FALSE
-
-	//Checks if they can attach the thing in the first place, like with fixed attachments.
-	if(attachments[attachment.slot])
-		var/obj/item/attachable/attached_attachment = attachments[attachment.slot]
-		if(attached_attachment && !(attached_attachment.flags_attach_features & ATTACH_REMOVABLE))
-			to_chat(user, SPAN_WARNING("The attachment on [src]'s [attachment.slot] cannot be removed!"))
-			return FALSE
-	//to prevent headaches with lighting stuff
-	if(attachment.light_mod)
-		for(var/slot in attachments)
-			var/obj/item/attachable/attached_attachment = attachments[slot]
-			if(!attached_attachment)
-				continue
-			if(attached_attachment.light_mod)
-				to_chat(user, SPAN_WARNING("You already have a light source attachment on [src]."))
-				return FALSE
-	return TRUE
-
-/obj/item/weapon/gun/proc/attach_to_gun(mob/user, obj/item/attachable/attachment)
-	if(!can_attach_to_gun(user, attachment))
-		return FALSE
-
-	user.visible_message(SPAN_NOTICE("[user] begins attaching [attachment] to [src]."),
-	SPAN_NOTICE("You begin attaching [attachment] to [src]."), null, 4)
-	if(do_after(user, 1.5 SECONDS, INTERRUPT_ALL, BUSY_ICON_FRIENDLY, numticks = 2))
-		if(attachment && attachment.loc)
-			user.visible_message(SPAN_NOTICE("[user] attaches [attachment] to [src]."),
-			SPAN_NOTICE("You attach [attachment] to [src]."), null, 4)
-			user.temp_drop_inv_item(attachment)
-			attachment.Attach(src)
-			update_attachable(attachment.slot)
-			playsound(user, 'sound/handling/attachment_add.ogg', 15, 1, 4)
-			return TRUE
-
-/obj/item/weapon/gun/proc/on_detach(obj/item/attachable/attachment)
-	return
-
-/obj/item/weapon/gun/proc/update_attachables() //Updates everything. You generally don't need to use this.
-	if(attachable_offset) //Even if the attachment doesn't exist, we're going to try and remove it.
-		for(var/slot in attachments)
-			var/obj/item/attachable/attached_attachment = attachments[slot]
-			if(!attached_attachment) continue
-			update_overlays(attached_attachment, attached_attachment.slot)
-
-/obj/item/weapon/gun/proc/update_attachable(attachable) //Updates individually.
-	if(attachable_offset && attachments[attachable])
-		update_overlays(attachments[attachable], attachable)
-
-/obj/item/weapon/gun/proc/update_overlays(obj/item/attachable/attachment, slot)
-	//We'll try to remove anything that may have been there previously, in case they're hotswapping it.
-	var/obj/item/attachable/previous_attachment = attachments[slot] //In case there is one.
-	if(previous_attachment)
-		vis_contents -= previous_attachment
-		previous_attachment.pixel_x = initial(pixel_x) //We want to reset these.
-		previous_attachment.pixel_y = initial(pixel_y)
-		previous_attachment.icon_state = initial(icon_state)
-		previous_attachment.select_gamemode_skin(previous_attachment.type) //Since the icon_state is reset, we want to reset this too. //TODO: bit flag
-
-	if(attachment) //Only updates if the attachment exists for that slot.
-		attachment.pixel_x = attachable_offset["[slot]_x"] - attachment.pixel_shift_x + x_offset_by_attachment_type(attachment.type) //We want to make sure to set these up first.
-		attachment.pixel_y = attachable_offset["[slot]_y"] - attachment.pixel_shift_y + y_offset_by_attachment_type(attachment.type)
-		attachment.icon_state = attachment.attach_icon ? attachment.attach_icon : attachment.icon_state
-		vis_contents += attachment //And add it to overlays. If it doesn't have an icon, it will be transparent.
-
-/obj/item/weapon/gun/proc/x_offset_by_attachment_type(attachment_type)
-	return 0
-
-/obj/item/weapon/gun/proc/y_offset_by_attachment_type(attachment_type)
-	return 0
-
-/obj/item/weapon/gun/proc/update_mag_overlay()
-	var/image/gun_image = attachable_overlays["mag"]
-	if(istype(gun_image))
-		overlays -= gun_image
-		attachable_overlays["mag"] = null
-	if(current_mag && current_mag.bonus_overlay)
-		gun_image = image(current_mag.icon,src,current_mag.bonus_overlay)
-		gun_image.pixel_x += bonus_overlay_x
-		gun_image.pixel_y += bonus_overlay_y
-		attachable_overlays["mag"] = gun_image
-		overlays += gun_image
-	else
-		attachable_overlays["mag"] = null
-	return
-
-/obj/item/weapon/gun/proc/update_special_overlay(new_icon_state)
-	overlays -= attachable_overlays["special"]
-	attachable_overlays["special"] = null
-	var/image/gun_image = image(icon,src,new_icon_state)
-	attachable_overlays["special"] = gun_image
-	overlays += gun_image
-
-/obj/item/weapon/gun/proc/update_force_list()
-	switch(force)
-		if(-50 to 15) attack_verb = list("struck", "hit", "bashed") //Unlikely to ever be -50, but just to be safe.
-		if(16 to 35) attack_verb = list("smashed", "struck", "whacked", "beaten", "cracked")
-		else attack_verb = list("slashed", "stabbed", "speared", "torn", "punctured", "pierced", "gored") //Greater than 35
-
-/obj/item/weapon/gun/proc/get_active_firearm(mob/user, restrictive = TRUE)
-	if(!ishuman(usr))
-		return
-	if(user.is_mob_incapacitated() || !isturf(usr.loc))
-		to_chat(user, SPAN_WARNING("Not right now."))
-		return
-
-	var/obj/item/weapon/gun/held_item = user.get_held_item()
-
-	if(!istype(held_item)) // if active hand is not a gun
-		if(restrictive) // if restrictive we return right here
-			to_chat(user, SPAN_WARNING("You need a gun in your active hand to do that!"))
-			return
-		else // else check inactive hand
-			held_item = user.get_inactive_hand()
-			if(!istype(held_item)) // if inactive hand is ALSO not a gun we return
-				to_chat(user, SPAN_WARNING("You need a gun in one of your hands to do that!"))
-				return
-
-	if(held_item?.flags_gun_toggles & GUN_BURST_FIRING)
-		return
-
-	return held_item
-
-//----------------------------------------------------------
-					//    \\
-					// GUN VERBS PROCS \\
-					//    \\
-					//    \\
-//----------------------------------------------------------
-
-
-
 /mob/living/carbon/human/proc/can_unholster_from_storage_slot(obj/item/storage/slot)
 	if(isnull(slot))
 		return FALSE
@@ -529,6 +325,410 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		return slot
 
 	return FALSE
+
+//----------------------------------------------------------
+				//  					 	\\
+				//  						\\
+				// ATTACHMENTS AND OVERLAYS \\
+				// 						 	\\
+				//  					 	\\
+//----------------------------------------------------------
+
+//I really hate how this proc runs every time a gun changes stats.
+//Ideally it should only do the functions needed to reflect the change, not do everything over and over.
+//Practically speaking, if there is trait overlap, making changes will be tricky. Probably why it'st set up like this.
+/obj/item/weapon/gun/proc/recalculate_attachment_bonuses()
+	//reset weight and force mods
+	force = initial(force)
+	w_class = initial(w_class)
+
+	//reset HUD and pixel offsets
+	hud_offset = initial(hud_offset)
+	pixel_x = initial(hud_offset)
+
+	//reset traits from attachments
+	for(var/slot in attachments)
+		REMOVE_TRAITS_IN(src, TRAIT_SOURCE_ATTACHMENT(slot))
+
+	//Get default gun config values
+	set_gun_config_values()
+
+	//Add attachment bonuses
+	var/obj/item/attachable/R
+	for(var/slot in attachments)
+		R = attachments[slot]
+		if(!R)
+			continue
+		modify_fire_delay(R.delay_mod)
+		accuracy_mult += R.accuracy_mod
+		accuracy_mult_unwielded += R.accuracy_unwielded_mod
+		scatter += R.scatter_mod
+		scatter_unwielded += R.scatter_unwielded_mod
+		damage_mult += R.damage_mod
+		velocity_add += R.velocity_mod
+		damage_falloff_mult += R.damage_falloff_mod
+		damage_buildup_mult += R.damage_buildup_mod
+		effective_range_min += R.range_min_mod
+		effective_range_max += R.range_max_mod
+		recoil += R.recoil_mod
+		burst_scatter_mult += R.burst_scatter_mod
+		modify_burst_amount(R.burst_mod)
+		recoil_unwielded += R.recoil_unwielded_mod
+		aim_slowdown += R.aim_speed_mod
+		wield_delay += R.wield_delay_mod
+		movement_onehanded_acc_penalty_mult += R.movement_onehanded_acc_penalty_mod
+		force += R.melee_mod
+		w_class += R.size_mod
+
+		for(var/trait in R.gun_traits)
+			ADD_TRAIT(src, trait, TRAIT_SOURCE_ATTACHMENT(slot))
+
+	//Refresh location in HUD.
+	if(ishuman(loc))
+		var/mob/living/carbon/human/M = loc
+		if(M.l_hand == src)
+			M.update_inv_l_hand()
+		else if(M.r_hand == src)
+			M.update_inv_r_hand()
+
+	setup_firemodes()
+
+	SEND_SIGNAL(src, COMSIG_GUN_RECALCULATE_ATTACHMENT_BONUSES)
+
+ //Handle any special cases for when something is attached. This is per attachment. User can be passed as null.
+/obj/item/attachable/proc/handle_attaching(mob/user, obj/item/weapon/gun/current_gun)
+	return TRUE
+
+/obj/item/weapon/gun/proc/Attach(obj/item/attachable/attachment, mob/user)
+	if(ishuman(user))
+		var/mob/living/carbon/human/M = user
+		M.drop_held_item(attachment)
+
+	attachment.forceMove(src)
+
+	attachment.handle_attaching(user, src)
+	attachments[attachment.slot] = attachment
+	recalculate_attachment_bonuses()
+	update_force_list() //This updates the gun to use proper force verbs.
+
+	var/mob/living/living
+	if(isliving(user))
+		living = user
+
+	if(attachment.attachment_action_type) //Add actions.
+		var/given_action = FALSE
+		if(living && (src == living.l_hand || src == living.r_hand))
+			give_action(living, attachment.attachment_action_type, attachment, src)
+			given_action = TRUE
+		if(!given_action)
+			new attachment.attachment_action_type(attachment, src)
+
+	// Sharp attachments (bayonet) make weapons sharp as well.
+	sharp ^= attachment.sharp //This just flips it
+
+	//Viva no more dang projectiles in_chamber. We don't have to worry about applying effects to in_chamber. That's only handled when the gun fires.
+	for(var/trait in attachment.gun_traits)
+		ADD_TRAIT(src, trait, TRAIT_SOURCE_ATTACHMENT(attachment.slot))
+
+	add_attachment_overlay(attachment) //Handles vis_contents.
+
+//Handle any special cases for when something is detached. This is per attachment. User can be passed as null.
+/obj/item/attachable/proc/handle_detaching(mob/user, obj/item/weapon/gun/current_gun)
+	return TRUE
+
+//This handles the gun doing something special when detaching an attachment.
+/obj/item/weapon/gun/proc/on_detach(obj/item/attachable/attachment)
+	return TRUE
+
+/obj/item/weapon/gun/proc/Detach(obj/item/attachable/attachment, mob/user)
+	on_detach(user)
+
+	if(attachment.flags_attach_features & ATTACH_ACTIVATION) //Turn it off if it's on.
+		attachment.activate_attachment(src, null, TRUE)
+
+	attachment.handle_detaching(user, src)
+	attachments[attachment.slot] = null
+	recalculate_attachment_bonuses()
+	update_force_list() //Let's not forget this as well.
+
+	for(var/X in actions) //Remove actions.
+		var/datum/action/DA = X
+		if(DA.target == attachment)
+			qdel(X)
+			break
+
+	attachment.forceMove(get_turf(src))
+
+	sharp ^= attachment.sharp
+
+	for(var/trait in attachment.gun_traits)
+		REMOVE_TRAIT(src, trait, TRAIT_SOURCE_ATTACHMENT(attachment.slot))
+
+	clean_attachment_overlay(attachment)  //Handles vis_contents.
+
+/obj/item/weapon/gun/proc/handle_starting_attachment()
+	if(starting_attachment_types?.len)
+		for(var/path in starting_attachment_types)
+			var/obj/item/attachable/attachment = new path(src)
+			Attach(attachment) //Attach handles the rest.
+
+/obj/item/weapon/gun/proc/handle_random_attachments()
+	if(!prob(random_spawn_chance))
+		return
+
+	//These should all be lists and not variables.
+	var/L[] = list("rail" = random_rail_chance,"muzzle" = random_muzzle_chance,"under" = random_under_chance,"stock" = random_stock_chance)
+	var/choice_path
+	for(var/i in L)
+		if(prob(L[i]) && !attachments[i]) //Can't have something in the slot already.
+			switch(i)
+				if("rail")
+					choice_path = SAFEPICK(random_spawn_rail)
+				if("muzzle")
+					choice_path = SAFEPICK(random_spawn_muzzle)
+				if("under")
+					choice_path = SAFEPICK(random_spawn_under)
+				if("stock")
+					choice_path = SAFEPICK(random_spawn_stock)
+			if(choice_path) //Got something?
+				var/obj/item/attachable/attachment = new choice_path(src)
+				Attach(attachment)
+
+/obj/item/weapon/gun/proc/has_attachment(obj/item/attachable/attachment)
+	if(!istype(attachment)) return FALSE
+	if(attachments[attachment.slot] == attachment) return TRUE
+	return FALSE
+
+/obj/item/attachable/proc/can_be_attached_to_gun(mob/user, obj/item/weapon/gun/G)
+	if(G.attachable_allowed && !(type in G.attachable_allowed) )
+		to_chat(user, SPAN_WARNING("[src] doesn't fit on [G]!"))
+		return FALSE
+	return TRUE
+
+/obj/item/weapon/gun/proc/can_attach_to_gun(mob/user, obj/item/attachable/attachment)
+	if(!attachment.can_be_attached_to_gun(user, src))
+		return FALSE
+
+	//Checks if they can attach the thing in the first place, like with fixed attachments.
+	if(attachments[attachment.slot])
+		var/obj/item/attachable/current_attachment = attachments[attachment.slot]
+		if(current_attachment && !(current_attachment.flags_attach_features & ATTACH_REMOVABLE))
+			to_chat(user, SPAN_WARNING("The attachment on [src]'s [attachment.slot] cannot be removed!"))
+			return FALSE
+
+	//to prevent headaches with lighting stuff
+	if(attachment.light_mod)
+		for(var/slot in attachments)
+			var/obj/item/attachable/current_attachment = attachments[slot]
+			if(!current_attachment)
+				continue
+			if(current_attachment.light_mod)
+				to_chat(user, SPAN_WARNING("You already have a light source attachment on [src]!"))
+				return FALSE
+	return TRUE
+
+/obj/item/weapon/gun/proc/attach_to_gun(mob/user, obj/item/attachable/attachment)
+	if(!can_attach_to_gun(user, attachment))
+		return FALSE
+
+	user.visible_message(SPAN_NOTICE("[user] begins attaching [attachment] to [src]."),
+	SPAN_NOTICE("You begin attaching [attachment] to [src]."), null, 4)
+	if(do_after(user, 1.5 SECONDS, INTERRUPT_ALL, BUSY_ICON_FRIENDLY, numticks = 2))
+		if(attachment && attachment.loc)
+			user.visible_message(SPAN_NOTICE("[user] attaches [attachment] to [src]."),
+			SPAN_NOTICE("You attach [attachment] to [src]."), null, 4)
+			user.temp_drop_inv_item(attachment)
+			if(attachments[attachment.slot]) //In case they are swapping it.
+				Detach(attachments[attachment.slot], user)
+			Attach(attachment, user)
+			playsound(user, 'sound/handling/attachment_add.ogg', 15, 1, 4)
+			return TRUE
+
+//These two procs implicitly know that there is something to change.
+/obj/item/weapon/gun/proc/clean_attachment_overlay(obj/item/attachable/attachment)
+	vis_contents -= attachment
+	attachment.pixel_x = initial(pixel_x) //We want to reset these.
+	attachment.pixel_y = initial(pixel_y)
+	if(attachment.attach_icon) //If it has an attach_icon, it may have reset its appearance. Like with foldable stocks and the like. We switch it all back.
+		var/updated_attach_icon = attachment.icon_state // This is the current attached appearance.
+		attachment.icon_state = attachment.attach_icon //Attach icon contains that UI appearance right now.
+		attachment.attach_icon = updated_attach_icon //Then we reset it to the attached appearance.
+	/*
+	else
+		attachment.icon_state = initial(attachment.icon_state) //Reset it anyway for selecting game_mode_skin.
+
+	if(attachment.flags_attach_features & ATTACH_SKIN_SELECTION) //Just in case check this too.
+		attachment.select_gamemode_skin(attachment.type)*/
+
+/obj/item/weapon/gun/proc/add_attachment_overlay(obj/item/attachable/attachment)
+	var/slot = attachment.slot
+	attachment.pixel_x = attachable_offset["[slot]_x"] - attachment.pixel_shift_x + x_offset_by_attachment_type(attachment.type) //We want to make sure to set these up first.
+	attachment.pixel_y = attachable_offset["[slot]_y"] - attachment.pixel_shift_y + y_offset_by_attachment_type(attachment.type)
+	if(attachment.attach_icon) //We swap this up in case the attachment likes to toggle states.
+		var/UI_icon = attachment.icon_state
+		attachment.icon_state = attachment.attach_icon
+		attachment.attach_icon = UI_icon
+
+	vis_contents += attachment //And add it to overlays. If it doesn't have an icon, it will be transparent.
+
+/obj/item/weapon/gun/proc/x_offset_by_attachment_type(attachment_type)
+	return 0
+
+/obj/item/weapon/gun/proc/y_offset_by_attachment_type(attachment_type)
+	return 0
+
+/obj/item/weapon/gun/proc/update_mag_overlay()
+	var/image/gun_image = attachable_overlays["mag"]
+	if(istype(gun_image))
+		overlays -= gun_image
+		attachable_overlays["mag"] = null
+	if(current_mag && current_mag.bonus_overlay)
+		gun_image = image(current_mag.icon,src,current_mag.bonus_overlay)
+		gun_image.pixel_x += bonus_overlay_x
+		gun_image.pixel_y += bonus_overlay_y
+		attachable_overlays["mag"] = gun_image
+		overlays += gun_image
+	else
+		attachable_overlays["mag"] = null
+	return
+
+/obj/item/weapon/gun/proc/update_special_overlay(new_icon_state)
+	overlays -= attachable_overlays["special"]
+	attachable_overlays["special"] = null
+	var/image/gun_image = image(icon,src,new_icon_state)
+	attachable_overlays["special"] = gun_image
+	overlays += gun_image
+
+//----------------------------------------------------------
+				//  					 \\
+				// OTHER HELPER PROCS    \\
+				// 						 \\
+				//  					 \\
+//----------------------------------------------------------
+
+/obj/item/weapon/proc/unique_action(mob/user) //moved this up a path to make macroing for other weapons easier -spookydonut
+	return
+
+/obj/item/weapon/gun/proc/update_force_list()
+	switch(force)
+		if(-50 to 15) attack_verb = list("struck", "hit", "bashed") //Unlikely to ever be -50, but just to be safe.
+		if(16 to 35) attack_verb = list("smashed", "struck", "whacked", "beaten", "cracked")
+		else attack_verb = list("slashed", "stabbed", "speared", "torn", "punctured", "pierced", "gored") //Greater than 35
+
+/obj/item/weapon/gun/proc/get_active_firearm(mob/user, restrictive = TRUE)
+	if(!ishuman(usr))
+		return
+	if(user.is_mob_incapacitated() || !isturf(usr.loc))
+		to_chat(user, SPAN_WARNING("Not right now."))
+		return
+
+	var/obj/item/weapon/gun/held_item = user.get_held_item()
+
+	if(!istype(held_item)) // if active hand is not a gun
+		if(restrictive) // if restrictive we return right here
+			to_chat(user, SPAN_WARNING("You need a gun in your active hand to do that!"))
+			return
+		else // else check inactive hand
+			held_item = user.get_inactive_hand()
+			if(!istype(held_item)) // if inactive hand is ALSO not a gun we return
+				to_chat(user, SPAN_WARNING("You need a gun in one of your hands to do that!"))
+				return
+
+	if(held_item?.flags_gun_toggles & GUN_BURST_FIRING)
+		return
+
+	return held_item
+
+/obj/item/weapon/gun/item_action_slot_check(mob/user, slot)
+	if(slot != WEAR_L_HAND && slot != WEAR_R_HAND)
+		return FALSE
+	return TRUE
+
+/obj/item/weapon/gun/proc/wy_allowed_check(mob/living/carbon/human/user)
+	if(CONFIG_GET(flag/remove_gun_restrictions))
+		return TRUE //Not if the config removed it.
+
+	if(user.mind)
+		switch(user.job)
+			if(
+				"PMC",
+				"WY Agent",
+				"Corporate Liaison",
+				"Event",
+				"UPP Armsmaster", //this rank is for the Fun - Ivan preset, it allows him to use the PMC guns randomly generated from his backpack
+			) return TRUE
+		switch(user.faction)
+			if(
+				FACTION_WY_DEATHSQUAD,
+				FACTION_PMC,
+				FACTION_MERCENARY,
+				FACTION_FREELANCER,
+			) return TRUE
+
+		for(var/faction in user.faction_group)
+			if(faction in FACTION_LIST_WY)
+				return TRUE
+
+		if(user.faction in FACTION_LIST_WY)
+			return TRUE
+
+	to_chat(user, SPAN_WARNING("[src] flashes a warning sign indicating unauthorized use!"))
+
+/**
+ * Returns one of the two override values if either are null, preferring the argument value.
+ * Otherwise, returns TRUE if it is in a civilian usable category (Handguns or SMGs), FALSE if it is not.
+ */
+/obj/item/weapon/gun/proc/is_civilian_usable(mob/user, arg_override)
+	if(!isnull(arg_override))
+		return arg_override
+
+	if(!isnull(civilian_usable_override))
+		return civilian_usable_override
+
+	if(gun_category in UNTRAINED_USABLE_CATEGORIES)
+		return TRUE
+
+	return FALSE
+
+///Helper proc that processes a clicked target, if the target is not black tiles, it will not change it. If they are it will return the turf of the black tiles. It will return null if the object is a screen object other than black tiles.
+/proc/get_turf_on_clickcatcher(atom/target, mob/user, params)
+	var/list/modifiers = params2list(params)
+	if(!istype(target, /atom/movable/screen))
+		return target
+	if(!istype(target, /atom/movable/screen/click_catcher))
+		return null
+	return params2turf(modifiers["screen-loc"], get_turf(user), user.client)
+
+/// This function actually turns the lights on the gun off
+/obj/item/weapon/gun/proc/turn_off_light(mob/bearer)
+	if (!(flags_gun_toggles & GUN_FLASHLIGHT_ON))
+		return FALSE
+	for (var/slot in attachments)
+		var/obj/item/attachable/attachment = attachments[slot]
+		if (!attachment || !attachment.light_mod)
+			continue
+		attachment.activate_attachment(src, bearer)
+		return TRUE
+	return FALSE
+
+/// If this gun has a relevant flashlight attachable attached, (de)activate it
+/obj/item/weapon/gun/proc/force_light(on)
+	var/obj/item/attachable/flashlight/torch
+	for(var/slot in attachments)
+		torch = attachments[slot]
+		if(istype(torch))
+			break
+	if(!torch)
+		return FALSE
+	torch.turn_light(toggle_on = on, forced = TRUE)
+	return TRUE
+
+//----------------------------------------------------------
+					//    				\\
+					// GUN VERBS PROCS  \\
+					//    				\\
+					//    				\\
+//----------------------------------------------------------
 
 //For the holster hotkey
 /mob/living/silicon/robot/verb/holster_verb(unholster_number_offset = 1 as num)
@@ -630,8 +830,9 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	if(!do_after(usr, 1.5 SECONDS, INTERRUPT_ALL, BUSY_ICON_FRIENDLY))
 		return
 
-	if(!(attachment == attachments[attachment.slot]))
+	if(attachment != attachments[attachment.slot])
 		return
+
 	if(!(attachment.flags_attach_features & ATTACH_REMOVABLE))
 		return
 
@@ -640,10 +841,9 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 
 	usr.visible_message(SPAN_NOTICE("[usr] strips [attachment] from [src]."),
 	SPAN_NOTICE("You strip [attachment] from [src]."), null, 4)
-	attachment.Detach(usr, src)
+	Detach(attachment, usr)
 
 	playsound(src, 'sound/handling/attachment_remove.ogg', 15, 1, 4)
-	update_icon()
 
 /obj/item/weapon/gun/proc/do_toggle_firemode(datum/source, datum/keybinding, new_firemode)
 	SIGNAL_HANDLER
@@ -914,46 +1114,3 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	else
 		to_chat(usr, SPAN_WARNING("[src] does not have any usable stock attachments!"))
 		return
-
-
-/obj/item/weapon/gun/item_action_slot_check(mob/user, slot)
-	if(slot != WEAR_L_HAND && slot != WEAR_R_HAND)
-		return FALSE
-	return TRUE
-
-/**
- * Returns one of the two override values if either are null, preferring the argument value.
- * Otherwise, returns TRUE if it is in a civilian usable category (Handguns or SMGs), FALSE if it is not.
- */
-/obj/item/weapon/gun/proc/is_civilian_usable(mob/user, arg_override)
-	if(!isnull(arg_override))
-		return arg_override
-
-	if(!isnull(civilian_usable_override))
-		return civilian_usable_override
-
-	if(gun_category in UNTRAINED_USABLE_CATEGORIES)
-		return TRUE
-
-	return FALSE
-
-///Helper proc that processes a clicked target, if the target is not black tiles, it will not change it. If they are it will return the turf of the black tiles. It will return null if the object is a screen object other than black tiles.
-/proc/get_turf_on_clickcatcher(atom/target, mob/user, params)
-	var/list/modifiers = params2list(params)
-	if(!istype(target, /atom/movable/screen))
-		return target
-	if(!istype(target, /atom/movable/screen/click_catcher))
-		return null
-	return params2turf(modifiers["screen-loc"], get_turf(user), user.client)
-
-/// If this gun has a relevant flashlight attachable attached, (de)activate it
-/obj/item/weapon/gun/proc/force_light(on)
-	var/obj/item/attachable/flashlight/torch
-	for(var/slot in attachments)
-		torch = attachments[slot]
-		if(istype(torch))
-			break
-	if(!torch)
-		return FALSE
-	torch.turn_light(toggle_on = on, forced = TRUE)
-	return TRUE

@@ -41,8 +41,7 @@
 	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
 	Integrated.vis_flags |= VIS_HIDE
 	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	Integrated.Attach(src)
-	update_attachable(Integrated.slot)
+	Attach(Integrated)
 
 //Minigun UPP
 /obj/item/weapon/gun/minigun/upp
@@ -187,20 +186,17 @@
 	..()
 	var/obj/item/attachable/attachie = new /obj/item/attachable/pkpbarrel(src)
 	attachie.flags_attach_features &= ~ATTACH_REMOVABLE
-	attachie.Attach(src)
-	update_attachable(attachie.slot)
+	Attach(attachie)
 
 	var/obj/item/attachable/pkpstock = new /obj/item/attachable/stock/pkpstock(src)
 	pkpstock.flags_attach_features &= ~ATTACH_REMOVABLE
-	pkpstock.Attach(src)
-	update_attachable(pkpstock.slot)
+	Attach(pkpstock)
 
 	//invisible mag harness
 	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
 	Integrated.vis_flags |= VIS_HIDE
 	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	Integrated.Attach(src)
-	update_attachable(Integrated.slot)
+	Attach(Integrated)
 
 /obj/item/weapon/gun/pkp/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -356,8 +352,7 @@
 	var/obj/item/attachable/scope/S = new(src)
 	S.vis_flags |= VIS_HIDE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/weapon/gun/rifle/techweb_railgun/set_gun_config_values()
 	..()

@@ -314,8 +314,7 @@
 	var/obj/item/attachable/scope/variable_zoom/S = new(src)
 	S.vis_flags |= VIS_HIDE
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/weapon/gun/rifle/sniper/M42A/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
@@ -360,9 +359,7 @@
 	S.icon_state = "pmcscope"
 	S.attach_icon = "pmcscope"
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
-
+	Attach(S)
 
 /obj/item/weapon/gun/rifle/sniper/XM43E1/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
@@ -422,8 +419,7 @@
 	S.icon_state = "pmcscope"
 	S.attach_icon = "pmcscope"
 	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	S.Attach(src)
-	update_attachable(S.slot)
+	Attach(S)
 
 /obj/item/weapon/gun/rifle/sniper/elite/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
@@ -483,14 +479,12 @@
 	..()
 	var/obj/item/attachable/attachie = new /obj/item/attachable/type88_barrel(src)
 	attachie.flags_attach_features &= ~ATTACH_REMOVABLE
-	attachie.Attach(src)
-	update_attachable(attachie.slot)
+	Attach(attachie)
 
 	var/obj/item/attachable/scope/variable_zoom/integrated/type88sight = new(src)
 	type88sight.flags_attach_features &= ~ATTACH_REMOVABLE
 	type88sight.vis_flags |= VIS_HIDE
-	type88sight.Attach(src)
-	update_attachable(type88sight.slot)
+	Attach(type88sight)
 
 /obj/item/weapon/gun/rifle/sniper/svd/set_gun_attachment_offsets()
 	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 13, "rail_y" = 19, "under_x" = 26, "under_y" = 14, "stock_x" = 24, "stock_y" = 13, "special_x" = 39, "special_y" = 18)

@@ -568,6 +568,12 @@
 	var/is_locked = TRUE
 	var/can_change_barrel = TRUE
 
+/obj/item/weapon/gun/revolver/mateba/can_attach_to_gun(mob/user, obj/item/attachable/attachment)
+	. = ..()
+	if(attachment.slot == "muzzle" && !attachments["special"])
+		to_chat(user, SPAN_WARNING("You need to attach a barrel first!"))
+		return FALSE
+
 /obj/item/weapon/gun/revolver/mateba/attackby(obj/item/I, mob/user)
 	if(istype(I, /obj/item/weapon/mateba_key) && can_change_barrel)
 		if(attachments["special"])
@@ -578,22 +584,16 @@
 			if(!do_after(usr, 35, INTERRUPT_ALL, BUSY_ICON_FRIENDLY))
 				return
 
-			if(!(R == attachments[R.slot]))
+			if(R != attachments[R.slot])
 				return
 
 			visible_message(SPAN_NOTICE("[user] unlocks and removes [R] from [src]."),
-			SPAN_NOTICE("You unlocks removes [R] from [src]."), null, 4)
-			R.Detach(user, src)
+			SPAN_NOTICE("You unlock and remove [R] from [src]."), null, 4)
+			Detach(R, user)
 			if(attachments["muzzle"])
-				var/obj/item/attachable/M = attachments["muzzle"]
-				M.Detach(user, src)
+				Detach(attachments["muzzle"], user)
 			playsound(src, 'sound/handling/attachment_remove.ogg', 15, 1, 4)
-			update_icon()
-	else if(istype(I, /obj/item/attachable))
-		var/obj/item/attachable/A = I
-		if(A.slot == "muzzle" && !attachments["special"] && can_change_barrel)
-			to_chat(user, SPAN_WARNING("You need to attach a barrel first!"))
-			return
+
 	. = ..()
 
 
@@ -639,9 +639,7 @@
 	..()
 	var/obj/item/attachable/mateba/long/dark/barrel = new(src)
 	barrel.flags_attach_features &= ~ATTACH_REMOVABLE
-	barrel.Attach(src)
-	update_attachables()
-
+	Attach(barrel)
 /obj/item/weapon/gun/revolver/mateba/general/santa
 	name = "\improper Festeba"
 	desc = "The Mateba used by SANTA himself. Rumoured to be loaded with explosive ammunition."
