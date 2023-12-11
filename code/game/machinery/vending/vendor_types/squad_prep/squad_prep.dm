@@ -318,7 +318,7 @@
 
 /obj/structure/machinery/cm_vending/sorted/attachments/squad/populate_product_list(scale)
 	listed_products = list(
-		list("BARREL", -1, null, null),
+		list("MUZZLE", -1, null, null),
 		list("Extended Barrel", round(scale * 2.5), /obj/item/attachable/extended_barrel, VENDOR_ITEM_REGULAR),
 		list("Recoil Compensator", round(scale * 2.5), /obj/item/attachable/compensator, VENDOR_ITEM_REGULAR),
 		list("Suppressor", round(scale * 2.5), /obj/item/attachable/suppressor, VENDOR_ITEM_REGULAR),

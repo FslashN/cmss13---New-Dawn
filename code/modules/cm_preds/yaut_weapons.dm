@@ -777,8 +777,10 @@
 ############## Ranged Weapons #############
 #########################################*/
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                    SPIKE LAUNCHER                  ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
-//Spike launcher
 /obj/item/weapon/gun/launcher/spike
 	name = "spike launcher"
 	desc = "A compact Yautja device in the shape of a crescent. It can rapidly fire damaging spikes and automatically recharges."
@@ -793,18 +795,27 @@
 	)
 
 	muzzle_flash = null // TO DO, add a decent one.
-
 	unacidable = TRUE
 	fire_sound = 'sound/effects/woodhit.ogg' // TODO: Decent THWOK noise.
 	in_chamber = /datum/ammo/alloy_spike
 	flags_equip_slot = SLOT_WAIST|SLOT_BACK
 	w_class = SIZE_MEDIUM //Fits in yautja bags.
-	var/spikes = 12
-	var/max_spikes = 12
-	var/last_regen
 	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	flags_gun_receiver = GUN_CHAMBER_IS_STATIC
 	flags_item = ITEM_PREDATOR|TWOHANDED
+	var/spikes = 12
+	var/max_spikes = 12
+	var/last_regen
+
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_6
+
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT
+	scatter = SCATTER_AMOUNT_TIER_8
+	scatter_unwielded = SCATTER_AMOUNT_TIER_6
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/launcher/spike/process()
 	if(spikes < max_spikes && world.time > last_regen + 100 && prob(70))
@@ -822,15 +833,6 @@
 	verbs -= /obj/item/weapon/gun/verb/empty_mag
 	verbs -= /obj/item/weapon/gun/verb/use_unique_action
 
-/obj/item/weapon/gun/launcher/spike/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6)
-	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT
-	scatter = SCATTER_AMOUNT_TIER_8
-	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-
 /obj/item/weapon/gun/launcher/spike/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
 		BULLET_TRAIT_ENTRY_ID("turfs", /datum/element/bullet_trait_damage_boost, 25, GLOB.damage_boost_turfs),
@@ -845,9 +847,7 @@
 	. += ..() + SPAN_NOTICE("It currently has <b>[spikes]/[max_spikes]</b> spikes.")
 
 /obj/item/weapon/gun/launcher/spike/update_icon()
-	..()
-	var/new_icon_state = spikes <=1 ? null : icon_state + "[round(spikes/4, 1)]"
-	update_special_overlay(new_icon_state)
+	icon_state = spikes <=1 ? "spikelauncher_e" : "spikelauncher" + "[round(spikes/4, 1)]"
 
 /obj/item/weapon/gun/launcher/spike/check_additional_able_to_fire(mob/user)
 	. = ..()
@@ -860,6 +860,10 @@
 	if(spikes > 0)
 		spikes--
 		return in_chamber //Enough spikes for a shot.
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[              GENERIC PRED ENERGY GUN               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/energy/yautja
 	icon = 'icons/obj/items/hunter/pred_gear.dmi'
@@ -877,6 +881,10 @@
 	P.set_light(1)
 	. = P
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                   PLASMA RIFLE                     ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/energy/yautja/plasmarifle
 	name = "plasma rifle"
 	desc = "A long-barreled heavy plasma weapon. Intended for combat, not hunting. Has an integrated battery that allows for a functionally unlimited amount of shots to be discharged. Equipped with an internal gyroscopic stabilizer allowing its operator to fire the weapon one-handed if desired"
@@ -889,10 +897,20 @@
 	zoomdevicename = "scope"
 	flags_equip_slot = SLOT_BACK
 	w_class = SIZE_HUGE
-	var/charge_time = 0
-	var/last_regen = 0
 	flags_item = ITEM_PREDATOR|TWOHANDED
 	gun_category = GUN_CATEGORY_RIFLE
+	var/charge_time = 0
+	var/last_regen = 0
+
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_6 * 2
+
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_10
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_10
+	scatter = SCATTER_AMOUNT_TIER_6
+	scatter_unwielded = SCATTER_AMOUNT_TIER_6
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -912,17 +930,6 @@
 			if(ismob(loc)) to_chat(loc, SPAN_NOTICE("[src] hums as it achieves maximum charge."))
 		update_icon()
 
-
-/obj/item/weapon/gun/energy/yautja/plasmarifle/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6*2)
-	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_10
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_10
-	scatter = SCATTER_AMOUNT_TIER_6
-	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-
-
 /obj/item/weapon/gun/energy/yautja/plasmarifle/get_examine_text(mob/user)
 	if(!isyautja(user)) return list( SPAN_NOTICE("This thing looks like an alien rifle of some kind. Strange.") )
 	. = ..()
@@ -932,8 +939,7 @@
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/update_icon()
 	if(last_regen < charge_time + 20 || last_regen > charge_time || charge_time > 95)
-		var/new_icon_state = charge_time <=15 ? null : icon_state + "[round(charge_time/33, 1)]"
-		update_special_overlay(new_icon_state)
+		icon_state = charge_time <=15 ? "plasmarifle_e" : "plasmarifle" + "[round(charge_time/33, 1)]"
 		last_regen = charge_time
 
 /obj/item/weapon/gun/energy/yautja/plasmarifle/check_additional_able_to_fire(mob/user)
@@ -952,6 +958,10 @@
 	to_chat(user, SPAN_NOTICE("Now it has <b>[charge_time]</b> energy remaining.."))
 	return in_chamber
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                    PLASMA PISTOL                   ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 #define FIRE_MODE_STANDARD "Standard"
 #define FIRE_MODE_INCENDIARY "Incendiary"
 /obj/item/weapon/gun/energy/yautja/plasmapistol
@@ -959,22 +969,30 @@
 	desc = "A plasma pistol capable of rapid fire. It has an integrated battery. Can be used to set fires, either to braziers or on people."
 	icon_state = "plasmapistol"
 	item_state = "plasmapistol"
-
 	unacidable = TRUE
 	fire_sound = 'sound/weapons/pulse3.ogg'
 	flags_equip_slot = SLOT_WAIST
 	in_chamber = /datum/ammo/energy/yautja/pistol
 	muzzle_flash = null // TO DO, add a decent one.
 	w_class = SIZE_MEDIUM
+	flags_item = ITEM_PREDATOR|IGNITING_ITEM|TWOHANDED
+	heat_source = 1500 // Plasma Pistols fire burning hot bounbs of plasma. Makes sense they're hot
 	/// Max amount of shots
 	var/charge_time = 40
 	/// Amount of charge_time drained per shot
 	var/shot_cost = 1
 	/// standard (sc = 1) or incendiary (sc = 5)
 	var/mode = FIRE_MODE_STANDARD
-	flags_item = ITEM_PREDATOR|IGNITING_ITEM|TWOHANDED
 
-	heat_source = 1500 // Plasma Pistols fire burning hot bounbs of plasma. Makes sense they're hot
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_7
+
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_10
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_7
+	scatter = SCATTER_AMOUNT_TIER_8
+	scatter_unwielded = SCATTER_AMOUNT_TIER_6
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -992,15 +1010,6 @@
 		charge_time++
 		if(charge_time == 39)
 			if(ismob(loc)) to_chat(loc, SPAN_NOTICE("[src] hums as it achieves maximum charge."))
-
-/obj/item/weapon/gun/energy/yautja/plasmapistol/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_7)
-	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_10
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_7
-	scatter = SCATTER_AMOUNT_TIER_8
-	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/get_examine_text(mob/user)
 	if(!isyautja(user)) return list ( SPAN_NOTICE("This thing looks like an alien gun of some kind. Strange.") )
@@ -1043,6 +1052,10 @@
 #undef FIRE_MODE_STANDARD
 #undef FIRE_MODE_INCENDIARY
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                    PLASMA CASTER                   ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/energy/yautja/plasma_caster
 	name = "plasma caster"
 	desc = "A powerful, shoulder-mounted energy weapon."
@@ -1070,13 +1083,21 @@
 	gun_category = GUN_CATEGORY_HEAVY
 	has_empty_icon = FALSE
 	indestructible = TRUE
-
-	heat_source = 1500 // Plasma Casters fire burning hot bounbs of plasma. Makes sense they're hot
-
-	var/obj/item/clothing/gloves/yautja/hunter/source = null
 	charge_cost = 100 //How much energy is needed to fire.
+	heat_source = 1500 // Plasma Casters fire burning hot bounbs of plasma. Makes sense they're hot
+	var/obj/item/clothing/gloves/yautja/hunter/source = null
 	var/mode = "stun"//fire mode (stun/lethal)
 	var/strength = "low power stun bolts"//what it's shooting
+
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_6
+
+	accuracy_mult = BASE_ACCURACY_MULT
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT + FIRE_DELAY_TIER_6
+	scatter = SCATTER_AMOUNT_TIER_6
+	scatter_unwielded = SCATTER_AMOUNT_TIER_6
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/Initialize(mapload, spawn_empty, caster_material = "ebony")
 	icon_state = "[base_icon_state]_[caster_material]"
@@ -1092,16 +1113,6 @@
 /obj/item/weapon/gun/energy/yautja/plasma_caster/Destroy()
 	. = ..()
 	source = null
-
-
-/obj/item/weapon/gun/energy/yautja/plasma_caster/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6)
-	accuracy_mult = BASE_ACCURACY_MULT
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT + FIRE_DELAY_TIER_6
-	scatter = SCATTER_AMOUNT_TIER_6
-	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/attack_self(mob/living/user)
 	..()

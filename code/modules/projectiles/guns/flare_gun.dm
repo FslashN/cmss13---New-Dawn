@@ -1,3 +1,7 @@
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                      FLARE GUN                     ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/flare
 	name = "\improper M82-F flare gun"
 	desc = "A flare gun issued to JTAC operators to use with flares. Comes with a miniscope. One shot, one... life saved?"
@@ -13,34 +17,33 @@
 	flags_gun_features = GUN_CAN_POINTBLANK
 	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE
 	gun_category = GUN_CATEGORY_HANDGUN
-	attachable_allowed = list(/obj/item/attachable/scope/mini/flaregun)
-
 	var/last_signal_flare_name
 
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
+
+	accuracy_mult = BASE_ACCURACY_MULT
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
+	scatter = SCATTER_AMOUNT_NONE
+	recoil = RECOIL_AMOUNT_TIER_4
+	recoil_unwielded = RECOIL_AMOUNT_TIER_4
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/flare/initialize_gun_lists()
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/scope/mini/flaregun)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(/obj/item/attachable/scope/mini/flaregun)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 12, "rail_y" = 20, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+	..()
 
 /obj/item/weapon/gun/flare/Initialize(mapload, spawn_empty)
 	. = ..()
 	if(spawn_empty)
 		update_icon()
-
-/obj/item/weapon/gun/flare/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/scope/mini/flaregun/scope = new(src)
-	scope.vis_flags |= VIS_HIDE
-	scope.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(scope)
-
-/obj/item/weapon/gun/flare/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 12, "rail_y" = 20, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
-
-/obj/item/weapon/gun/flare/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
-	accuracy_mult = BASE_ACCURACY_MULT
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
-	scatter = 0
-	recoil = RECOIL_AMOUNT_TIER_4
-	recoil_unwielded = RECOIL_AMOUNT_TIER_4
 
 /obj/item/weapon/gun/flare/set_bullet_traits()
 	LAZYADD(traits_to_give, list(

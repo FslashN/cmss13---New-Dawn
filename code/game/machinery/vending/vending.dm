@@ -837,13 +837,13 @@ GLOBAL_LIST_EMPTY_TYPED(total_vending_machines, /obj/structure/machinery/vending
 	for(product in (product_records + hidden_records + coin_records))
 		if(item_to_stock.type == product.product_path && !istype(item_to_stock, /obj/item/storage)) //Nice try, specialists/engis
 			if(isgun(item_to_stock))
-				var/obj/item/weapon/gun/gun = item_to_stock
-				if(gun.in_chamber || (gun.current_mag && !istype(gun.current_mag, /obj/item/ammo_magazine/internal)) || (istype(gun.current_mag, /obj/item/ammo_magazine/internal) && gun.current_mag.current_rounds > 0) )
-					to_chat(user, SPAN_WARNING("\The [gun] is still loaded. Unload it before you can restock it."))
+				var/obj/item/weapon/gun/G = item_to_stock
+				if(G.in_chamber || (G.current_mag && !istype(G.current_mag, /obj/item/ammo_magazine/internal)) || (istype(G.current_mag, /obj/item/ammo_magazine/internal) && G.current_mag.current_rounds > 0) )
+					to_chat(user, SPAN_WARNING("\The [G] is still loaded. Unload it before you can restock it."))
 					return
-				for(var/obj/item/attachable/attach in gun.contents) //Search for attachments on the gun. This is the easier method
-					if((attach.flags_attach_features & ATTACH_REMOVABLE) && !(is_type_in_list(attach, gun.starting_attachment_types))) //There are attachments that are default and others that can't be removed
-						to_chat(user, SPAN_WARNING("\The [gun] has non-standard attachments equipped. Detach them before you can restock it."))
+				for(var/obj/item/attachable/A in G.contents) //Search for attachments on the gun. This is the easier method
+					if( !(A.flags_attach_features & ATTACH_INTEGRATED) && (!G.starting_attachment_types || !(is_type_in_list(A, G.starting_attachment_types)) )) //There are attachments that are default and others that can't be removed
+						to_chat(user, SPAN_WARNING("\The [G] has non-standard attachments equipped. Detach them before you can restock it."))
 						return
 
 			if(istype(item_to_stock, /obj/item/ammo_magazine))

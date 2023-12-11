@@ -71,9 +71,9 @@
 	var/shell_speed = AMMO_SPEED_TIER_1
 
 	var/handful_type = /obj/item/ammo_magazine/handful
-	var/handful_color
 	/// custom handful sprite, for shotgun shells or etc.
 	var/handful_state = "bullet"
+	var/handful_max = 8 //The maximum number of bullets in a handful.
 	/// so handfuls say 'buckshot shells' not 'shell'
 	var/multiple_handful_name
 

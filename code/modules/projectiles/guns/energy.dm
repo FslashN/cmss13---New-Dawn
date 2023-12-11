@@ -1,9 +1,10 @@
 
-//-------------------------------------------------------
-//ENERGY GUNS/LASER GUNS/ETC
-
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                  GENERIC ENERGY GUN                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Having energy start with an energy cell is actually hugely inconvenient because it cuts proper parent/child access to a lot of procs for yautja energy weapons.
 //It would be possible to override all of these behaviors, but that's not optimal. Another option is to used a bitfield to track this stuff.
+
 /obj/item/weapon/gun/energy
 	name = "energy pistol"
 	desc = "It shoots lasers by drawing power from an internal cell battery. Can be recharged at most convection stations."
@@ -15,7 +16,10 @@
 
 	in_chamber = /datum/ammo/energy
 	w_class = SIZE_LARGE
-	matter = list("metal" = 2000)
+
+	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_CAN_POINTBLANK
+	flags_gun_receiver = GUN_CHAMBER_IS_STATIC
+	gun_category = GUN_CATEGORY_HANDGUN
 
 	var/obj/item/cell/high/cell //10000 power.
 	var/charge_cost = 350
@@ -23,10 +27,6 @@
 	var/works_in_recharger = TRUE
 	var/has_charge_meter = FALSE//do we use the charging overlay system or just have an empty overlay
 	var/charge_icon = "+stunrevolver_empty"//define on a per gun basis, used for the meter and empty icon on non meter guns
-
-	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_CAN_POINTBLANK
-	flags_gun_receiver = GUN_CHAMBER_IS_STATIC
-	gun_category = GUN_CATEGORY_HANDGUN
 
 /obj/item/weapon/gun/energy/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -37,6 +37,12 @@
 /obj/item/weapon/gun/energy/Destroy()
 	QDEL_NULL(cell)
 	. = ..()
+
+/obj/item/weapon/gun/energy/initialize_gun_lists()
+	if(!matter)
+		matter = list("metal" = 2000)
+
+	..()
 
 /obj/item/weapon/gun/energy/update_icon()
 	. = ..()
@@ -95,6 +101,10 @@
 	else
 		. += SPAN_NOTICE("It has no power cell inside.")
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                   RXF-M5 EVA PISTOL                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/energy/rxfm5_eva
 	name = "RXF-M5 EVA pistol"
 	desc = "A high power focusing laser pistol designed for Extra-Vehicular Activity, though it works just about anywhere really. Derived from the same technology as laser welders. Issued by the Weyland-Yutani Corporation, but also available on the civilian market."
@@ -108,22 +118,30 @@
 	flags_equip_slot = SLOT_WAIST
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER|GUN_ONE_HAND_WIELDED
 	in_chamber = /datum/ammo/energy/rxfm_eva
-	attachable_allowed = list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad)
-	starting_attachment_types = list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad)
 	has_charge_meter = FALSE
 	charge_icon = "+rxfm5_empty"
 
-/obj/item/weapon/gun/energy/rxfm5_eva/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0,"rail_x" = 12, "rail_y" = 21, "under_x" = 16, "under_y" = 10, "stock_x" = 0, "stock_y" = 0)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_9
 
-/obj/item/weapon/gun/energy/rxfm5_eva/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_9)
 	accuracy_mult = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_3
 	scatter = SCATTER_AMOUNT_TIER_7
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/energy/rxfm5_eva/initialize_gun_lists()
+	if(!attachable_allowed)
+		attachable_allowed = list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad)
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0,"rail_x" = 12, "rail_y" = 21, "under_x" = 16, "under_y" = 10, "stock_x" = 0, "stock_y" = 0)
+
+	..()
 
 // Funny procs to force the item_states to look right.
 
@@ -152,6 +170,10 @@
 	name = "'LAZ-TOP'"
 	desc = "The 'LAZ-TOP', aka the Laser Anode something something"//finish this later
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                      LAZER UZI                     ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/energy/laz_uzi
 	name = "laser UZI"
 	desc = "A refit of the classic Israeli SMG. Fires laser bolts."
@@ -168,22 +190,26 @@
 	charge_icon = "+laz_uzi_empty"
 	start_automatic = TRUE
 
-/obj/item/weapon/gun/energy/laz_uzi/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_SMG)
-	set_burst_delay(FIRE_DELAY_TIER_SMG)
-	set_burst_amount(BURST_AMOUNT_TIER_2)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_SMG
+	burst_delay = FIRE_DELAY_TIER_SMG
+	burst_amount = BURST_AMOUNT_TIER_2
+
 	accuracy_mult = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_7
 	scatter = SCATTER_AMOUNT_TIER_5
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_5
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 	fa_scatter_peak = SCATTER_AMOUNT_TIER_8
+	//=========// GUN STATS //==========//
 
-//############################ Taser ##################
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                        TASER                       ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 // Lots of bits for it so splitting off an area
+
 /obj/item/weapon/gun/energy/taser
 	name = "disabler gun"
 	desc = "An advanced stun device capable of firing balls of ionized electricity. Used for nonlethal takedowns. "
@@ -198,20 +224,26 @@
 	has_charge_meter = TRUE
 	charge_icon = "+taser"
 	black_market_value = 20
-	actions_types = list(/datum/action/item_action/taser/change_mode)
 	/// Determines if the taser will hit any target, or if it checks for wanted status. Default is wanted only.
 	var/mode = TASER_MODE_P
 	var/skilllock = SKILL_POLICE_SKILLED
 
-/obj/item/weapon/gun/energy/taser/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_7)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_7
+
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-	movement_onehanded_acc_penalty_mult = 0
-	scatter = 0
-	scatter_unwielded = 0
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_6
+	scatter = SCATTER_AMOUNT_NONE
+	scatter_unwielded = SCATTER_AMOUNT_NONE
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/energy/taser/initialize_gun_lists()
+	if(!actions_types)
+		actions_types = list(/datum/action/item_action/taser/change_mode)
+
+	..()
 
 /obj/item/weapon/gun/energy/taser/check_additional_able_to_fire(mob/living/user)
 	. = ..()

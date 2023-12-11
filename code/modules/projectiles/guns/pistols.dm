@@ -1,6 +1,6 @@
-//Base pistol for inheritance/
-//--------------------------------------------------
-
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                     GENERIC PISTOL                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Pistols generally do not have an auto ejector or an ammo counter.
 
 /obj/item/weapon/gun/pistol
@@ -8,8 +8,6 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	reload_sound = 'sound/weapons/flipblade.ogg'
 	cocked_sound = 'sound/weapons/gun_pistol_cocked.ogg'
-
-	matter = list("metal" = 2000)
 	flags_equip_slot = SLOT_WAIST
 	w_class = SIZE_MEDIUM
 	force = 6
@@ -17,22 +15,34 @@
 	wield_delay = WIELD_DELAY_VERY_FAST //If you modify your pistol to be two-handed, it will still be fast to aim
 	fire_sound = "m4a3"
 	firesound_volume = 25
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/burstfire_assembly,
-	)
-
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED //For easy reference.
 	flags_gun_receiver = GUN_CHAMBERED_CYCLE
 	gun_category = GUN_CATEGORY_HANDGUN
 	projectile_casing = PROJECTILE_CASING_BULLET
+
+	//=========// GUN STATS //==========//
+	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_3
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/pistol/initialize_gun_lists()
+
+	if(!matter)
+		matter = list("metal" = 2000)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/burstfire_assembly,
+		)
+
+	..()
 
 /obj/item/weapon/gun/pistol/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -41,12 +51,9 @@
 /obj/item/weapon/gun/pistol/unique_action(mob/user)
 	cycle_chamber(user)
 
-/obj/item/weapon/gun/pistol/set_gun_config_values()
-	..()
-	movement_onehanded_acc_penalty_mult = 3
-
-//-------------------------------------------------------
-//M4A3 PISTOL
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                 M4A3 SERVICE PISTOL                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/pistol/m4a3
 	name = "\improper M4A3 service pistol"
@@ -56,32 +63,37 @@
 	item_state = "m4a3"
 	current_mag = /obj/item/ammo_magazine/pistol
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/burstfire_assembly,
-	)
 
-/obj/item/weapon/gun/pistol/m4a3/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 10, "rail_y" = 21, "under_x" = 21, "under_y" = 17, "stock_x" = 21, "stock_y" = 17)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
 
-
-/obj/item/weapon/gun/pistol/m4a3/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/pistol/m4a3/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/burstfire_assembly,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 10, "rail_y" = 21, "under_x" = 21, "under_y" = 17, "stock_x" = 21, "stock_y" = 17)
+
+	..()
 
 /obj/item/weapon/gun/pistol/m4a3/training
 	current_mag = /obj/item/ammo_magazine/pistol/rubber
@@ -92,45 +104,47 @@
 	icon_state = "m4a3c"
 	item_state = "m4a3c"
 
-/obj/item/weapon/gun/pistol/m4a3/custom/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
+
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
-
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                     M1911 / M4A3                   ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //M4A3 45 //Inspired by the 1911
 //deprecated
-
 /obj/item/weapon/gun/pistol/m1911
 	name = "\improper M1911 service pistol"
 	desc = "A timeless classic since the first World War. Once standard issue for the USCM, now back order only. Chambered in .45 ACP. Unfortunately, due to the progression of IFF technology, M1911 .45 ACP is NOT compatible with the SU-6."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m4a345"
 	item_state = "m4a3"
-
 	current_mag = /obj/item/ammo_magazine/pistol/m1911
 
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_9
 
-/obj/item/weapon/gun/pistol/m1911/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 10, "rail_y" = 22, "under_x" = 21, "under_y" = 17, "stock_x" = 21, "stock_y" = 17)
-
-
-/obj/item/weapon/gun/pistol/m1911/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_9)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_5
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_5
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/pistol/m1911/initialize_gun_lists()
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 10, "rail_y" = 22, "under_x" = 21, "under_y" = 17, "stock_x" = 21, "stock_y" = 17)
+
+	..()
 
 /obj/item/weapon/gun/pistol/m1911/socom
 	name = "\improper M48A4 service pistol"
@@ -139,21 +153,28 @@
 	item_state = "m4a3"
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
 
-/obj/item/weapon/gun/pistol/m1911/socom/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_9)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_9
+
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_2
 	scatter = SCATTER_AMOUNT_TIER_8
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_2
+	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/pistol/m1911/socom/equipped
-	starting_attachment_types = list(/obj/item/attachable/suppressor, /obj/item/attachable/lasersight, /obj/item/attachable/reflex)
+/obj/item/weapon/gun/pistol/m1911/socom/equipped/initialize_gun_lists()
 
-//-------------------------------------------------------
-//Beretta 92FS, the gun McClane carries around in Die Hard. Very similar to the service pistol, all around.
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/suppressor, /obj/item/attachable/lasersight, /obj/item/attachable/reflex)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                    BERETTA 92FS                    ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//the gun McClane carries around in Die Hard. Very similar to the service pistol, all around.
 
 /obj/item/weapon/gun/pistol/b92fs
 	name = "\improper Beretta 92FS pistol"
@@ -163,32 +184,38 @@
 	item_state = "b92fs"
 	current_mag = /obj/item/ammo_magazine/pistol/b92fs
 
-/obj/item/weapon/gun/pistol/b92fs/Initialize(mapload, spawn_empty)
-	. = ..()
-	if(prob(10))
-		name = "\improper Beretta 93FR burst pistol"
-		desc += " This specific pistol is a burst-fire, limited availability, police-issue 93FR type Beretta. Not too accurate, aftermarket modififcations are recommended."
-		var/obj/item/attachable/burstfire_assembly/BFA = new(src)
-		BFA.flags_attach_features &= ~ATTACH_REMOVABLE
-		Attach(BFA)
-		add_firemode(GUN_FIREMODE_BURSTFIRE)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
 
-/obj/item/weapon/gun/pistol/b92fs/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 10, "rail_y" = 22, "under_x" = 21, "under_y" = 17, "stock_x" = 21, "stock_y" = 17)
-
-/obj/item/weapon/gun/pistol/b92fs/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_7
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_5
 	scatter_unwielded = SCATTER_AMOUNT_TIER_7
-	damage_mult = BASE_BULLET_DAMAGE_MULT - BULLET_DAMAGE_MULT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE - BULLET_DAMAGE_MULT_TIER_2
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/pistol/b92fs/initialize_gun_lists()
 
-//-------------------------------------------------------
-//DEAGLE //This one is obvious.
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 10, "rail_y" = 22, "under_x" = 21, "under_y" = 17, "stock_x" = 21, "stock_y" = 17)
+
+	..()
+
+/obj/item/weapon/gun/pistol/b92fs/handle_starting_attachment()
+	..()
+	if(prob(10))
+		name = "\improper Beretta 93FR burst pistol"
+		desc += " This specific pistol is a burst-fire, limited availability, police-issue 93FR type Beretta. Not too accurate, aftermarket modififcations are recommended."
+		var/obj/item/attachable/burstfire_assembly/BFA = new(src)
+		BFA.flags_attach_features |= ATTACH_INTEGRATED
+		BFA.vis_flags |= VIS_HIDE
+		Attach(BFA)
+		add_firemode(GUN_FIREMODE_BURSTFIRE)
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                     DESERT EAGLE                   ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/pistol/heavy
 	name = "vintage Desert Eagle"
@@ -201,34 +228,42 @@
 	current_mag = /obj/item/ammo_magazine/pistol/heavy
 	force = 13
 
-	attachable_allowed = list(
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/compensator,
-	)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_5
+	burst_amount = BURST_AMOUNT_TIER_2
+	burst_delay = FIRE_DELAY_TIER_8
 
-
-/obj/item/weapon/gun/pistol/heavy/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 20,"rail_x" = 17, "rail_y" = 21, "under_x" = 20, "under_y" = 17, "stock_x" = 20, "stock_y" = 17)
-
-
-/obj/item/weapon/gun/pistol/heavy/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_5)
-	set_burst_amount(BURST_AMOUNT_TIER_2)
-	set_burst_delay(FIRE_DELAY_TIER_8)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_5
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_1
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_1
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/pistol/heavy/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/compensator,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 20,"rail_x" = 17, "rail_y" = 21, "under_x" = 20, "under_y" = 17, "stock_x" = 20, "stock_y" = 17)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                VINTAGE DESERT EAGLE                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/pistol/heavy/co
 	name = "polished vintage Desert Eagle"
@@ -240,17 +275,18 @@
 	current_mag = /obj/item/ammo_magazine/pistol/heavy/super/highimpact
 	black_market_value = 100
 
-/obj/item/weapon/gun/pistol/heavy/co/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_5)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_5
+
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_7
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_4
 	scatter_unwielded = SCATTER_AMOUNT_TIER_3
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_8
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_8
 	recoil = RECOIL_AMOUNT_TIER_3
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/pistol/heavy/co/gold
 	name = "golden vintage Desert Eagle"
@@ -259,8 +295,9 @@
 	item_state = "g_deagle"
 	base_gun_icon = "g_deagle"
 
-//-------------------------------------------------------
-//NP92 pistol
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                       NP92                         ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Its a makarov
 
 /obj/item/weapon/gun/pistol/np92
@@ -272,25 +309,32 @@
 	fire_sound = "88m4"
 	current_mag = /obj/item/ammo_magazine/pistol/np92
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-	)
 
-/obj/item/weapon/gun/pistol/np92/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 27, "muzzle_y" = 20,"rail_x" = 13, "rail_y" = 22, "under_x" = 21, "under_y" = 18, "stock_x" = 21, "stock_y" = 18)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
 
-/obj/item/weapon/gun/pistol/np92/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_3
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_3
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/pistol/np92/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 27, "muzzle_y" = 20,"rail_x" = 13, "rail_y" = 22, "under_x" = 21, "under_y" = 18, "stock_x" = 21, "stock_y" = 18)
+
+	..()
 
 /obj/item/weapon/gun/pistol/np92/suppressed
 	name = "\improper NPZ92 pistol"
@@ -302,17 +346,24 @@
 	fire_sound = "gun_silenced"
 	current_mag = /obj/item/ammo_magazine/pistol/np92/suppressed
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
-	attachable_allowed = list(
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-	)
+
+/obj/item/weapon/gun/pistol/np92/suppressed/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+		)
+
+	..()
 
 /obj/item/weapon/gun/pistol/np92/suppressed/tranq
 	current_mag = /obj/item/ammo_magazine/pistol/np92/tranq
 
-//-------------------------------------------------------
-//Type 73 pistol
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                       TYPE 73                      ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Its a TT
 
 /obj/item/weapon/gun/pistol/t73
@@ -324,27 +375,33 @@
 	fire_sound = 'sound/weapons/gun_tt.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/t73
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
-	attachable_allowed = list(
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/suppressor,
-	)
 
-/obj/item/weapon/gun/pistol/t73/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 13, "rail_y" = 22, "under_x" = 22, "under_y" = 15, "stock_x" = 21, "stock_y" = 18)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/pistol/t73/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_6
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_6
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/pistol/t73/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/suppressor,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 13, "rail_y" = 22, "under_x" = 22, "under_y" = 15, "stock_x" = 21, "stock_y" = 18)
+
+	..()
 
 /obj/item/weapon/gun/pistol/t73/leader
 	name = "\improper Type 74 pistol"
@@ -354,38 +411,38 @@
 	item_state = "ttb"
 	current_mag = /obj/item/ammo_magazine/pistol/t73_impact
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
-	accepted_ammo = list(
-		/obj/item/ammo_magazine/pistol/t73,
-		/obj/item/ammo_magazine/pistol/t73_impact,
-	)
 
-	attachable_allowed = list(
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/heavy_barrel,
-	)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/pistol/t73/leader/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/lasersight/TT = new(src)
-	TT.flags_attach_features &= ~ATTACH_REMOVABLE
-	TT.vis_flags |= VIS_HIDE
-	Attach(TT)
-
-/obj/item/weapon/gun/pistol/t73/leader/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_6
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_6
 	scatter = SCATTER_AMOUNT_TIER_7
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_7
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_6
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_6
+	//=========// GUN STATS //==========//
 
-//-------------------------------------------------------
-//KT-42 //Inspired by the .44 Auto Mag pistol
+/obj/item/weapon/gun/pistol/t73/leader/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/lasersight/hidden)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/heavy_barrel,
+		)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                   KT-42 AUTOMAG                    ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Inspired by the .44 Auto Mag pistol
 // rebalanced - slightly worse stats than the 88 mod, but uses heavy pistol bullets.
 
 /obj/item/weapon/gun/pistol/kt42
@@ -397,21 +454,26 @@
 	fire_sound = 'sound/weapons/gun_kt42.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/kt42
 
-/obj/item/weapon/gun/pistol/kt42/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 20,"rail_x" = 8, "rail_y" = 22, "under_x" = 22, "under_y" = 17, "stock_x" = 22, "stock_y" = 17)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/pistol/kt42/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_1
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_2
 	scatter = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_5
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/pistol/kt42/initialize_gun_lists()
 
-//-------------------------------------------------------
-//PIZZACHIMP PROTECTION
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 20,"rail_x" = 8, "rail_y" = 22, "under_x" = 22, "under_y" = 17, "stock_x" = 22, "stock_y" = 17)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                   HOLDOUT PISTOL                   ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/pistol/holdout
 	name = "holdout pistol"
@@ -419,87 +481,87 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "holdout"
 	item_state = "holdout"
-
 	fire_sound = 'sound/weapons/gun_pistol_holdout.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/holdout
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	w_class = SIZE_TINY
 	force = 2
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/burstfire_assembly,
-	)
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/pistol/holdout/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 25, "muzzle_y" = 20,"rail_x" = 12, "rail_y" = 22, "under_x" = 17, "under_y" = 15, "stock_x" = 22, "stock_y" = 17)
-
-/obj/item/weapon/gun/pistol/holdout/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/pistol/holdout/flashlight/handle_starting_attachment()
+/obj/item/weapon/gun/pistol/holdout/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/flashlight)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/burstfire_assembly,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 25, "muzzle_y" = 20,"rail_x" = 12, "rail_y" = 22, "under_x" = 17, "under_y" = 15, "stock_x" = 22, "stock_y" = 17)
+
 	..()
-	var/obj/item/attachable/flashlight/flashlight = new(src)
-	Attach(flashlight)
 
-//-------------------------------------------------------
-//CLF HOLDOUT PISTOL
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[           D18 HUMMINGBIRD / CLF HOLDOUT            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/pistol/clfpistol
 	name = "D18 Hummingbird Pistol"
 	desc = "The D18 Hummingbird Pistol was produced in the mid-2170s as a cheap and concealable firearm for CLF Sleeper Cell agents for assassinations and ambushes, and is able to be concealed in shoes and workboots."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "m43"
 	item_state = "m43"
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	fire_sound = 'sound/weapons/gun_m43.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/clfpistol
 	w_class = SIZE_TINY
 	force = 5
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/flashlight,
-	)
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 
-/obj/item/weapon/gun/pistol/clfpistol/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 10, "rail_y" = 21, "under_x" = 21, "under_y" = 17, "stock_x" = 21, "stock_y" = 17)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
 
-/obj/item/weapon/gun/pistol/clfpistol/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_5
 	scatter_unwielded = SCATTER_AMOUNT_TIER_8
 	scatter = SCATTER_AMOUNT_TIER_9
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_4
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
+	//=========// GUN STATS //==========//
 
-//-------------------------------------------------------
-//.45 MARSHALS PISTOL //Inspired by the Browning Hipower
-// rebalanced - singlefire, very strong bullets but slow to fire and heavy recoil
-// redesigned - now rejected USCM sidearm model, utilized by Colonial Marshals and other stray groups.
+/obj/item/weapon/gun/pistol/clfpistol/initialize_gun_lists()
 
-	/*
-	Original comment:
-	/// This weapon needs to be manually racked every time a new magazine is loaded. I tried and failed to touch gun shitcode so this will do.
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/flashlight,
+		)
 
-	11/20/2023
-	I've revised most firearms to require cocking to load the chamber unless the user has basic firearm skills, which the vast majority will have.
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 10, "rail_y" = 21, "under_x" = 21, "under_y" = 17, "stock_x" = 21, "stock_y" = 17)
 
-	I should point out that guns in CM auto-cocked as a convenience as there was no firearms skill before. In reality, you would need to cock pistols to
-	make them fire after loading a magazine if there is nothing chambered. That's just how most firearms work. So in other words, this item didn't really
-	make sense from a practical and lore standpoints, so I've modified it.
-	*/
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[           MK-45 "HIGH POWER" AUTOMAGNUM            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Inspired by the Browning Hipower
 
 /obj/item/weapon/gun/pistol/highpower
 	name = "\improper MK-45 'High-Power' Automagnum"
@@ -510,38 +572,46 @@
 	fire_sound = 'sound/weapons/gun_kt42.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/highpower
 	force = 15
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor, // Barrel
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/upp_replica,
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/reddot, // Rail
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/scope,
-		/obj/item/attachable/scope/mini,
-		/obj/item/attachable/gyro, // Under
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/burstfire_assembly,
-	)
 
-/obj/item/weapon/gun/pistol/highpower/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 20,"rail_x" = 6, "rail_y" = 22, "under_x" = 20, "under_y" = 15, "stock_x" = 0, "stock_y" = 0)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_5
 
-/obj/item/weapon/gun/pistol/highpower/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_5)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_3
 	scatter = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_8
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_8
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_4
+	//=========// GUN STATS //==========//
+
+
+/obj/item/weapon/gun/pistol/highpower/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor, // Barrel
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/upp_replica,
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/scope,
+			/obj/item/attachable/scope/mini,
+			/obj/item/attachable/gyro, // Under
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/burstfire_assembly,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 20,"rail_x" = 6, "rail_y" = 22, "under_x" = 20, "under_y" = 15, "stock_x" = 0, "stock_y" = 0)
+
+	..()
 
 //also comes in.... BLAPCK
 //the parent has a blueish tint, making it look best for civilian usage (colonies, marshals). this one has a black tint on its metal, making it best for military groups like VAIPO, elite mercs, etc.
@@ -558,10 +628,18 @@
 	current_mag = /obj/item/ammo_magazine/pistol/highpower/black
 	icon_state = "highpower_tac"
 	item_state = "highpower_tac"
-	starting_attachment_types = list(/obj/item/attachable/suppressor, /obj/item/attachable/lasersight, /obj/item/attachable/reflex)
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
 
-//-------------------------------------------------------
+/obj/item/weapon/gun/pistol/highpower/tactical/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/suppressor, /obj/item/attachable/lasersight, /obj/item/attachable/reflex)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               88 MOD 4 COMBAT PISTOL               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //mod88 based off VP70 - Counterpart to M1911, offers burst and capacity ine exchange of low accuracy and damage.
 
 /obj/item/weapon/gun/pistol/mod88
@@ -577,48 +655,88 @@
 	current_mag = /obj/item/ammo_magazine/pistol/mod88
 	force = 8
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/burstfire_assembly,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/flashlight/grip,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/stock/mod88,
-	)
+	projectile_casing = PROJECTILE_CASING_CASELESS //TODO REMOVE
+	appearance_flags = KEEP_TOGETHER
 
-/obj/item/weapon/gun/pistol/mod88/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 27, "muzzle_y" = 21,"rail_x" = 8, "rail_y" = 22, "under_x" = 21, "under_y" = 18, "stock_x" = 18, "stock_y" = 15)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_11
+	burst_amount = BURST_AMOUNT_TIER_3
+	burst_delay = FIRE_DELAY_TIER_11
 
-
-/obj/item/weapon/gun/pistol/mod88/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_11)
-	set_burst_amount(BURST_AMOUNT_TIER_3)
-	set_burst_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_7
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_7
 	scatter_unwielded = SCATTER_AMOUNT_TIER_7
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_4
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/pistol/mod88/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/burstfire_assembly,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/flashlight/grip,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/stock/mod88,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 27, "muzzle_y" = 21,"rail_x" = 8, "rail_y" = 22, "under_x" = 21, "under_y" = 18, "stock_x" = 18, "stock_y" = 15)
+
+	..()
+
+/obj/item/weapon/gun/pistol/mod88/reload_into_chamber()
+	. = ..()
+	//icon_state = icon_state == "88m4_test1" ? "88m4_test2" : "88m4_test1"
+
+	flick("88m4_test3", src)
+	//animate(src, transform = turn(matrix(), 120), time = 2, loop = 5)
+	//animate(transform = turn(matrix(), 240), time = 2)
+	//animate(transform = null, time = 2)
+	animate(src, transform = turn(matrix(), -25), pixel_x = pixel_x -2, time = 1)
+	animate(transform = null, pixel_x = pixel_x + 2, time = 1)
+
+/*
+/obj/item/weapon/gun/pistol/mod88/Initialize()
+	. = ..()
+	var/obj/item/effect/gun_slide/G = new
+	vis_contents += G
+
+/obj/item/weapon/gun/pistol/mod88/reload_into_chamber()
+	. = ..()
+	icon_state = "88m4_f_1"
+	spawn(1)
+	icon_state = "88m4_f_2"
+	spawn(1)
+	icon_state = "88m4_f_1"
+	spawn(1)
+	icon_state = "88m4"
+
+/obj/item/weapon/gun/pistol/mod88/load_into_chamber()
+	. = ..()
+	icon_state = "fix_me"
+*/
 
 /obj/item/weapon/gun/pistol/mod88/training
 	current_mag = /obj/item/ammo_magazine/pistol/mod88/rubber
 
+/obj/item/weapon/gun/pistol/mod88/flashlight/initialize_gun_lists()
 
-/obj/item/weapon/gun/pistol/mod88/flashlight/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/flashlight/flashlight = new(src)
-	Attach(flashlight)
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/flashlight)
 
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[             ES-4 ELECTROSTATIC PISTOL              ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 // ES-4 - Basically a CL-exclusive reskin of the 88 mod 4 that only uses less-lethal ammo.
 
 /obj/item/weapon/gun/pistol/es4
@@ -635,27 +753,35 @@
 	force = 8
 	muzzle_flash = "muzzle_flash_blue"
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
-	attachable_allowed = list(
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/lasersight,
-	)
 
-/obj/item/weapon/gun/pistol/es4/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 27, "muzzle_y" = 21, "rail_x" = 10, "rail_y" = 22, "under_x" = 25, "under_y" = 18, "stock_x" = 18, "stock_y" = 15)
-
-
-/obj/item/weapon/gun/pistol/es4/set_gun_config_values()
-	..()
+	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_11
+
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_7
 	scatter_unwielded = SCATTER_AMOUNT_TIER_7
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_4
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
+	//=========// GUN STATS //==========//
 
-//-------------------------------------------------------
+/obj/item/weapon/gun/pistol/es4/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/lasersight,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 27, "muzzle_y" = 21, "rail_x" = 10, "rail_y" = 22, "under_x" = 25, "under_y" = 18, "stock_x" = 18, "stock_y" = 15)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                         VP78                       ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //VP78 - the only pistol viable as a primary.
 
 /obj/item/weapon/gun/pistol/vp78
@@ -664,50 +790,53 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "vp78"
 	item_state = "vp78"
-
 	fire_sound = 'sound/weapons/gun_vp78_v2.ogg'
 	reload_sound = 'sound/weapons/gun_vp78_reload.ogg'
 	unload_sound = 'sound/weapons/gun_vp78_unload.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/vp78
 	force = 8
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/flashlight/laser_light_combo,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-	)
 
-/obj/item/weapon/gun/pistol/vp78/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/flashlight/laser_light_combo/VP = new(src)
-	VP.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(VP)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_4
+	burst_amount = BURST_AMOUNT_TIER_3
+	burst_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/pistol/vp78/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 21,"rail_x" = 10, "rail_y" = 23, "under_x" = 20, "under_y" = 17, "stock_x" = 18, "stock_y" = 14)
-
-
-/obj/item/weapon/gun/pistol/vp78/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_4)
-	set_burst_amount(BURST_AMOUNT_TIER_3)
-	set_burst_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_4
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/pistol/vp78/initialize_gun_lists()
 
-//-------------------------------------------------------
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/flashlight/laser_light_combo/vp78)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/flashlight/laser_light_combo,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 21,"rail_x" = 10, "rail_y" = 23, "under_x" = 20, "under_y" = 17, "stock_x" = 18, "stock_y" = 14)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                      AUTO-9                        ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 /*
 Auto 9 The gun RoboCop uses. A better version of the VP78, with more rounds per magazine. Probably the best pistol around, but takes no attachments.
 It is a modified Beretta 93R, and can fire three-round burst or single fire. Whether or not anyone else aside RoboCop can use it is not established.
@@ -719,28 +848,28 @@ It is a modified Beretta 93R, and can fire three-round burst or single fire. Whe
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/event.dmi'
 	icon_state = "auto9"
 	item_state = "auto9"
-
 	fire_sound = 'sound/weapons/gun_pistol_large.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/auto9
 	force = 15
 
-/obj/item/weapon/gun/pistol/auto9/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_7)
-	set_burst_amount(BURST_AMOUNT_TIER_3)
-	set_burst_delay(FIRE_DELAY_TIER_12)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_7
+	burst_amount = BURST_AMOUNT_TIER_3
+	burst_delay = FIRE_DELAY_TIER_12
+
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
+	//=========// GUN STATS //==========//
 
-
-
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               CHIMP70 / MONKEYGUN                  ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //The first rule of monkey pistol is we don't talk about monkey pistol.
 
 /obj/item/weapon/gun/pistol/chimp
@@ -749,28 +878,29 @@ It is a modified Beretta 93R, and can fire three-round burst or single fire. Whe
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/event.dmi'
 	icon_state = "c70"
 	item_state = "c70"
-
-	current_mag = /obj/item/ammo_magazine/pistol/chimp
-	projectile_casing = PROJECTILE_CASING_CASELESS //Nah.
 	fire_sound = 'sound/weapons/gun_chimp70.ogg'
 	w_class = SIZE_MEDIUM
 	force = 8
+	current_mag = /obj/item/ammo_magazine/pistol/chimp
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_AMMO_COUNTER|GUN_NO_SAFETY_SWITCH
+	projectile_casing = PROJECTILE_CASING_CASELESS //Nah.
 
-/obj/item/weapon/gun/pistol/chimp/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_9)
-	set_burst_delay(FIRE_DELAY_TIER_11)
-	set_burst_amount(BURST_AMOUNT_TIER_2)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_9
+	burst_delay = FIRE_DELAY_TIER_11
+	burst_amount = BURST_AMOUNT_TIER_2
+
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	//=========// GUN STATS //==========//
 
-
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                     SMARTPISTOL                    ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Smartpistol. An IFF pistol, pretty much.
 
 /obj/item/weapon/gun/pistol/smart
@@ -786,30 +916,37 @@ It is a modified Beretta 93R, and can fire three-round burst or single fire. Whe
 	unload_sound = 'sound/weapons/handling/gun_su6_unload.ogg'
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_AMMO_COUNTER
 
-/obj/item/weapon/gun/pistol/smart/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 13, "rail_y" = 22, "under_x" = 24, "under_y" = 17, "stock_x" = 24, "stock_y" = 17)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
+	burst_amount = BURST_AMOUNT_TIER_3
+	burst_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/pistol/smart/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
-	set_burst_amount(BURST_AMOUNT_TIER_3)
-	set_burst_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_4
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/pistol/smart/initialize_gun_lists()
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 13, "rail_y" = 22, "under_x" = 24, "under_y" = 17, "stock_x" = 24, "stock_y" = 17)
+
+	..()
 
 /obj/item/weapon/gun/pistol/smart/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
 		BULLET_TRAIT_ENTRY(/datum/element/bullet_trait_iff)
 	))
 
-//-------------------------------------------------------
-//SKORPION //Based on the same thing.
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               SKORPION MACHINE PISTOL              ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Based on the same thing.
 
 /obj/item/weapon/gun/pistol/skorpion
 	name = "\improper CZ-81 machine pistol"
@@ -817,33 +954,42 @@ It is a modified Beretta 93R, and can fire three-round burst or single fire. Whe
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "skorpion"
 	item_state = "skorpion"
-
 	fire_sound = 'sound/weapons/gun_skorpion.ogg'
 	current_mag = /obj/item/ammo_magazine/pistol/skorpion
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED
-	attachable_allowed = list(
-		/obj/item/attachable/reddot, //Rail
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/suppressor, //Muzzle
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/lasersight, //Underbarrel
-		/obj/item/attachable/burstfire_assembly,
-	)
 	start_semiauto = FALSE
 	start_automatic = TRUE
 
-/obj/item/weapon/gun/pistol/skorpion/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 18,"rail_x" = 16, "rail_y" = 21, "under_x" = 23, "under_y" = 15, "stock_x" = 23, "stock_y" = 15)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/pistol/skorpion/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_11)
-	fa_scatter_peak = 15 //shots
+	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_TIER_SKORPION
 	fa_max_scatter = SCATTER_AMOUNT_TIER_5
-
 	accuracy_mult = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_7
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/pistol/skorpion/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot, //Rail
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/suppressor, //Muzzle
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/lasersight, //Underbarrel
+			/obj/item/attachable/burstfire_assembly,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 18,"rail_x" = 16, "rail_y" = 21, "under_x" = 23, "under_y" = 15, "stock_x" = 23, "stock_y" = 15)
+
+	..()
+
+
+
+

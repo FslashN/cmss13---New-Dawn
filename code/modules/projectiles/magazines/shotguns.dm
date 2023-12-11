@@ -27,7 +27,6 @@ GLOBAL_LIST_INIT(shotgun_boxes_12g, list(
 	w_class = SIZE_LARGE // Can't throw it in your pocket, friend.
 	flags_magazine = AMMUNITION_REFILLABLE|AMMUNITION_HANDFUL_BOX
 	handful_state = "slug_shell"
-	transfer_handful_amount = 5
 
 /obj/item/ammo_magazine/shotgun/attack_self(mob/user)
 	if(current_rounds == 0)
@@ -174,7 +173,6 @@ GLOBAL_LIST_INIT(shotgun_handfuls_12g, list(
 	current_rounds = 5
 	gun_type = /obj/item/weapon/gun/shotgun
 	handful_state = "slug_shell"
-	transfer_handful_amount = 5
 
 /obj/item/ammo_magazine/handful/shotgun/slug
 
@@ -237,7 +235,6 @@ GLOBAL_LIST_INIT(shotgun_handfuls_12g, list(
 	caliber = "8g"
 	max_rounds = 4
 	current_rounds = 4
-	transfer_handful_amount = 4
 	gun_type = /obj/item/weapon/gun/shotgun
 
 /obj/item/ammo_magazine/handful/shotgun/heavy/slug
@@ -276,7 +273,6 @@ GLOBAL_LIST_INIT(shotgun_handfuls_12g, list(
 	current_rounds = 3
 	gun_type = /obj/item/weapon/gun/shotgun/double/twobore
 	handful_state = "twobore"
-	transfer_handful_amount = 3
 
 /obj/item/ammo_magazine/handful/revolver/marksman
 	name = "handful of marksman revolver bullets (.44)"

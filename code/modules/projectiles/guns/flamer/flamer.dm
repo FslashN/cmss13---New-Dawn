@@ -1,7 +1,6 @@
-
-
-
-//FLAMETHROWER
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                 M240A1 FLAMETHROWER                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/flamer
 	name = "\improper M240A1 incinerator unit"
@@ -11,32 +10,41 @@
 	item_state = "m240"
 	flags_equip_slot = SLOT_BACK
 	w_class = SIZE_LARGE
-	force = 15
 	fire_sound = ""
 	unload_sound = 'sound/weapons/handling/flamer_unload.ogg'
 	reload_sound = 'sound/weapons/handling/flamer_reload.ogg'
-	aim_slowdown = SLOWDOWN_ADS_INCINERATOR
 	current_mag = /obj/item/ammo_magazine/flamer_tank
-	var/fuel_pressure = 1 //Pressure setting of the attached fueltank, controls how much fuel is used per tile
-	var/max_range = 9 //9 tiles, 7 is screen range, controlled by the type of napalm in the canister. We max at 9 since diagonal bullshit.
-
-	attachable_allowed = list( //give it some flexibility.
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/attached_gun/extinguisher,
-		/obj/item/attachable/attached_gun/flamer_nozzle
-	)
 	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_WIELDED_FIRING_ONLY
 	flags_gun_toggles = GUN_TRIGGER_SAFETY_ON
 	gun_category = GUN_CATEGORY_HEAVY
+	var/fuel_pressure = 1 //Pressure setting of the attached fueltank, controls how much fuel is used per tile
+	var/max_range = 9 //9 tiles, 7 is screen range, controlled by the type of napalm in the canister. We max at 9 since diagonal bullshit.
 
+	//=========// GUN STATS //==========//
+	force = 15
+	fire_delay = FIRE_DELAY_TIER_5 * 5
+
+	aim_slowdown = SLOWDOWN_ADS_INCINERATOR
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/flamer/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list( //give it some flexibility.
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/attached_gun/extinguisher,
+			/obj/item/attachable/attached_gun/flamer_nozzle
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0, "rail_x" = 11, "rail_y" = 20, "under_x" = 21, "under_y" = 14, "stock_x" = 0, "stock_y" = 0)
+
+	..()
 
 /obj/item/weapon/gun/flamer/Initialize(mapload, spawn_empty)
 	. = ..()
 	update_icon()
-
-/obj/item/weapon/gun/flamer/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0, "rail_x" = 11, "rail_y" = 20, "under_x" = 21, "under_y" = 14, "stock_x" = 0, "stock_y" = 0)
 
 /obj/item/weapon/gun/flamer/x_offset_by_attachment_type(attachment_type)
 	switch(attachment_type)
@@ -49,10 +57,6 @@
 		if(/obj/item/attachable/flashlight)
 			return -1
 	return 0
-
-/obj/item/weapon/gun/flamer/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_5 * 5)
 
 /obj/item/weapon/gun/flamer/unique_action(mob/user)
 	toggle_gun_safety()
@@ -233,19 +237,31 @@
 /obj/item/weapon/gun/flamer/underextinguisher
 	starting_attachment_types = list(/obj/item/attachable/attached_gun/extinguisher)
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[        M240A3 INCINERATOR UNIT / DEATHSQUAD        ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/flamer/deathsquad //w-y deathsquad waist flamer
 	name = "\improper M240A3 incinerator unit"
 	desc = "A next-generation incinerator unit, the M240A3 is much lighter and dextrous than its predecessors thanks to the ceramic alloy construction. It can be slinged over a belt and usually comes equipped with EX-type fuel."
-	attachable_allowed = list(
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/attached_gun/extinguisher,
-	)
-	starting_attachment_types = list(/obj/item/attachable/attached_gun/extinguisher/pyro, /obj/item/attachable/magnetic_harness)
 	flags_equip_slot = SLOT_BACK | SLOT_WAIST
 	auto_retrieval_slot = WEAR_WAIST
 	current_mag = /obj/item/ammo_magazine/flamer_tank/EX
 	flags_gun_features = GUN_WY_RESTRICTED|GUN_WIELDED_FIRING_ONLY
+
+/obj/item/weapon/gun/flamer/deathsquad/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/attached_gun/extinguisher/pyro, /obj/item/attachable/magnetic_harness)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/attached_gun/extinguisher,
+		)
+
+	..()
 
 /obj/item/weapon/gun/flamer/deathsquad/nolock
 	flags_gun_features = GUN_WIELDED_FIRING_ONLY
@@ -259,16 +275,26 @@
 	icon_state = "m240t"
 	item_state = "m240t"
 	current_mag = null
-	var/obj/item/storage/large_holster/fuelpack/fuelpack
-
-	attachable_allowed = list(
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/attached_gun/extinguisher,
-	)
-	starting_attachment_types = list(/obj/item/attachable/attached_gun/extinguisher/pyro)
 	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_WIELDED_FIRING_ONLY
 	flags_item = TWOHANDED|NO_CRYO_STORE
+	var/obj/item/storage/large_holster/fuelpack/fuelpack
+
+/obj/item/weapon/gun/flamer/M240T/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/attached_gun/extinguisher/pyro)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/attached_gun/extinguisher,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0, "rail_x" = 13, "rail_y" = 20, "under_x" = 21, "under_y" = 14, "stock_x" = 0, "stock_y" = 0)
+
+	..()
 
 /obj/item/weapon/gun/flamer/M240T/unique_action(mob/user)
 	if(fuelpack)
@@ -306,9 +332,6 @@
 		if(/obj/item/attachable/flashlight)
 			return -1
 	return 0
-
-/obj/item/weapon/gun/flamer/M240T/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0, "rail_x" = 13, "rail_y" = 20, "under_x" = 21, "under_y" = 14, "stock_x" = 0, "stock_y" = 0)
 
 /obj/item/weapon/gun/flamer/M240T/Fire(atom/target, mob/living/user, params, reflex = 0, dual_wield)
 	if (!link_fuelpack(user) && !current_mag)
@@ -366,9 +389,9 @@
 	start_semiauto = FALSE
 	start_automatic = TRUE
 
-/obj/item/weapon/gun/flamer/M240T/auto/set_gun_config_values()
-	. = ..()
-	set_fire_delay(FIRE_DELAY_TIER_7)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_7
+	//=========// GUN STATS //==========//
 
 /obj/flamer_fire
 	name = "fire"

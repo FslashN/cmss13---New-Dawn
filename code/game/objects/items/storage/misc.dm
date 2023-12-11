@@ -60,12 +60,12 @@
 	name = "mateba customization kit case"
 	desc = "A wooden case used for storing the tools and parts needed to customize a Mateba revolver. Comes with three barrel lengths and the necessary key to swap them out."
 	storage_slots = 5
-	can_hold = list(/obj/item/attachable/mateba, /obj/item/weapon/gun/revolver/mateba, /obj/item/weapon/mateba_key)
+	can_hold = list(/obj/item/attachable/barrel/mateba, /obj/item/weapon/gun/revolver/mateba, /obj/item/weapon/mateba_key)
 
 /obj/item/storage/mateba_case/captain/fill_preset_inventory()
-	new /obj/item/attachable/mateba/short(src)
-	new /obj/item/attachable/mateba(src)
-	new /obj/item/attachable/mateba/long(src)
+	new /obj/item/attachable/barrel/mateba/short(src)
+	new /obj/item/attachable/barrel/mateba(src)
+	new /obj/item/attachable/barrel/mateba/long(src)
 	new /obj/item/weapon/mateba_key(src)
 
 /obj/item/storage/mateba_case/captain/council
@@ -79,9 +79,9 @@
 	desc = "A black-ebony case used for storing the tools and parts needed to customize a Mateba revolver. This variant is made for general-grade golden Matebas and comes with golden barrel attachments."
 
 /obj/item/storage/mateba_case/general/fill_preset_inventory()
-	new /obj/item/attachable/mateba/short/dark(src)
-	new /obj/item/attachable/mateba/dark(src)
-	new /obj/item/attachable/mateba/long/dark(src)
+	new /obj/item/attachable/barrel/mateba/short/dark(src)
+	new /obj/item/attachable/barrel/mateba/dark(src)
+	new /obj/item/attachable/barrel/mateba/long/dark(src)
 	new /obj/item/weapon/mateba_key(src)
 
 //6 pack

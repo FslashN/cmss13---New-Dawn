@@ -1,39 +1,46 @@
-//-------------------------------------------------------
-//GRENADE LAUNCHER
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[             GENERIC GRENADE LAUNCHER               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/launcher/grenade //Parent item for GLs.
 	w_class = SIZE_LARGE
 	throw_speed = SPEED_SLOW
 	throw_range = 10
 	force = 5
-
 	fire_sound = 'sound/weapons/armbomb.ogg'
 	cocked_sound = 'sound/weapons/gun_m92_cocked.ogg'
 	reload_sound = 'sound/weapons/gun_shotgun_open2.ogg' //Played when inserting nade.
 	unload_sound = 'sound/weapons/gun_revolver_unload.ogg'
-
 	has_cylinder = TRUE //This weapon won't work otherwise.
 	preload = /obj/item/explosive/grenade/high_explosive
 	internal_slots = 1 //This weapon must use slots.
 	internal_max_w_class = SIZE_MEDIUM //MEDIUM = M15.
-
-	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
-	wield_delay = WIELD_DELAY_SLOW
 	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_NO_SAFETY_SWITCH //I don't believe most grenade launchers have a safety switch.
 	///Can you access the storage by clicking it, put things into it, or take things out? Meant for break-actions mostly but useful for any state where you want access to be toggleable. Make sure to call cylinder.close(user) so they don't still have the screen open!
 	var/open_chamber = TRUE
 	///Does it launch its grenades in a low arc or a high? Do they strike people in their path, or fly beyond?
 	var/is_lobbing = FALSE
 	///Verboten munitions. This is a blacklist. Anything in this list isn't loadable.
-	var/disallowed_grenade_types = list(/obj/item/explosive/grenade/spawnergrenade, /obj/item/explosive/grenade/alien, /obj/item/explosive/grenade/incendiary/molotov, /obj/item/explosive/grenade/flashbang)
+	var/disallowed_grenade_types
 	///What is this weapon permitted to fire? This is a whitelist. Anything in this list can be fired. Anything.
-	var/valid_munitions = list(/obj/item/explosive/grenade)
+	var/valid_munitions
 
-
-/obj/item/weapon/gun/launcher/grenade/set_gun_config_values()
-	..()
+	//=========// GUN STATS //==========//
 	recoil = RECOIL_AMOUNT_TIER_4 //Same as m37 shotgun.
 
+	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
+	wield_delay = WIELD_DELAY_SLOW
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/launcher/grenade/initialize_gun_lists()
+
+	if(!disallowed_grenade_types)
+		disallowed_grenade_types = list(/obj/item/explosive/grenade/spawnergrenade, /obj/item/explosive/grenade/alien, /obj/item/explosive/grenade/incendiary/molotov, /obj/item/explosive/grenade/flashbang)
+
+	if(!valid_munitions)
+		valid_munitions = list(/obj/item/explosive/grenade)
+
+	..()
 
 /obj/item/weapon/gun/launcher/grenade/on_pocket_insertion() //Plays load sfx whenever a nade is put into storage.
 	playsound(usr, reload_sound, 25, 1)
@@ -241,8 +248,9 @@
 	var/datum/action/item_action/toggle_firing_level/TFL = locate(/datum/action/item_action/toggle_firing_level) in actions
 	TFL.update_icon()
 
-//-------------------------------------------------------
-//M92 GRENADE LAUNCHER
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                         M92                        ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/launcher/grenade/m92
 	name = "\improper M92 grenade launcher"
@@ -250,24 +258,31 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m92"
 	item_state = "m92"
-
-	matter = list("metal" = 6000)
-	actions_types = list(/datum/action/item_action/toggle_firing_level)
-
-	attachable_allowed = list(/obj/item/attachable/magnetic_harness)
 	flags_item = TWOHANDED|NO_CRYO_STORE
 	map_specific_decoration = TRUE
-
 	is_lobbing = TRUE
 	internal_slots = 6
 	direct_draw = FALSE
 
-/obj/item/weapon/gun/launcher/grenade/m92/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 14, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_4 * 4
+	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/launcher/grenade/m92/set_gun_config_values()
+/obj/item/weapon/gun/launcher/grenade/m92/initialize_gun_lists()
+
+	if(!matter)
+		matter = list("metal" = 6000)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(/obj/item/attachable/magnetic_harness)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 14, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+
+	if(!actions_types)
+		actions_types = list(/datum/action/item_action/toggle_firing_level)
+
 	..()
-	set_fire_delay(FIRE_DELAY_TIER_4*4)
 
 /obj/item/weapon/gun/launcher/grenade/m92/check_additional_able_to_fire(mob/living/user)
 	. = ..()
@@ -276,9 +291,9 @@
 		to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
 		return FALSE
 
-
-//-------------------------------------------------------
-//M81 GRENADE LAUNCHER
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                         M81                        ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/launcher/grenade/m81
 	name = "\improper M81 grenade launcher"
@@ -287,14 +302,19 @@
 	icon_state = "m81"
 	item_state = "m81" //needs a wield sprite.
 
-	matter = list("metal" = 7000)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_4 * 1.5
+	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/launcher/grenade/m81/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 14, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+/obj/item/weapon/gun/launcher/grenade/m81/initialize_gun_lists()
 
-/obj/item/weapon/gun/launcher/grenade/m81/set_gun_config_values()
+	if(!matter)
+		matter = list("metal" = 7000)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 14, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+
 	..()
-	set_fire_delay(FIRE_DELAY_TIER_4 * 1.5)
 
 /obj/item/weapon/gun/launcher/grenade/m81/on_pocket_removal()
 	..()
@@ -311,11 +331,18 @@
 /obj/item/weapon/gun/launcher/grenade/m81/riot
 	name = "\improper M81 riot grenade launcher"
 	desc = "A lightweight, single-shot low-angle grenade launcher to launch tear gas grenades. Used by the Colonial Marines Military Police during riots."
-	valid_munitions = list(/obj/item/explosive/grenade/custom/teargas)
 	preload = /obj/item/explosive/grenade/custom/teargas
 
-//-------------------------------------------------------
-//M79 Grenade Launcher subtype of the M81
+/obj/item/weapon/gun/launcher/grenade/m81/riot/initialize_gun_lists()
+
+	if(!valid_munitions)
+		valid_munitions = list(/obj/item/explosive/grenade/custom/teargas)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                          M79                       ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/launcher/grenade/m81/m79//m79 variant for marines
 	name = "\improper M79 grenade launcher"
@@ -323,32 +350,35 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m79"
 	item_state = "m79"
-	flags_equip_slot = SLOT_BACK
-	preload = /obj/item/explosive/grenade/slug/baton
-	is_lobbing = TRUE
-	actions_types = list(/datum/action/item_action/toggle_firing_level)
-
 	fire_sound = 'sound/weapons/handling/m79_shoot.ogg'
 	cocked_sound = 'sound/weapons/handling/m79_break_open.ogg'
 	reload_sound = 'sound/weapons/handling/m79_reload.ogg'
 	unload_sound = 'sound/weapons/handling/m79_unload.ogg'
+	flags_equip_slot = SLOT_BACK
+	preload = /obj/item/explosive/grenade/slug/baton
+	is_lobbing = TRUE
 
-	attachable_allowed = list(
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/stock/m79,
-	)
+/obj/item/weapon/gun/launcher/grenade/m81/m79/initialize_gun_lists()
 
-/obj/item/weapon/gun/launcher/grenade/m81/m79/handle_starting_attachment()
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/stock/m79)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/stock/m79,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 9, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 14, "stock_y" = 14)
+
+	if(!actions_types)
+		actions_types = list(/datum/action/item_action/toggle_firing_level)
+
 	..()
-	var/obj/item/attachable/stock/m79/S = new(src)
-	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(S)
-
-/obj/item/weapon/gun/launcher/grenade/m81/m79/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 9, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 14, "stock_y" = 14)
 
 /obj/item/weapon/gun/launcher/grenade/m81/m79/set_bullet_traits()
 	LAZYADD(traits_to_give, list(

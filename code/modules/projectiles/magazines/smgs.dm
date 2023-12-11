@@ -68,7 +68,6 @@
 	desc = "A 10x20mm caseless HV extended submachinegun magazine. Powerful propellant allows the bullet increased travel speed and minor penetration capabilities, noticeably improving its efficacy at long ranges, although it still suffers significantly compared to a rifle bullet."
 	max_rounds = 72
 	icon_state = "m39_HV_extended"
-	bonus_overlay = "m39_ex"
 
 //-------------------------------------------------------
 //M5, a classic SMG used in a lot of action movies.
@@ -96,7 +95,6 @@
 	icon_state = "mp7_30"
 	gun_type = /obj/item/weapon/gun/smg/mp27
 	max_rounds = 30 //Also comes in 20 and 40.
-	bonus_overlay = "mp7_30_overlay"
 	var/random_magazine = TRUE
 
 /obj/item/ammo_magazine/smg/mp27/Initialize(mapload, spawn_empty)
@@ -106,9 +104,7 @@
 		name = "\improper MP27 [capacity]-round magazine (4.6x30mm)"
 		desc = "A [capacity]-round 4.6mm magazine for the MP27. Fires large, heavy bullets that have noticeable punch for an SMG but also have equally noticeable scatter and a loss of accuracy. Due to a factory blueprint mixup, 20, 30, and 40-round magazines were all manufactured and sold in the same boxes, leading to a class act lawsuit that bankrupted the company."
 		caliber = "4.6x30mm"
-		base_mag_icon = "mp7_[capacity]"
 		icon_state = "mp7_[capacity]"
-		bonus_overlay = "mp7_[capacity]_overlay"
 		current_rounds = capacity
 		max_rounds = capacity
 		random_magazine = FALSE
@@ -122,11 +118,10 @@
 	caliber = "7.62x25mm"
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/upp.dmi'
 	icon_state = "ppsh17b_stick"
-	bonus_overlay = "ppsh17b_stick_overlay"
 	max_rounds = 35
 	gun_type = /obj/item/weapon/gun/smg/ppsh
 	default_ammo = /datum/ammo/bullet/smg/ppsh
-	malfunction_chance_added = FIREARM_MALFUNCTION_CHANCE_LOW
+	malfunction_chance_added = GUN_MALFUNCTION_CHANCE_LOW
 	var/bonus_mag_aim_slowdown = 0
 	var/bonus_mag_wield_delay = 0
 	var/new_item_state = "ppsh17b"
@@ -136,12 +131,11 @@
 	name = "\improper PPSh-17b drum magazine (7.62x25mm)"
 	desc = "The iconic PPSh-17b drum magazine. Carries double the amount of bullets than the stick version, but may cause handling and feeding issues. Your call which one's better."
 	icon_state = "ppsh17b_drum"
-	bonus_overlay = "ppsh17b_drum_overlay"
 	max_rounds = 71
 	w_class = SIZE_MEDIUM
 	bonus_mag_aim_slowdown = SLOWDOWN_ADS_QUICK_MINUS
 	bonus_mag_wield_delay = WIELD_DELAY_VERY_FAST
-	malfunction_chance_added = FIREARM_MALFUNCTION_CHANCE_MEDIUM
+	malfunction_chance_added = GUN_MALFUNCTION_CHANCE_MEDIUM
 	new_item_state = "ppsh17b_d"
 
 //-------------------------------------------------------
@@ -153,7 +147,6 @@
 	caliber = "7.62x25mm"
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/upp.dmi'
 	icon_state = "insasu_stickmag"
-	bonus_overlay = "insasu_stickmag_overlay"
 	max_rounds = 35
 	gun_type = /obj/item/weapon/gun/smg/pps43
 	default_ammo = /datum/ammo/bullet/smg/pps43
@@ -165,7 +158,6 @@
 	name = "\improper Type-19 drum magazine (7.62x25mm)"
 	desc = "A drum magazine for the Type-19 submachinegun."
 	icon_state = "insasu_drum"
-	bonus_overlay = "insasu_drum_overlay"
 	max_rounds = 71
 	w_class = SIZE_MEDIUM
 	bonus_mag_aim_slowdown = SLOWDOWN_ADS_QUICK_MINUS
@@ -197,7 +189,6 @@
 /obj/item/ammo_magazine/smg/mac15/extended
 	name = "\improper MAC-15 extended magazine (9mm)"
 	icon_state = "mac15_extended"
-	bonus_overlay = "mac15_ext"
 	max_rounds = 50
 
 //-------------------------------------------------------
@@ -216,9 +207,8 @@
 	name = "\improper UZI extended magazine (9x21mm)"
 	desc = "A slightly extended magazine for the UZI. Due to its size, it may or may not cause feeding errors."
 	icon_state = "uzi_extended"
-	bonus_overlay = "uzi_ext"
 	max_rounds = 32
-	malfunction_chance_added = FIREARM_MALFUNCTION_CHANCE_MEDIUM
+	malfunction_chance_added = GUN_MALFUNCTION_CHANCE_MEDIUM
 
 //-------------------------------------------------------
 //FP9000 //Based on the FN P90

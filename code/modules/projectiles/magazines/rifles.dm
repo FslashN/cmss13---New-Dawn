@@ -23,7 +23,6 @@
 	desc = "A 10mm assault extended rifle magazine."
 	icon_state = "m41a_extended"
 	max_rounds = 60
-	bonus_overlay = "m41a_ex"
 
 /obj/item/ammo_magazine/rifle/incendiary
 	name = "\improper M41A incendiary magazine (10x24mm)"
@@ -140,7 +139,6 @@
 	name = "\improper M4RA extended magazine (10x24mm)"
 	desc = "A magazine of armor-piercing 10x24mm rounds for use in the M4RA battle rifle. Holds an additional 10 rounds, up to 35."
 	icon_state = "m4ra_extended"
-	bonus_overlay = "m4ra_ex"
 	max_rounds = 35
 
 /obj/item/ammo_magazine/rifle/m4ra/rubber
@@ -203,7 +201,6 @@
 	name = "\improper MAR extended magazine (7.62x39mm)"
 	desc = "A 7.62x39mm MAR magazine, this one carries more rounds than the average magazine."
 	max_rounds = 60
-	bonus_overlay = "mar40_ex"
 	icon_state = "mar40_extended"
 
 /obj/item/ammo_magazine/rifle/mar40/lmg
@@ -317,7 +314,6 @@
 	desc = "A 10mm battle rifle magazine."
 	caliber = "10x24mm"
 	icon_state = "l42mk1"
-	bonus_overlay = "l42_mag_overlay"
 	default_ammo = /datum/ammo/bullet/rifle
 	max_rounds = 25
 	gun_type = /obj/item/weapon/gun/rifle/l42a
@@ -364,7 +360,6 @@
 	desc = "A 10mm battle rifle extended magazine."
 	caliber = "10x24mm"
 	icon_state = "l42mk1_extended"
-	bonus_overlay = "l42_ex_overlay"
 	default_ammo = /datum/ammo/bullet/rifle
 	max_rounds = 35
 	gun_type = /obj/item/weapon/gun/rifle/l42a
@@ -385,7 +380,6 @@
 	desc = "An ABR-40 magazine loaded with full metal jacket ammunition, for use at the firing range or while hunting. Theoretically cross-compatible with an L42A battle rifle."
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/colony.dmi'
 	icon_state = "abr40"
-	bonus_overlay = "abr40_mag_overlay"
 	max_rounds = 12
 	w_class = SIZE_SMALL
 	ammo_band_icon = "+abr40_band"
@@ -406,8 +400,7 @@
 	caliber = "10x24mm"
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/wy.dmi'
 	icon_state = "nsg23"
-	item_state = "nsg23"
-	bonus_overlay = "nsg23_mag_overlay" //needs to be an overlay, as the mag has a hole that would be filled over by the ext overlay
+	item_state = "nsg23" //needs to be an overlay, as the mag has a hole that would be filled over by the ext overlay
 	max_rounds = 30
 	gun_type = /obj/item/weapon/gun/rifle/nsg23
 	ammo_band_icon = "+nsg23_band"
@@ -418,7 +411,6 @@
 	desc = "An NSG 23 assault rifle magazine. This one contains 45 bullets."
 	icon_state = "nsg23_ext"
 	item_state = "nsg23_ext"
-	bonus_overlay = "nsg23_ext_overlay"
 	max_rounds = 45
 
 /obj/item/ammo_magazine/rifle/nsg23/ap

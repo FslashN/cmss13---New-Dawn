@@ -1,3 +1,6 @@
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[              GENERIC LEVER ACTION RIFLE            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 /*
 LEVER-ACTION RIFLES
 mostly a copypaste of shotgun code but not *entirely*
@@ -40,29 +43,31 @@ their unique feature is that a direct hit will buff your damage and firerate
 	var/buff_fire_reduc = 2
 	var/streak
 
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_1 + FIRE_DELAY_TIER_12
+	lever_delay = FIRE_DELAY_TIER_3
+
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
+	scatter = SCATTER_AMOUNT_TIER_8
+	burst_scatter_mult = SCATTER_AMOUNT_NONE
+	scatter_unwielded = SCATTER_AMOUNT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	recoil = RECOIL_AMOUNT_TIER_3
+	recoil_unwielded = RECOIL_AMOUNT_TIER_1
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/lever_action/initialize_gun_lists()
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19, "rail_x" = 11, "rail_y" = 21, "under_x" = 24, "under_y" = 16, "stock_x" = 15, "stock_y" = 11)
+
+	..()
+
 /obj/item/weapon/gun/lever_action/Initialize(mapload, spawn_empty)
 	. = ..()
 	if(current_mag)
 		replace_internal_mag(current_mag.current_rounds)
-
-/obj/item/weapon/gun/lever_action/get_additional_gun_examine_text(mob/user)
-	. = ..() + ( flags_gun_features & GUN_AMMO_COUNTER ? "The ammo counter readout shows [current_mag? (current_mag.current_rounds + (in_chamber? 1 : 0) ) : (in_chamber? 1 : 0) ] round\s remaining." : "")
-
-/obj/item/weapon/gun/lever_action/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_1 + FIRE_DELAY_TIER_12)
-	lever_delay = FIRE_DELAY_TIER_3
-	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
-	scatter = SCATTER_AMOUNT_TIER_8
-	burst_scatter_mult = 0
-	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-	recoil = RECOIL_AMOUNT_TIER_3
-	recoil_unwielded = RECOIL_AMOUNT_TIER_1
-
-/obj/item/weapon/gun/lever_action/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19, "rail_x" = 11, "rail_y" = 21, "under_x" = 24, "under_y" = 16, "stock_x" = 15, "stock_y" = 11)
 
 /obj/item/weapon/gun/lever_action/wield(mob/M)
 	. = ..()
@@ -90,7 +95,6 @@ their unique feature is that a direct hit will buff your damage and firerate
  //The other one
 /obj/item/weapon/gun/lever_action/ready_in_chamber()
 	return
-
 
 /obj/item/weapon/gun/lever_action/reload_into_chamber(mob/user)
 	if(!current_mag)
@@ -190,7 +194,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 	//these are init configs and so cannot be initial()
 	lever_delay = FIRE_DELAY_TIER_3
 	set_fire_delay(FIRE_DELAY_TIER_1)
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recalculate_attachment_bonuses() //stock wield delay
 	if(one_hand_lever)
 		addtimer(VARSET_CALLBACK(src, cur_onehand_chance, reset_onehand_chance), 4 SECONDS, TIMER_OVERRIDE|TIMER_UNIQUE)
@@ -301,7 +305,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 
 /obj/item/weapon/gun/lever_action/proc/retrieve_bullet(selection)
 	var/obj/item/ammo_magazine/handful/new_handful = new /obj/item/ammo_magazine/handful
-	new_handful.generate_handful(selection, default_caliber, 9, 1, /obj/item/weapon/gun/lever_action)
+	new_handful.generate_handful(selection, default_caliber, 1)
 	return new_handful
 
 /obj/item/weapon/gun/lever_action/proc/ready_lever_action_internal_mag()
@@ -314,9 +318,9 @@ their unique feature is that a direct hit will buff your damage and firerate
 		current_mag.chamber_position--
 		return in_chamber
 
-//=================================================================================
-
-//===================THE R4T===================\\
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                        R4T                         ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/lever_action/r4t
 	name = "R4T lever-action rifle"
@@ -324,32 +328,40 @@ their unique feature is that a direct hit will buff your damage and firerate
 	icon_state = "r4t"
 	item_state = "r4t"
 	flags_equip_slot = SLOT_BACK
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet/upp, // Barrel
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/reddot, // Rail
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/scope/mini,
-		/obj/item/attachable/gyro, // Under
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/magnetic_harness/lever_sling,
-		/obj/item/attachable/stock/r4t, // Stock
-		)
 	map_specific_decoration = TRUE
 	flags_gun_features = GUN_CAN_POINTBLANK
 	flags_gun_lever_action = MOVES_WHEN_LEVERING|DANGEROUS_TO_ONEHAND_LEVER|GUN_NO_SAFETY_SWITCH
 	civilian_usable_override = TRUE
 
-/obj/item/weapon/gun/lever_action/r4t/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19, "rail_x" = 11, "rail_y" = 21, "under_x" = 24, "under_y" = 16, "stock_x" = 15, "stock_y" = 14)
+/obj/item/weapon/gun/lever_action/r4t/initialize_gun_lists()
 
-//===================THE XM88===================\\
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet/upp, // Barrel
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/scope/mini,
+			/obj/item/attachable/gyro, // Under
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/magnetic_harness/lever_sling,
+			/obj/item/attachable/stock/r4t, // Stock
+			)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19, "rail_x" = 11, "rail_y" = 21, "under_x" = 24, "under_y" = 16, "stock_x" = 15, "stock_y" = 14)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                        XM88                        ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 #define FLOATING_PENETRATION_TIER_0 0
 #define FLOATING_PENETRATION_TIER_1 1
@@ -381,35 +393,44 @@ their unique feature is that a direct hit will buff your damage and firerate
 	hit_buff_reset_cooldown = 2 SECONDS //how much time after a direct hit until streaks reset
 	var/floating_penetration = FLOATING_PENETRATION_TIER_0 //holder var
 	var/floating_penetration_upper_limit = FLOATING_PENETRATION_TIER_4
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet/upp, // Barrel
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/suppressor,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/reddot, // Rail
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/scope/mini/xm88,
-		/obj/item/attachable/gyro, // Under
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/stock/xm88, // Stock
-		)
 
-/obj/item/weapon/gun/lever_action/xm88/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_2)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_2
 	lever_delay = FIRE_DELAY_TIER_3
+
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_8
-	burst_scatter_mult = 0
+	burst_scatter_mult = SCATTER_AMOUNT_NONE
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_3
 	recoil_unwielded = RECOIL_AMOUNT_TIER_1
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/lever_action/xm88/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet/upp, // Barrel
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/suppressor,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/scope/mini/xm88,
+			/obj/item/attachable/gyro, // Under
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/stock/xm88, // Stock
+			)
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 27, "muzzle_y" = 17, "rail_x" = 11, "rail_y" = 21, "under_x" = 22, "under_y" = 13, "stock_x" = 12, "stock_y" = 15)
+
+	..()
 
 /obj/item/weapon/gun/lever_action/xm88/wield(mob/user)
 	. = ..()
@@ -479,15 +500,12 @@ their unique feature is that a direct hit will buff your damage and firerate
 		else
 			return 'icons/effects/mouse_pointer/xm88/xm88-fired-0.dmi'
 
-/obj/item/weapon/gun/lever_action/xm88/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 27, "muzzle_y" = 17, "rail_x" = 11, "rail_y" = 21, "under_x" = 22, "under_y" = 13, "stock_x" = 12, "stock_y" = 15)
-
 /obj/item/weapon/gun/lever_action/xm88/apply_hit_buff()
 	lever_sound = lever_super_sound
 	lever_message = "<b><i>You quickly press the [lever_name]!<i><b>"
 	last_fired = world.time - buff_fire_reduc //to shoot the next round faster
 	set_fire_delay(FIRE_DELAY_TIER_3)
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_4
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
 
 	if(floating_penetration < floating_penetration_upper_limit)
 		floating_penetration++
@@ -539,7 +557,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 	//these are init configs and so cannot be initial()
 	set_fire_delay(FIRE_DELAY_TIER_1 + FIRE_DELAY_TIER_12)
 	lever_delay = FIRE_DELAY_TIER_3
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recalculate_attachment_bonuses() //stock wield delay
 	if(one_hand_lever)
 		addtimer(VARSET_CALLBACK(src, cur_onehand_chance, reset_onehand_chance), 4 SECONDS, TIMER_OVERRIDE|TIMER_UNIQUE)

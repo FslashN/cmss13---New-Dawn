@@ -1,4 +1,6 @@
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                OL'PAINLESS MINIGUN                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //This gun is very powerful, but also has a kick.
 
 /obj/item/weapon/gun/minigun
@@ -19,29 +21,22 @@
 	start_semiauto = FALSE
 	start_automatic = TRUE
 
-/obj/item/weapon/gun/minigun/Initialize(mapload, spawn_empty)
-	. = ..()
-	if(current_mag && current_mag.current_rounds > 0) load_into_chamber()
-
-/obj/item/weapon/gun/minigun/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
 
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
-
 	scatter = SCATTER_AMOUNT_TIER_9 // Most of the scatter should come from the recoil
-
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_buildup_limit = RECOIL_AMOUNT_TIER_3 / RECOIL_BUILDUP_VIEWPUNCH_MULTIPLIER
+	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/minigun/handle_starting_attachment()
+/obj/item/weapon/gun/minigun/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/magnetic_harness/hidden)
+
 	..()
-	//invisible mag harness
-	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
-	Integrated.vis_flags |= VIS_HIDE
-	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(Integrated)
 
 //Minigun UPP
 /obj/item/weapon/gun/minigun/upp
@@ -59,7 +54,10 @@
 		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
 		return FALSE
 
-//M60
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                    M60 MACHINE GUN                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/m60
 	name = "\improper M60 General Purpose Machine Gun"
 	desc = "The M60. The Pig. The Action Hero's wet dream. \n<b>Alt-click it to open the feed cover and allow for reloading.</b>"
@@ -69,47 +67,53 @@
 
 	fire_sound = 'sound/weapons/gun_m60.ogg'
 	cocked_sound = 'sound/weapons/gun_m60_cocked.ogg'
+	empty_sound = 'sound/weapons/gun_empty.ogg'
 	current_mag = /obj/item/ammo_magazine/m60
 	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	w_class = SIZE_LARGE
 	force = 25
 	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_CAN_POINTBLANK
 	gun_category = GUN_CATEGORY_HEAVY
-	attachable_allowed = list(
-		/obj/item/attachable/m60barrel,
-		/obj/item/attachable/bipod/m60,
-	)
-	starting_attachment_types = list(
-		/obj/item/attachable/m60barrel,
-		/obj/item/attachable/bipod/m60,
-	)
 	start_semiauto = FALSE
 	start_automatic = TRUE
 	var/cover_open = FALSE //if the gun's feed-cover is open or not.
 
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
+	burst_amount = BURST_AMOUNT_TIER_5
+	burst_delay = FIRE_DELAY_TIER_12
 
-/obj/item/weapon/gun/m60/Initialize(mapload, spawn_empty)
-	. = ..()
-	if(current_mag && current_mag.current_rounds > 0)
-		load_into_chamber()
-
-/obj/item/weapon/gun/m60/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 34, "muzzle_y" = 16,"rail_x" = 0, "rail_y" = 0, "under_x" = 39, "under_y" = 7, "stock_x" = 0, "stock_y" = 0)
-
-
-/obj/item/weapon/gun/m60/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_12)
-	set_burst_amount(BURST_AMOUNT_TIER_5)
-	set_burst_delay(FIRE_DELAY_TIER_12)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_10
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_8
 	scatter_unwielded = SCATTER_AMOUNT_TIER_10
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
-	empty_sound = 'sound/weapons/gun_empty.ogg'
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/m60/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/barrel/m60,
+			/obj/item/attachable/bipod/m60,
+		)
+	if(!starting_attachment_types)
+		starting_attachment_types = list(
+		/obj/item/attachable/barrel/m60,
+		/obj/item/attachable/bipod/m60,
+	)
+
+	if(!attachable_offset)
+		attachable_offset = list("barrel_x" = 34, "barrel_y" = 16,"rail_x" = 0, "rail_y" = 0, "under_x" = 39, "under_y" = 7, "stock_x" = 0, "stock_y" = 0)
+
+	..()
+
+/obj/item/weapon/gun/m60/Initialize(mapload, spawn_empty)
+	. = ..()
+	if(current_mag && current_mag.current_rounds > 0)
+		load_into_chamber()
 
 /obj/item/weapon/gun/m60/clicked(mob/user, list/mods)
 	if(!mods["alt"] || !CAN_PICKUP(user, src))
@@ -157,6 +161,9 @@
 		to_chat(user, SPAN_WARNING("You can't fire [src] with the feed cover open! <b>(alt-click to close)</b>"))
 		return FALSE
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                 PKP/QYJ-72 MACHINE GUN             ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/pkp
 	name = "\improper QYJ-72 General Purpose Machine Gun"
@@ -167,6 +174,7 @@
 
 	fire_sound = 'sound/weapons/gun_mg.ogg'
 	cocked_sound = 'sound/weapons/gun_m60_cocked.ogg'
+	empty_sound = 'sound/weapons/gun_empty.ogg'
 	current_mag = /obj/item/ammo_magazine/pkp
 	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	w_class = SIZE_LARGE
@@ -175,42 +183,12 @@
 	start_automatic = TRUE
 	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_CAN_POINTBLANK|GUN_SPECIALIST|GUN_AMMO_COUNTER
 	gun_category = GUN_CATEGORY_HEAVY
-	attachable_allowed = list(
-		/obj/item/attachable/pkpbarrel,
-		/obj/item/attachable/stock/pkpstock,
-	)
 	var/cover_open = FALSE //if the gun's feed-cover is open or not.
 
-
-/obj/item/weapon/gun/pkp/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/attachie = new /obj/item/attachable/pkpbarrel(src)
-	attachie.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(attachie)
-
-	var/obj/item/attachable/pkpstock = new /obj/item/attachable/stock/pkpstock(src)
-	pkpstock.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(pkpstock)
-
-	//invisible mag harness
-	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
-	Integrated.vis_flags |= VIS_HIDE
-	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(Integrated)
-
-/obj/item/weapon/gun/pkp/Initialize(mapload, spawn_empty)
-	. = ..()
-	if(current_mag && current_mag.current_rounds > 0)
-		load_into_chamber()
-
-/obj/item/weapon/gun/pkp/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 34, "muzzle_y" = 18,"rail_x" = 5, "rail_y" = 5, "under_x" = 39, "under_y" = 7, "stock_x" = 10, "stock_y" = 13)
-
-
-/obj/item/weapon/gun/pkp/set_gun_config_values()
-	..()
+	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_10
 	burst_amount = BURST_AMOUNT_TIER_6
+
 	burst_delay = FIRE_DELAY_TIER_9
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT
@@ -218,9 +196,33 @@
 	scatter = SCATTER_AMOUNT_TIER_10
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_8
 	scatter_unwielded = SCATTER_AMOUNT_TIER_10
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
-	empty_sound = 'sound/weapons/gun_empty.ogg'
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/pkp/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/barrel/pkp,
+			/obj/item/attachable/magnetic_harness/hidden,
+			/obj/item/attachable/stock/pkp,
+		)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/barrel/pkp,
+			/obj/item/attachable/stock/pkp,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("barrel_x" = 34, "barrel_y" = 18,"rail_x" = 5, "rail_y" = 5, "under_x" = 39, "under_y" = 7, "stock_x" = 10, "stock_y" = 13)
+
+	..()
+
+/obj/item/weapon/gun/pkp/Initialize(mapload, spawn_empty)
+	. = ..()
+	if(current_mag && current_mag.current_rounds > 0)
+		load_into_chamber()
 
 /obj/item/weapon/gun/pkp/clicked(mob/user, list/mods)
 	if(!mods["alt"] || !CAN_PICKUP(user, src))
@@ -274,7 +276,6 @@
 		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
 		return FALSE
 
-
 /obj/effect/syringe_gun_dummy
 	name = ""
 	desc = ""
@@ -287,9 +288,10 @@
 	create_reagents(15)
 	. = ..()
 
-////////////////////////////////////////////////////////////////////////////////////////
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                     TECH RAILGUN                   ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
-//Sigh. Why is this in here.
 /obj/item/weapon/gun/rifle/techweb_railgun
 	name = "\improper Railgun"
 	desc = "A poggers hellbliterator"
@@ -297,19 +299,38 @@
 	item_state = "m42a"
 	unacidable = TRUE
 	indestructible = 1
-
 	fire_sound = 'sound/weapons/gun_sniper.ogg'
 	current_mag = /obj/item/ammo_magazine/techweb_railgun
-	force = 12
-	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
 	zoomdevicename = "scope"
-	attachable_allowed = list()
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH
 	map_specific_decoration = TRUE
-	actions_types = list(/datum/action/item_action/techweb_railgun_start_charge, /datum/action/item_action/techweb_railgun_abort_charge)
-
 	// Hellpullverizer ready or not??
 	var/charged = FALSE
+
+	//=========// GUN STATS //==========//
+	force = 12
+	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
+	fire_delay = FIRE_DELAY_TIER_6*5
+	burst_amount = BURST_AMOUNT_TIER_1
+
+	accuracy_mult = BASE_ACCURACY_MULT * 3 //you HAVE to be able to hit
+	scatter = SCATTER_AMOUNT_TIER_8
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	recoil = RECOIL_AMOUNT_TIER_5
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/rifle/techweb_railgun/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/scope/hidden)
+
+	if(!attachable_allowed)
+		attachable_allowed = list()
+
+	if(!actions_types)
+		actions_types = list(/datum/action/item_action/techweb_railgun_start_charge, /datum/action/item_action/techweb_railgun_abort_charge)
+
+	..()
 
 /obj/item/weapon/gun/rifle/techweb_railgun/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
@@ -317,7 +338,7 @@
 	))
 
 /obj/item/weapon/gun/rifle/techweb_railgun/check_additional_able_to_fire()
-	return charged
+	return charged //??
 
 /obj/item/weapon/gun/rifle/techweb_railgun/proc/start_charging(user)
 	if (charged)
@@ -346,22 +367,6 @@
 	if (user)
 		to_chat(user, SPAN_WARNING("You depower your railgun to store it."))
 	return
-
-/obj/item/weapon/gun/rifle/techweb_railgun/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/scope/S = new(src)
-	S.vis_flags |= VIS_HIDE
-	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(S)
-
-/obj/item/weapon/gun/rifle/techweb_railgun/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6*5)
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	accuracy_mult = BASE_ACCURACY_MULT * 3 //you HAVE to be able to hit
-	scatter = SCATTER_AMOUNT_TIER_8
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-	recoil = RECOIL_AMOUNT_TIER_5
 
 /obj/item/weapon/gun/rifle/techweb_railgun/unique_action(mob/user)
 	if (in_chamber)

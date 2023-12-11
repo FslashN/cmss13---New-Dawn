@@ -1,6 +1,7 @@
-//---------------------------------------------------
-
-//Revolvers generally don't (and should not) have ammo counters, but the functionality works.
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                   GENERIC REVOLVER                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Revolvers generally don't (and should not) have ammo counters, but the functionality works. Revolvers by and large don't have safeties.
 
 //Generic parent object.
 /obj/item/weapon/gun/revolver
@@ -20,7 +21,7 @@
 	var/recent_trick //So they're not spamming tricks.
 	var/list/cylinder_click = list('sound/weapons/gun_empty.ogg')
 	var/russian_roulette = FALSE //God help you if you do this.
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH //Revolvers by and large don't have safeties.
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES|GUN_ACCEPTS_HANDFUL|GUN_ACCEPTS_SPEEDLOADER
 	gun_category = GUN_CATEGORY_HANDGUN
 	wield_delay = WIELD_DELAY_VERY_FAST //If you modify your revolver to be two-handed, it will still be fast to aim
@@ -30,21 +31,22 @@
 	current_mag = /obj/item/ammo_magazine/internal/revolver
 	projectile_casing = PROJECTILE_CASING_BULLET
 
-/obj/item/weapon/gun/revolver/Initialize(mapload, spawn_empty)
-	. = ..()
-	populate_internal_magazine(current_mag.current_rounds)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_5
 
-/obj/item/weapon/gun/revolver/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_5)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_3
 	scatter = SCATTER_AMOUNT_TIER_8
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
-	movement_onehanded_acc_penalty_mult = 3
+	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_3
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/revolver/Initialize(mapload, spawn_empty)
+	. = ..()
+	populate_internal_magazine(current_mag.current_rounds)
 
 /obj/item/weapon/gun/revolver/get_additional_gun_examine_text(mob/user)
 	. = ..() + ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "The cylinder is open with [current_mag.current_rounds] round\s loaded." : "The cylinder is closed." )
@@ -135,7 +137,7 @@
 
 			for(var/i in ammo_available)
 				to_chat(user, SPAN_WARNING("Sending [ammo_available[i]] rounds of [i]"))
-				current_mag.create_handful(user, ammo_available[i], null, i)
+				current_mag.create_handful(user, null, ammo_available[i], i)
 
 /obj/item/weapon/gun/revolver/check_additional_able_to_fire(mob/user)
 	. = ..()
@@ -276,8 +278,9 @@
 		return FALSE
 
 
-//-------------------------------------------------------
-//M44 Revolver
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                  M44 COMBAT REVOLVER               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/revolver/m44
 	name = "\improper M44 combat revolver"
@@ -287,34 +290,42 @@
 	item_state = "m44r"
 	current_mag = /obj/item/ammo_magazine/internal/revolver/m44
 	force = 8
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/stock/revolver,
-		/obj/item/attachable/scope,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/scope/mini,
-		/obj/item/attachable/scope/mini_iff,
-	)
 	var/folded = FALSE // Used for the stock attachment, to check if we can shoot or not
 
-/obj/item/weapon/gun/revolver/m44/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 21,"rail_x" = 12, "rail_y" = 23, "under_x" = 21, "under_y" = 18, "stock_x" = 16, "stock_y" = 20)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_7
 
-/obj/item/weapon/gun/revolver/m44/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_7)
 	accuracy_mult = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_8
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
+	//=========// GUN STATS //==========//
+
+
+/obj/item/weapon/gun/revolver/m44/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/stock/revolver,
+			/obj/item/attachable/scope,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/scope/mini,
+			/obj/item/attachable/scope/mini_iff,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 21,"rail_x" = 12, "rail_y" = 23, "under_x" = 21, "under_y" = 18, "stock_x" = 16, "stock_y" = 20)
+
+	..()
 
 /obj/item/weapon/gun/revolver/m44/check_additional_able_to_fire(mob/user)
 	. = ..()
@@ -333,15 +344,17 @@
 	icon_state = "m44rc"
 	item_state = "m44rc"
 
-//----------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[             M2019 BLASTER / PKD SPECIAL            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 // Blade Runner Blasters.
+
 /obj/item/weapon/gun/revolver/m44/custom/pkd_special
 	name = "\improper M2019 Blaster"
 	desc = "Properly known as the Pflager Katsumata Series-D Blaster, the M2019 is a relic of a handgun used by detectives and blade runners, having replaced the snub nose .38 detective special in 2019. Fires .44 custom packed sabot magnum rounds. Legally a revolver, the unconventional but robust internal design has made this model incredibly popular amongst collectors and enthusiasts."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "lapd_2019"
 	item_state = "highpower" //placeholder
-
 	fire_sound = "gun_pkd"
 	fire_rattle = 'sound/weapons/gun_pkd_fire01_rattle.ogg'
 	reload_sound = 'sound/weapons/handling/pkd_speed_load.ogg'
@@ -350,23 +363,26 @@
 	chamber_close_sound = 'sound/weapons/handling/pkd_close_chamber.ogg'
 	hand_reload_sound = 'sound/weapons/gun_revolver_load3.ogg'
 	current_mag = /obj/item/ammo_magazine/internal/revolver/m44/pkd
-	accepted_ammo = list(
-		/obj/item/ammo_magazine/internal/revolver/m44/pkd,
-	)
 
-	attachable_allowed = list(
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/lasersight,
-	)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/revolver/m44/custom/pkd_special/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
-
-/obj/item/weapon/gun/revolver/m44/custom/pkd_special/set_gun_config_values()
-	..()
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_2
-	set_fire_delay(FIRE_DELAY_TIER_11)
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/revolver/m44/custom/pkd_special/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/lasersight,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+
+	..()
 
 /obj/item/weapon/gun/revolver/m44/custom/pkd_special/k2049
 	name = "\improper M2049 Blaster"
@@ -374,18 +390,23 @@
 	icon_state = "lapd_2049"
 	item_state = "m4a3c" //placeholder
 
-	attachable_allowed = list(
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/scope,
-		/obj/item/attachable/scope/mini,
-		/obj/item/attachable/scope/mini_iff,
-	)
+/obj/item/weapon/gun/revolver/m44/custom/pkd_special/k2049/initialize_gun_lists()
 
-/obj/item/weapon/gun/revolver/m44/custom/pkd_special/k2049/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/scope,
+			/obj/item/attachable/scope/mini,
+			/obj/item/attachable/scope/mini_iff,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+
+	..()
 
 /obj/item/weapon/gun/revolver/m44/custom/pkd_special/l_series
 	name = "\improper PKL 'Double' Blaster"
@@ -393,22 +414,31 @@
 	icon_state = "pkd_double"
 	item_state = "88m4" //placeholder
 
-	attachable_allowed = list(
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/lasersight,
-	)
+	//=========// GUN STATS //==========//
+	burst_amount = BURST_AMOUNT_TIER_2
+	burst_delay = FIRE_DELAY_TIER_12
 
-/obj/item/weapon/gun/revolver/m44/custom/pkd_special/l_series/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
-
-/obj/item/weapon/gun/revolver/m44/custom/pkd_special/set_gun_config_values()
-	..()
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_2
-	set_fire_delay(FIRE_DELAY_TIER_11)
-	set_burst_amount(BURST_AMOUNT_TIER_2)
-	set_burst_delay(FIRE_DELAY_TIER_12)
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_2
+	fire_delay = FIRE_DELAY_TIER_11
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/revolver/m44/custom/pkd_special/l_series/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/lasersight,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[             WEBLEY MK VI SERVICE PISTOL            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/revolver/m44/custom/webley //Van Bandolier's Webley.
 	name = "\improper Webley Mk VI service pistol"
@@ -417,18 +447,25 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "webley"
 	item_state = "m44r"
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/upp,
-	)
 
-/obj/item/weapon/gun/revolver/m44/custom/webley/set_gun_config_values()
-	..()
+	//=========// GUN STATS //==========//
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_2
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/revolver/m44/custom/webley/initialize_gun_lists()
 
-//-------------------------------------------------------
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/upp,
+		)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[             RUSSIAN REVOLVER / ZHNK-72             ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //RUSSIAN REVOLVER //Based on the 7.62mm Russian revolvers.
 
 /obj/item/weapon/gun/revolver/upp
@@ -447,40 +484,49 @@
 	hand_reload_sound = 'sound/weapons/gun_revolver_load3.ogg'
 	current_mag = /obj/item/ammo_magazine/internal/revolver/upp
 	force = 8
-	attachable_allowed = list(
-		/obj/item/attachable/reddot, // Rail
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/scope,
-		/obj/item/attachable/scope/mini,
-		/obj/item/attachable/bayonet, // Muzzle
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/lasersight, // Underbarrel
-		)
 
-/obj/item/weapon/gun/revolver/upp/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 21,"rail_x" = 14, "rail_y" = 23, "under_x" = 19, "under_y" = 17, "stock_x" = 24, "stock_y" = 19)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_9
 
-/obj/item/weapon/gun/revolver/upp/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_9)
 	accuracy_mult = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_4
-	recoil = 0
-	recoil_unwielded = 0
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
+	recoil = RECOIL_OFF
+	recoil_unwielded = RECOIL_OFF
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/revolver/upp/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/scope,
+			/obj/item/attachable/scope/mini,
+			/obj/item/attachable/bayonet, // Muzzle
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/lasersight, // Underbarrel
+			)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 21,"rail_x" = 14, "rail_y" = 23, "under_x" = 19, "under_y" = 17, "stock_x" = 24, "stock_y" = 19)
+
+	..()
 
 /obj/item/weapon/gun/revolver/upp/shrapnel
 	current_mag = /obj/item/ammo_magazine/internal/revolver/upp/shrapnel
-	random_spawn_chance = 100
-	random_under_chance = 100
-	random_spawn_under = list(
-		/obj/item/attachable/lasersight,
-	)
 
-//-------------------------------------------------------
+/obj/item/weapon/gun/revolver/upp/shrapnel/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types =list(/obj/item/attachable/lasersight)
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[         S&W .38 MODEL 37 / TRICK REVOLVER          ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //357 REVOLVER //Based on the generic S&W 357.
 //a lean mean machine, pretty inaccurate unless you play its dance.
 
@@ -495,18 +541,23 @@
 	force = 6
 	flags_gun_features = GUN_ANTIQUE|GUN_ONE_HAND_WIELDED|GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
 
-/obj/item/weapon/gun/revolver/small/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 19,"rail_x" = 12, "rail_y" = 21, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_6
 
-/obj/item/weapon/gun/revolver/small/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6)
 	accuracy_mult = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_7
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_7
 	scatter = SCATTER_AMOUNT_TIER_5
-	damage_mult = BASE_BULLET_DAMAGE_MULT * 2
-	recoil = 0
-	recoil_unwielded = 0
+	damage_mult = BULLET_DAMAGE_MULT_BASE * 2
+	recoil = RECOIL_OFF
+	recoil_unwielded = RECOIL_OFF
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/revolver/small/initialize_gun_lists()
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 19,"rail_x" = 12, "rail_y" = 21, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
+
+	..()
 
 /obj/item/weapon/gun/revolver/small/unique_action(mob/user)
 	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
@@ -521,7 +572,9 @@
 			accuracy_mult_unwielded = BASE_ACCURACY_MULT * 2
 			addtimer(CALLBACK(src, PROC_REF(recalculate_attachment_bonuses)), 2 SECONDS)
 
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[          MATEBA AUTOREVOLVER AND VARIANTS          ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //BURST REVOLVER //Mateba is pretty well known. The cylinder folds up instead of to the side. <----- This is the 2006M.
 //TODO: Revise. There appears to be some confusion here. The sprite looks more like the Sei Unica auto-revolver, but the function is more like
 //the 2006M. The difference is that the 2006M is more like a traditional revolver but has an non-standard barrel position, and the cylinder is
@@ -548,36 +601,60 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "mateba"
 	item_state = "mateba"
-
 	fire_sound = 'sound/weapons/gun_mateba.ogg'
 	current_mag = /obj/item/ammo_magazine/internal/revolver/mateba
 	force = 15
-	attachable_allowed = list(
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/mateba,
-		/obj/item/attachable/mateba/long,
-		/obj/item/attachable/mateba/short,
-	)
-	starting_attachment_types = list(/obj/item/attachable/mateba)
-
 	black_market_value = 100
 	var/is_locked = TRUE
 	var/can_change_barrel = TRUE
 
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_3
+	burst_amount = BURST_AMOUNT_TIER_3
+	burst_delay = FIRE_DELAY_TIER_8
+
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_2
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_5
+	scatter = SCATTER_AMOUNT_TIER_7
+	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
+	scatter_unwielded = SCATTER_AMOUNT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_10
+	recoil = RECOIL_AMOUNT_TIER_2
+	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/revolver/mateba/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/barrel/mateba,
+			/obj/item/attachable/barrel/mateba/long,
+			/obj/item/attachable/barrel/mateba/short,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 25, "muzzle_y" = 20,"rail_x" = 11, "rail_y" = 24, "under_x" = 19, "under_y" = 17, "stock_x" = 19, "stock_y" = 17, "barrel_x" = 23, "barrel_y" = 22)
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/barrel/mateba)
+
+	..()
+
 /obj/item/weapon/gun/revolver/mateba/can_attach_to_gun(mob/user, obj/item/attachable/attachment)
 	. = ..()
-	if(attachment.slot == "muzzle" && !attachments["special"])
+	if(attachment.slot == ATTACHMENT_SLOT_MUZZLE && !attachments[ATTACHMENT_SLOT_BARREL])
 		to_chat(user, SPAN_WARNING("You need to attach a barrel first!"))
 		return FALSE
 
 /obj/item/weapon/gun/revolver/mateba/attackby(obj/item/I, mob/user)
 	if(istype(I, /obj/item/weapon/mateba_key) && can_change_barrel)
-		if(attachments["special"])
-			var/obj/item/attachable/R = attachments["special"]
+		if(attachments[ATTACHMENT_SLOT_BARREL])
+			var/obj/item/attachable/R = attachments[ATTACHMENT_SLOT_BARREL]
 			visible_message(SPAN_NOTICE("[user] begins stripping [R] from [src]."),
 			SPAN_NOTICE("You begin stripping [R] from [src]."), null, 4)
 
@@ -590,29 +667,11 @@
 			visible_message(SPAN_NOTICE("[user] unlocks and removes [R] from [src]."),
 			SPAN_NOTICE("You unlock and remove [R] from [src]."), null, 4)
 			Detach(R, user)
-			if(attachments["muzzle"])
-				Detach(attachments["muzzle"], user)
+			if(attachments[ATTACHMENT_SLOT_MUZZLE]) //Also detaches anything on the muzzle.
+				Detach(attachments[ATTACHMENT_SLOT_MUZZLE], user)
 			playsound(src, 'sound/handling/attachment_remove.ogg', 15, 1, 4)
 
 	. = ..()
-
-
-/obj/item/weapon/gun/revolver/mateba/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 25, "muzzle_y" = 20,"rail_x" = 11, "rail_y" = 24, "under_x" = 19, "under_y" = 17, "stock_x" = 19, "stock_y" = 17, "special_x" = 23, "special_y" = 22)
-
-/obj/item/weapon/gun/revolver/mateba/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_3)
-	set_burst_amount(BURST_AMOUNT_TIER_3)
-	set_burst_delay(FIRE_DELAY_TIER_8)
-	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_2
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_5
-	scatter = SCATTER_AMOUNT_TIER_7
-	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
-	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_10
-	recoil = RECOIL_AMOUNT_TIER_2
-	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 
 /obj/item/weapon/gun/revolver/mateba/pmc
 	current_mag = /obj/item/ammo_magazine/internal/revolver/mateba/ap
@@ -629,17 +688,18 @@
 		/obj/item/attachable/flashlight,
 		/obj/item/attachable/heavy_barrel,
 		/obj/item/attachable/compensator,
-		/obj/item/attachable/mateba/dark,
-		/obj/item/attachable/mateba/long/dark,
-		/obj/item/attachable/mateba/short/dark,
+		/obj/item/attachable/barrel/mateba/dark,
+		/obj/item/attachable/barrel/mateba/long/dark,
+		/obj/item/attachable/barrel/mateba/short/dark,
 	)
-	starting_attachment_types = null
 
-/obj/item/weapon/gun/revolver/mateba/general/handle_starting_attachment()
+/obj/item/weapon/gun/revolver/mateba/general/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/barrel/mateba/long/dark)
+
 	..()
-	var/obj/item/attachable/mateba/long/dark/barrel = new(src)
-	barrel.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(barrel)
+
 /obj/item/weapon/gun/revolver/mateba/general/santa
 	name = "\improper Festeba"
 	desc = "The Mateba used by SANTA himself. Rumoured to be loaded with explosive ammunition."
@@ -649,7 +709,13 @@
 	color = "#FF0000"
 	fire_sound = null
 	fire_sound = list('sound/voice/alien_queen_xmas.ogg', 'sound/voice/alien_queen_xmas_2.ogg')
-	starting_attachment_types = list(/obj/item/attachable/heavy_barrel)
+
+/obj/item/weapon/gun/revolver/mateba/general/santa/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/barrel/mateba/long/dark, /obj/item/attachable/heavy_barrel)
+
+	..()
 
 /obj/item/weapon/gun/revolver/mateba/engraved
 	name = "\improper engraved Mateba autorevolver"
@@ -672,24 +738,34 @@
 	icon_state = "cmateba_special"
 	item_state = "cmateba_special"
 	current_mag = /obj/item/ammo_magazine/internal/revolver/mateba/impact
-	attachable_allowed = list(
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/compensator,
-	)
-	starting_attachment_types = list()
 	can_change_barrel = FALSE
 
-/obj/item/weapon/gun/revolver/mateba/special/set_gun_config_values()
-	..()
+	//=========// GUN STATS //==========//
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
+	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/revolver/mateba/special/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 23,"rail_x" = 9, "rail_y" = 24, "under_x" = 19, "under_y" = 17, "stock_x" = 19, "stock_y" = 17, "special_x" = 23, "special_y" = 22)
+/obj/item/weapon/gun/revolver/mateba/special/initialize_gun_lists()
 
-//-------------------------------------------------------
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/compensator,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 23,"rail_x" = 9, "rail_y" = 24, "under_x" = 19, "under_y" = 17, "stock_x" = 19, "stock_y" = 17, "barrel_x" = 23, "barrel_y" = 22)
+
+	..()
+
+	if(!starting_attachment_types) //Barrel is included in the sprite.
+		starting_attachment_types = list()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[   CMB SPEARHEAD AUTOREVOLVER / MARSHALL REVOLVER   ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //MARSHALS REVOLVER //Spearhead exists in Alien cannon.
 
 /obj/item/weapon/gun/revolver/cmb
@@ -702,20 +778,41 @@
 	fire_sound = list('sound/weapons/gun_cmb_1.ogg', 'sound/weapons/gun_cmb_2.ogg')
 	fire_rattle = 'sound/weapons/gun_cmb_rattle.ogg'
 	cylinder_click = list('sound/weapons/handling/gun_cmb_click1.ogg', 'sound/weapons/handling/gun_cmb_click2.ogg')
-	current_mag = /obj/item/ammo_magazine/internal/revolver/cmb/hollowpoint
 	force = 12
-	attachable_allowed = list(
-		/obj/item/attachable/suppressor, // Muzzle
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/reddot, // Rail
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/scope/mini,
-		/obj/item/attachable/gyro, // Under
-		/obj/item/attachable/lasersight,
-	)
+	current_mag = /obj/item/ammo_magazine/internal/revolver/cmb/hollowpoint
+
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_6
+
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_4
+	scatter = SCATTER_AMOUNT_TIER_7
+	scatter_unwielded = SCATTER_AMOUNT_TIER_5
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_3
+	recoil = RECOIL_AMOUNT_TIER_5
+	recoil_unwielded = RECOIL_AMOUNT_TIER_3
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/revolver/cmb/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/suppressor, // Muzzle
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/scope/mini,
+			/obj/item/attachable/gyro, // Under
+			/obj/item/attachable/lasersight,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+
+	..()
 
 /obj/item/weapon/gun/revolver/cmb/click_empty(mob/user)
 	if(user)
@@ -727,20 +824,6 @@
 /obj/item/weapon/gun/revolver/cmb/Fire(atom/target, mob/living/user, params, reflex = 0, dual_wield)
 	playsound('sound/weapons/gun_cmb_bass.ogg') // badass shooting bass
 	return ..()
-
-/obj/item/weapon/gun/revolver/cmb/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
-
-/obj/item/weapon/gun/revolver/cmb/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6)
-	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_4
-	scatter = SCATTER_AMOUNT_TIER_7
-	scatter_unwielded = SCATTER_AMOUNT_TIER_5
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_3
-	recoil = RECOIL_AMOUNT_TIER_5
-	recoil_unwielded = RECOIL_AMOUNT_TIER_3
 
 /obj/item/weapon/gun/revolver/cmb/normalpoint
 	current_mag = /obj/item/ammo_magazine/internal/revolver/cmb

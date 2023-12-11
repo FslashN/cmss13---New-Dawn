@@ -16,8 +16,6 @@ Similar to shotguns.dm but not exactly.
 	w_class = SIZE_LARGE
 	flags_magazine = AMMUNITION_REFILLABLE|AMMUNITION_HANDFUL_BOX
 	handful_state = "lever_action_bullet"
-	transfer_handful_amount = 9
-
 
 /obj/item/ammo_magazine/lever_action/training
 	name = "box of 45-70 blanks"
@@ -88,7 +86,6 @@ Handfuls of lever_action rounds. For spawning directly on mobs in roundstart, ER
 	current_rounds = 9
 	gun_type = /obj/item/weapon/gun/lever_action
 	handful_state = "lever_action_bullet"
-	transfer_handful_amount = 9
 
 /obj/item/ammo_magazine/handful/lever_action/training
 	name = "handful of blanks (45-70)"

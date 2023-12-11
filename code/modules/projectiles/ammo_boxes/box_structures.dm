@@ -120,7 +120,7 @@
 		else
 			var/obj/item/ammo_magazine/AM = locate(/obj/item/ammo_magazine) in item_box.contents
 			if(AM)
-				AM.create_handful(user, AM.transfer_handful_amount, src)
+				AM.create_handful(user)
 		update_icon()
 	else
 		to_chat(user, SPAN_NOTICE("\The [src] is empty."))

@@ -1,7 +1,8 @@
-//-------------------------------------------------------
-//SMARTGUN
-
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                     M56B SMARTGUN                  ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Come get some.
+
 /obj/item/weapon/gun/smartgun
 	name = "\improper M56B smartgun"
 	desc = "The actual firearm in the 4-piece M56B Smartgun System. Essentially a heavy, mobile machinegun.\nYou may toggle firing restrictions by using a special action.\nAlt-click it to open the feed cover and allow for reloading."
@@ -16,9 +17,12 @@
 	flags_equip_slot = NO_FLAGS
 	flags_gun_toggles = GUN_IFF_SYSTEM_ON
 	w_class = SIZE_HUGE
-	force = 20
-	wield_delay = WIELD_DELAY_FAST
-	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
+	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
+	gun_category = GUN_CATEGORY_HEAVY
+	auto_retrieval_slot = WEAR_J_STORE
+	start_semiauto = FALSE
+	start_automatic = TRUE
+
 	var/obj/item/smartgun_battery/battery = null
 	/// Whether the smartgun drains the battery (Ignored if requires_battery is false)
 	var/requires_power = TRUE
@@ -26,17 +30,10 @@
 	var/requires_battery = TRUE
 	/// Whether the smartgun requires a harness to use
 	var/requires_harness = TRUE
-	actions_types = list(
-		/datum/action/item_action/smartgun/toggle_accuracy_improvement,
-		/datum/action/item_action/smartgun/toggle_ammo_type,
-		/datum/action/item_action/smartgun/toggle_auto_fire,
-		/datum/action/item_action/smartgun/toggle_lethal_mode,
-		/datum/action/item_action/smartgun/toggle_motion_detector,
-		/datum/action/item_action/smartgun/toggle_recoil_compensation,
-	)
-	var/datum/ammo/ammo_primary = /datum/ammo/bullet/smartgun //Toggled ammo type
-	var/datum/ammo/ammo_secondary = /datum/ammo/bullet/smartgun/armor_piercing //Toggled ammo type
-
+	//Toggled ammo type 1
+	var/datum/ammo/ammo_primary = /datum/ammo/bullet/smartgun
+	//Toggled ammo type 2
+	var/datum/ammo/ammo_secondary = /datum/ammo/bullet/smartgun/armor_piercing
 	var/drain = 11
 	var/range = 7
 	var/angle = 2
@@ -46,18 +43,46 @@
 	var/recycletime = 120
 	var/cover_open = FALSE
 
-	attachable_allowed = list(
-		/obj/item/attachable/smartbarrel,
-		/obj/item/attachable/flashlight,
-	)
+	//=========// GUN STATS //==========//
+	force = 20
+	fire_delay = FIRE_DELAY_TIER_SG
 
-	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
-	gun_category = GUN_CATEGORY_HEAVY
-	starting_attachment_types = list(/obj/item/attachable/smartbarrel)
-	auto_retrieval_slot = WEAR_J_STORE
-	start_semiauto = FALSE
-	start_automatic = TRUE
+	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_TIER_8
+	fa_max_scatter = SCATTER_AMOUNT_TIER_9
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_1
+	scatter = SCATTER_AMOUNT_TIER_6
+	recoil = RECOIL_AMOUNT_TIER_3
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 
+	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
+	wield_delay = WIELD_DELAY_FAST
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/smartgun/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/barrel/m56)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/barrel/m56,
+			/obj/item/attachable/flashlight,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("barrel_x" = 33, "barrel_y" = 16, "rail_x" = 17, "rail_y" = 18, "under_x" = 22, "under_y" = 14, "stock_x" = 22, "stock_y" = 14)
+
+	if(!actions_types)
+		actions_types = list(
+			/datum/action/item_action/smartgun/toggle_accuracy_improvement,
+			/datum/action/item_action/smartgun/toggle_ammo_type,
+			/datum/action/item_action/smartgun/toggle_auto_fire,
+			/datum/action/item_action/smartgun/toggle_lethal_mode,
+			/datum/action/item_action/smartgun/toggle_motion_detector,
+			/datum/action/item_action/smartgun/toggle_recoil_compensation,
+		)
+
+	..()
 
 /obj/item/weapon/gun/smartgun/Initialize(mapload, ...)
 	. = ..()
@@ -74,25 +99,14 @@
 	QDEL_NULL(battery)
 	. = ..()
 
-/obj/item/weapon/gun/smartgun/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 16,"rail_x" = 17, "rail_y" = 18, "under_x" = 22, "under_y" = 14, "stock_x" = 22, "stock_y" = 14)
-
-/obj/item/weapon/gun/smartgun/set_gun_config_values()
+//Reset to initial, then add these values if set.
+/obj/item/weapon/gun/smartgun/reset_gun_stat_values()
 	..()
-	set_fire_delay(FIRE_DELAY_TIER_SG)
-	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_TIER_8
-	fa_max_scatter = SCATTER_AMOUNT_TIER_9
 	if(flags_gun_toggles & GUN_ACCURACY_ASSIST_ON)
-		accuracy_mult += HIT_ACCURACY_MULT_TIER_3
-	else
-		accuracy_mult += HIT_ACCURACY_MULT_TIER_1
+		accuracy_mult += HIT_ACCURACY_MULT_TIER_2
 	if(flags_gun_toggles & GUN_RECOIL_COMP_ON)
 		scatter = SCATTER_AMOUNT_TIER_10
 		recoil = RECOIL_OFF
-	else
-		scatter = SCATTER_AMOUNT_TIER_6
-		recoil = RECOIL_AMOUNT_TIER_3
-	damage_mult = BASE_BULLET_DAMAGE_MULT
 
 /obj/item/weapon/gun/smartgun/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
@@ -383,20 +397,14 @@
 	to_chat(user, "[icon2html(src, usr)] You [flags_gun_toggles & GUN_RECOIL_COMP_ON? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s recoil compensation.")
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
 	flags_gun_toggles ^= GUN_RECOIL_COMP_ON
-	if(flags_gun_toggles & GUN_RECOIL_COMP_ON)
-		drain += 50
-	else
-		drain -= 50
-	recalculate_attachment_bonuses() //Includes set_gun_config_values() as well as attachments.
+	drain += (flags_gun_toggles & GUN_RECOIL_COMP_ON) ? 50 : -50
+	recalculate_attachment_bonuses()
 
 /obj/item/weapon/gun/smartgun/proc/toggle_accuracy_improvement(mob/user)
 	to_chat(user, "[icon2html(src, usr)] You [flags_gun_toggles & GUN_ACCURACY_ASSIST_ON? "<B>disable</b>" : "<B>enable</b>"] \the [src]'s accuracy improvement.")
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
 	flags_gun_toggles ^= GUN_ACCURACY_ASSIST_ON
-	if(flags_gun_toggles & GUN_ACCURACY_ASSIST_ON)
-		drain += 50
-	else
-		drain -= 50
+	drain += (flags_gun_toggles & GUN_ACCURACY_ASSIST_ON) ? 50 : -50
 	recalculate_attachment_bonuses()
 
 /obj/item/weapon/gun/smartgun/proc/toggle_auto_fire(mob/user)
@@ -645,6 +653,10 @@
 	SIGNAL_HANDLER
 	linked_human = null
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                M56D DIRTY SMART GUN                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/smartgun/dirty
 	name = "\improper M56D 'Dirty' smartgun"
 	desc = "The actual firearm in the 4-piece M56D Smartgun System. If you have this, you're about to bring some serious pain to anyone in your way.\nYou may toggle firing restrictions by using a special action.\nAlt-click it to open the feed cover and allow for reloading."
@@ -653,11 +665,25 @@
 	ammo_secondary = /datum/ammo/bullet/smartgun/dirty/armor_piercing///Toggled ammo type
 	flags_gun_features = GUN_WY_RESTRICTED|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
 
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_12
+	burst_amount = BURST_AMOUNT_TIER_5
+	burst_delay = FIRE_DELAY_TIER_12
+
+	scatter = SCATTER_AMOUNT_TIER_8
+	burst_scatter_mult = SCATTER_AMOUNT_TIER_10
+	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_TIER_10
+	fa_max_scatter = SCATTER_AMOUNT_NONE
+	//=========// GUN STATS //==========//
+
 /obj/item/weapon/gun/smartgun/dirty/Initialize(mapload, ...)
 	. = ..()
 	MD.iff_signal = FACTION_PMC
 
-//TERMINATOR SMARTGUN
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               M56D TERMINATOR SMARTGUN             ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/smartgun/dirty/elite
 	name = "\improper M56T 'Terminator' smartgun"
 	desc = "The actual firearm in the 4-piece M56T Smartgun System. If you have this, you're about to bring some serious pain to anyone in your way.\nYou may toggle firing restrictions by using a special action.\nAlt-click it to open the feed cover and allow for reloading."
@@ -666,19 +692,9 @@
 	. = ..()
 	MD.iff_signal = FACTION_WY_DEATHSQUAD
 
-/obj/item/weapon/gun/smartgun/dirty/elite/set_gun_config_values()
-	..()
-	set_burst_amount(BURST_AMOUNT_TIER_5)
-	set_burst_delay(FIRE_DELAY_TIER_12)
-	if(!(flags_gun_toggles & GUN_RECOIL_COMP_ON))
-		scatter = SCATTER_AMOUNT_TIER_8
-	burst_scatter_mult = SCATTER_AMOUNT_TIER_10
-	set_fire_delay(FIRE_DELAY_TIER_12)
-	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_TIER_10
-	fa_max_scatter = SCATTER_AMOUNT_NONE
-
-
-// CLF SMARTGUN
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[             M56B FREEDOM / CLF SMARTGUN            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/smartgun/clf
 	name = "\improper M56B 'Freedom' smartgun"
@@ -687,6 +703,30 @@
 /obj/item/weapon/gun/smartgun/clf/Initialize(mapload, ...)
 	. = ..()
 	MD.iff_signal = FACTION_CLF
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[            L56A2 SMARTGUN / ROYAL MARINES          ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
+/obj/item/weapon/gun/smartgun/rmc
+	name = "\improper L56A2 smartgun"
+	desc = "The actual firearm in the 2-piece L56A2 Smartgun System. This Variant is used by the Three World Empires Royal Marines Commando units.\nYou may toggle firing restrictions by using a special action.\nAlt-click it to open the feed cover and allow for reloading."
+	current_mag = /obj/item/ammo_magazine/smartgun/holo_targetting
+	ammo_primary = /datum/ammo/bullet/smartgun/holo_target //Toggled ammo type
+	ammo_secondary = /datum/ammo/bullet/smartgun/holo_target/ap ///Toggled ammo type
+	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
+	icon = 'icons/obj/items/weapons/guns/guns_by_faction/twe_guns.dmi'
+	icon_state = "magsg"
+	item_state = "magsg"
+
+	starting_attachment_types = list(/obj/item/attachable/barrel/l56a2)
+
+/obj/item/weapon/gun/smartgun/rmc/Initialize(mapload, ...)
+	. = ..()
+	MD.iff_signal = FACTION_TWE
+
+/obj/item/weapon/gun/smartgun/racked/Initialize(mapload, spawn_empty = TRUE)
+	. = ..()
 
 /obj/item/weapon/gun/smartgun/admin
 	requires_power = FALSE
@@ -718,21 +758,4 @@
 
 	. += SPAN_NOTICE("The power indicator reads [power_cell.charge] charge out of [power_cell.maxcharge] total.")
 
-/obj/item/weapon/gun/smartgun/rmc
-	name = "\improper L56A2 smartgun"
-	desc = "The actual firearm in the 2-piece L56A2 Smartgun System. This Variant is used by the Three World Empires Royal Marines Commando units.\nYou may toggle firing restrictions by using a special action.\nAlt-click it to open the feed cover and allow for reloading."
-	current_mag = /obj/item/ammo_magazine/smartgun/holo_targetting
-	ammo_primary = /datum/ammo/bullet/smartgun/holo_target //Toggled ammo type
-	ammo_secondary = /datum/ammo/bullet/smartgun/holo_target/ap ///Toggled ammo type
-	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
-	icon = 'icons/obj/items/weapons/guns/guns_by_faction/twe_guns.dmi'
-	icon_state = "magsg"
-	item_state = "magsg"
-	starting_attachment_types = list(/obj/item/attachable/l56a2_smartgun)
 
-/obj/item/weapon/gun/smartgun/rmc/Initialize(mapload, ...)
-	. = ..()
-	MD.iff_signal = FACTION_TWE
-
-/obj/item/weapon/gun/smartgun/racked/Initialize(mapload, spawn_empty = TRUE)
-	. = ..()

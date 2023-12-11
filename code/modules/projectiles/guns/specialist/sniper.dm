@@ -1,12 +1,15 @@
-//-------------------------------------------------------
-//SNIPER RIFLES
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               GENERIC SNIPER RIFLE                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Keyword rifles. They are subtype of rifles, but still contained here as a specialist weapon.
-
 //Because this parent type did not exist
 //Note that this means that snipers will have a slowdown of 3, due to the scope
+
 /obj/item/weapon/gun/rifle/sniper
+	//=========// GUN STATS //==========//
 	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
 	wield_delay = WIELD_DELAY_SLOW
+	//=========// GUN STATS //==========//
 
 	var/has_aimed_shot = TRUE
 	var/aiming_time = 1.25 SECONDS
@@ -281,7 +284,9 @@
 
 //Pow! Headshot.
 
-// end of actions sniper spe can take.
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                  M42A SCOPED RIFLE                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/rifle/sniper/M42A
 	name = "\improper M42A scoped rifle"
@@ -289,50 +294,50 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m42a"
 	item_state = "m42a"
-
 	fire_sound = 'sound/weapons/gun_sniper.ogg'
 	current_mag = /obj/item/ammo_magazine/sniper
-	force = 12
-	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
 	zoomdevicename = "scope"
-	attachable_allowed = list(/obj/item/attachable/bipod)
-	starting_attachment_types = list(/obj/item/attachable/sniperbarrel)
+	flags_item = TWOHANDED|NO_CRYO_STORE
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
 	map_specific_decoration = TRUE
 
-	flags_item = TWOHANDED|NO_CRYO_STORE
+	//=========// GUN STATS //==========//
+	force = 12
+	fire_delay = FIRE_DELAY_TIER_7 * 3
+	burst_amount = BURST_AMOUNT_TIER_1
+
+	accuracy_mult = BASE_ACCURACY_MULT * 3 //you HAVE to be able to hit
+	scatter = SCATTER_AMOUNT_TIER_8
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	recoil = RECOIL_AMOUNT_TIER_5
+
+	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/rifle/sniper/M42A/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/barrel/sniper, /obj/item/attachable/scope/variable_zoom/hidden)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(/obj/item/attachable/bipod)
+
+	if(!attachable_offset)
+		attachable_offset = list("barrel_x" = 39, "barrel_y" = 17,"rail_x" = 12, "rail_y" = 20, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+
+	..()
 
 /obj/item/weapon/gun/rifle/sniper/M42A/verb/toggle_scope_zoom_level()
 	set name = "Toggle Scope Zoom Level"
 	set category = "Weapons"
 	set src in usr
-	var/obj/item/attachable/scope/variable_zoom/S = attachments["rail"]
+	var/obj/item/attachable/scope/variable_zoom/S = attachments[ATTACHMENT_SLOT_RAIL]
 	S.toggle_zoom_level()
-
-/obj/item/weapon/gun/rifle/sniper/M42A/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/scope/variable_zoom/S = new(src)
-	S.vis_flags |= VIS_HIDE
-	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(S)
 
 /obj/item/weapon/gun/rifle/sniper/M42A/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
 		BULLET_TRAIT_ENTRY(/datum/element/bullet_trait_iff)
 	))
-
-/obj/item/weapon/gun/rifle/sniper/M42A/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 39, "muzzle_y" = 17,"rail_x" = 12, "rail_y" = 20, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
-
-
-/obj/item/weapon/gun/rifle/sniper/M42A/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_7*3)
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	accuracy_mult = BASE_ACCURACY_MULT * 3 //you HAVE to be able to hit
-	scatter = SCATTER_AMOUNT_TIER_8
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-	recoil = RECOIL_AMOUNT_TIER_5
 
 /obj/item/weapon/gun/rifle/sniper/XM43E1
 	name = "\improper XM43E1 experimental anti-materiel rifle"
@@ -340,40 +345,40 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "xm43e1"
 	item_state = "xm43e1"
-
 	fire_sound = 'sound/weapons/sniper_heavy.ogg'
 	current_mag = /obj/item/ammo_magazine/sniper/anti_materiel //Renamed from anti-tank to align with new identity/description. Other references have been changed as well. -Kaga
-	force = 12
-	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
-	zoomdevicename = "scope"
-	attachable_allowed = list(/obj/item/attachable/bipod)
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
-	starting_attachment_types = list(/obj/item/attachable/pmc_sniperbarrel)
+	zoomdevicename = "scope"
 	sniper_beam_type = /obj/effect/ebeam/laser/intense
 	sniper_beam_icon = "laser_beam_intense"
 	sniper_lockon_icon = "sniper_lockon_intense"
 
-/obj/item/weapon/gun/rifle/sniper/XM43E1/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/scope/variable_zoom/S = new(src)
-	S.icon_state = "pmcscope"
-	S.attach_icon = "pmcscope"
-	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(S)
-
-/obj/item/weapon/gun/rifle/sniper/XM43E1/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
-
-
-/obj/item/weapon/gun/rifle/sniper/XM43E1/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6 * 6 )//Big boy damage, but it takes a lot of time to fire a shot.
+	//=========// GUN STATS //==========//
+	force = 12
+	fire_delay = FIRE_DELAY_TIER_6 * 6//Big boy damage, but it takes a lot of time to fire a shot.
 	//Kaga: Adjusted from 56 (Tier 4, 7*8) -> 30 (Tier 6, 5*6) ticks. 95 really wasn't big-boy damage anymore, although I updated it to 125 to remain consistent with the other 10x99mm caliber weapon (M42C). Now takes only twice as long as the M42A.
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	accuracy_mult = BASE_ACCURACY_MULT + 2*HIT_ACCURACY_MULT_TIER_10 //Who coded this like this, and why? It just calculates out to 1+1=2. Leaving a note here to check back later.
+	burst_amount = BURST_AMOUNT_TIER_1
+
+	accuracy_mult = BASE_ACCURACY_MULT + 2*HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_10
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_1
+
+	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/rifle/sniper/XM43E1/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/barrel/sniper/pmc, /obj/item/attachable/scope/variable_zoom/pmc)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(/obj/item/attachable/bipod)
+
+	if(!attachable_offset)
+		attachable_offset = list("barrel_x" = 32, "barrel_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
+
+	..()
 
 /obj/item/weapon/gun/rifle/sniper/XM43E1/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
@@ -396,47 +401,49 @@
 		else ..()
 */
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[             M42C ANTI-TANK SNIPER RIFLE            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/rifle/sniper/elite
 	name = "\improper M42C anti-tank sniper rifle"
 	desc = "A high-end superheavy magrail sniper rifle from Weyland-Armat chambered in a specialized variant of the heaviest ammo available, 10x99mm Caseless. This weapon requires a specialized armor rig for recoil mitigation in order to be used effectively."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/wy.dmi'
 	icon_state = "m42c"
 	item_state = "m42c" //NEEDS A TWOHANDED STATE
-
 	fire_sound = 'sound/weapons/sniper_heavy.ogg'
 	current_mag = /obj/item/ammo_magazine/sniper/elite
-	force = 17
 	zoomdevicename = "scope"
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_WY_RESTRICTED|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
-	starting_attachment_types = list(/obj/item/attachable/pmc_sniperbarrel)
 	sniper_beam_type = /obj/effect/ebeam/laser/intense
 	sniper_beam_icon = "laser_beam_intense"
 	sniper_lockon_icon = "sniper_lockon_intense"
 
-/obj/item/weapon/gun/rifle/sniper/elite/handle_starting_attachment()
+	//=========// GUN STATS //==========//
+	force = 17
+	fire_delay = FIRE_DELAY_TIER_6 * 5
+	burst_amount = BURST_AMOUNT_TIER_1
+
+	accuracy_mult = BASE_ACCURACY_MULT * 3 //Was previously BAM + HAMT10, similar to the XM42B, and coming out to 1.5? Changed to be consistent with M42A. -Kaga
+	scatter = SCATTER_AMOUNT_TIER_10 //Was previously 8, changed to be consistent with the XM42B.
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	recoil = RECOIL_AMOUNT_TIER_1
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/rifle/sniper/elite/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/barrel/sniper/pmc, /obj/item/attachable/scope/pmc)
+
+	if(!attachable_offset)
+		attachable_offset = list("barrel_x" = 32, "barrel_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
+
 	..()
-	var/obj/item/attachable/scope/S = new(src)
-	S.icon_state = "pmcscope"
-	S.attach_icon = "pmcscope"
-	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(S)
 
 /obj/item/weapon/gun/rifle/sniper/elite/set_bullet_traits()
 	LAZYADD(traits_to_give, list(
 		BULLET_TRAIT_ENTRY(/datum/element/bullet_trait_iff)
 	))
-
-/obj/item/weapon/gun/rifle/sniper/elite/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
-
-/obj/item/weapon/gun/rifle/sniper/elite/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6*5)
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	accuracy_mult = BASE_ACCURACY_MULT * 3 //Was previously BAM + HAMT10, similar to the XM42B, and coming out to 1.5? Changed to be consistent with M42A. -Kaga
-	scatter = SCATTER_AMOUNT_TIER_10 //Was previously 8, changed to be consistent with the XM42B.
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-	recoil = RECOIL_AMOUNT_TIER_1
 
 /obj/item/weapon/gun/rifle/sniper/elite/simulate_recoil(total_recoil = 0, mob/user, atom/target)
 	. = ..()
@@ -447,7 +454,10 @@
 			step(PMC_sniper,turn(PMC_sniper.dir,180))
 			PMC_sniper.apply_effect(5, WEAKEN)
 
-//Type 88 //Based on the actual Dragunov DMR rifle.
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                TYPE 88 MARKSMAN RIFLE              ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Based on the actual Dragunov DMR rifle.
 
 /obj/item/weapon/gun/rifle/sniper/svd
 	name = "\improper Type 88 designated marksman rifle"
@@ -455,46 +465,46 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/upp.dmi'
 	icon_state = "type88"
 	item_state = "type88"
-
 	fire_sound = 'sound/weapons/gun_mg.ogg'
 	current_mag = /obj/item/ammo_magazine/sniper/svd
-	attachable_allowed = list(
-		//Muzzle,
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/upp_replica,
-		/obj/item/attachable/bayonet/upp,
-		//Under,
-		/obj/item/attachable/verticalgrip,
-		/obj/item/attachable/bipod,
-		//Integrated,
-		/obj/item/attachable/type88_barrel,
-	)
-	has_aimed_shot = FALSE
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER|GUN_CAN_POINTBLANK
-	starting_attachment_types = list()
 	sniper_beam_type = null
 	skill_locked = FALSE
+	has_aimed_shot = FALSE
 
-/obj/item/weapon/gun/rifle/sniper/svd/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/attachie = new /obj/item/attachable/type88_barrel(src)
-	attachie.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(attachie)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_6
+	burst_amount = BURST_AMOUNT_TIER_1
 
-	var/obj/item/attachable/scope/variable_zoom/integrated/type88sight = new(src)
-	type88sight.flags_attach_features &= ~ATTACH_REMOVABLE
-	type88sight.vis_flags |= VIS_HIDE
-	Attach(type88sight)
-
-/obj/item/weapon/gun/rifle/sniper/svd/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 13, "rail_y" = 19, "under_x" = 26, "under_y" = 14, "stock_x" = 24, "stock_y" = 13, "special_x" = 39, "special_y" = 18)
-
-/obj/item/weapon/gun/rifle/sniper/svd/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6)
-	set_burst_amount(BURST_AMOUNT_TIER_1)
 	accuracy_mult = BASE_ACCURACY_MULT * 3
 	scatter = SCATTER_AMOUNT_TIER_8
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
-	damage_falloff_mult = 0
+	damage_falloff_mult = DAMAGE_FALLOFF_OFF
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/rifle/sniper/svd/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/scope/variable_zoom/hidden, /obj/item/attachable/barrel/type88)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			//Muzzle,
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/upp_replica,
+			/obj/item/attachable/bayonet/upp,
+			//Under,
+			/obj/item/attachable/verticalgrip,
+			/obj/item/attachable/bipod,
+			//Integrated,
+			/obj/item/attachable/barrel/type88,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 13, "rail_y" = 19, "under_x" = 26, "under_y" = 14, "stock_x" = 24, "stock_y" = 13, "barrel_x" = 39, "barrel_y" = 18)
+
+	..()
+
+
+

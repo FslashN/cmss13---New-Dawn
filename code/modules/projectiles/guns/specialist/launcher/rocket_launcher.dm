@@ -1,5 +1,6 @@
-
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                 M5 ROCKET LAUNCHER                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //M5 RPG
 
 /obj/item/weapon/gun/launcher/rocket
@@ -8,25 +9,43 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m5"
 	item_state = "m5"
-
-	matter = list("metal" = 10000)
-	current_mag = /obj/item/ammo_magazine/rocket
 	flags_equip_slot = NO_FLAGS
 	w_class = SIZE_HUGE
-	force = 15
-	wield_delay = WIELD_DELAY_HORRIBLE
-	delay_style = WEAPON_DELAY_NO_FIRE
-	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
-	attachable_allowed = list(
-		/obj/item/attachable/magnetic_harness,
-	)
-
+	flags_item = TWOHANDED|NO_CRYO_STORE
+	current_mag = /obj/item/ammo_magazine/rocket
 	flags_gun_features = GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
 	flags_gun_receiver = GUN_INTERNAL_MAG
 	var/datum/effect_system/smoke_spread/smoke
-
-	flags_item = TWOHANDED|NO_CRYO_STORE
 	var/skill_locked = TRUE
+
+	//=========// GUN STATS //==========//
+	force = 15
+	fire_delay = FIRE_DELAY_TIER_6 * 2
+
+	accuracy_mult = BASE_ACCURACY_MULT
+	scatter = SCATTER_AMOUNT_TIER_6
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	recoil = RECOIL_AMOUNT_TIER_3
+
+	wield_delay = WIELD_DELAY_HORRIBLE
+	delay_style = WEAPON_DELAY_NO_FIRE
+	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/launcher/rocket/initialize_gun_lists()
+
+	if(!matter)
+		matter = list("metal" = 10000)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/magnetic_harness,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 6, "rail_y" = 19, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+
+	..()
 
 /obj/item/weapon/gun/launcher/rocket/Initialize(mapload, spawn_empty)
 	. = ..()
@@ -36,20 +55,6 @@
 /obj/item/weapon/gun/launcher/rocket/Destroy()
 	QDEL_NULL(smoke)
 	return ..()
-
-
-/obj/item/weapon/gun/launcher/rocket/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 6, "rail_y" = 19, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
-
-
-/obj/item/weapon/gun/launcher/rocket/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6*2)
-	accuracy_mult = BASE_ACCURACY_MULT
-	scatter = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-	recoil = RECOIL_AMOUNT_TIER_3
-
 
 /obj/item/weapon/gun/launcher/rocket/get_additional_gun_examine_text(mob/user)
 	. = ..() + ( current_mag.current_rounds <= 0 ? "It's not loaded." : "It has an 84mm [in_chamber.name] loaded." )
@@ -180,7 +185,9 @@
 			C.apply_effect(6, STUTTER)
 			C.emote("pain")
 
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[        M57-A4 LIGHTNING BOLT / DEATH SQUAD         ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //M5 RPG'S MEAN FUCKING COUSIN
 
 /obj/item/weapon/gun/launcher/rocket/m57a4
@@ -189,23 +196,25 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/event.dmi'
 	icon_state = "m57a4"
 	item_state = "m57a4"
-
 	current_mag = /obj/item/ammo_magazine/rocket/m57a4
-	aim_slowdown = SLOWDOWN_ADS_SUPERWEAPON
 	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
 
-/obj/item/weapon/gun/launcher/rocket/m57a4/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_5)
-	set_burst_delay(FIRE_DELAY_TIER_7)
-	set_burst_amount(BURST_AMOUNT_TIER_4)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_5
+	burst_delay = FIRE_DELAY_TIER_7
+	burst_amount = BURST_AMOUNT_TIER_4
+
 	accuracy_mult = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_4
 	scatter = SCATTER_AMOUNT_TIER_6
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_3
 
+	aim_slowdown = SLOWDOWN_ADS_SUPERWEAPON
+	//=========// GUN STATS //==========//
 
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                  QH-4 ANTI-TANK RPG                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //AT rocket launchers, can be used by non specs
 
 /obj/item/weapon/gun/launcher/rocket/anti_tank //reloadable
@@ -213,16 +222,17 @@
 	desc = "Used to take out light-tanks and enemy structures, the QH-4 is a dangerous weapon specialised against vehicles. Requires direct hits to penetrate vehicle armor."
 	icon_state = "m83a2"
 	item_state = "m83a2"
-
+	current_mag = /obj/item/ammo_magazine/rocket/anti_tank
+	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
+	flags_item = TWOHANDED
 	skill_locked = FALSE
 
-	current_mag = /obj/item/ammo_magazine/rocket/anti_tank
+/obj/item/weapon/gun/launcher/rocket/anti_tank/initialize_gun_lists()
 
-	attachable_allowed = list()
+	if(!attachable_allowed)
+		attachable_allowed = list()
 
-	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
-
-	flags_item = TWOHANDED
+	..()
 
 /obj/item/weapon/gun/launcher/rocket/anti_tank/set_bullet_traits()
 	. = ..()
@@ -300,7 +310,9 @@
 	qdel(src)
 	user.put_in_active_hand(F)
 
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                   HJRA-12 / UPP RPG                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //UPP Rocket Launcher
 
 /obj/item/weapon/gun/launcher/rocket/upp
@@ -311,26 +323,21 @@
 	item_state = "hjra12"
 	skill_locked = FALSE
 	current_mag = /obj/item/ammo_magazine/rocket/upp/at
-
-	attachable_allowed = list(/obj/item/attachable/upp_rpg_breech)
-
 	flags_gun_features = GUN_WIELDED_FIRING_ONLY|GUN_UNUSUAL_DESIGN
-
 	flags_item = TWOHANDED
 
-/obj/item/weapon/gun/launcher/rocket/upp/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 6, "rail_y" = 19, "under_x" = 19, "under_y" = 14, "stock_x" = -6, "stock_y" = 16, "special_x" = 37, "special_y" = 16)
+/obj/item/weapon/gun/launcher/rocket/upp/initialize_gun_lists()
 
-/obj/item/weapon/gun/launcher/rocket/upp/handle_starting_attachment()
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/upp_rpg_breech)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(/obj/item/attachable/upp_rpg_breech, /obj/item/attachable/magnetic_harness/hidden)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 6, "rail_y" = 19, "under_x" = 19, "under_y" = 14, "stock_x" = -6, "stock_y" = 16, "special_x" = 37, "special_y" = 16)
+
 	..()
-	var/obj/item/attachable/upp_rpg_breech/S = new(src)
-	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(S)
-
-	var/obj/item/attachable/magnetic_harness/Integrated = new(src)
-	Integrated.vis_flags |= VIS_HIDE
-	Integrated.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(Integrated)
 
 /obj/item/weapon/gun/launcher/rocket/upp/apply_bullet_effects(obj/projectile/projectile_to_fire, mob/user, i = 1, reflex = 0)
 	. = ..()

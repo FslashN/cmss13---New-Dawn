@@ -125,6 +125,8 @@
 	damage = 400 // Fully intended to vaporize anything smaller than a mini cooper
 	accurate_range_min = 10
 	handful_state = "vulture_bullet"
+	handful_max = 4
+
 	sound_hit = 'sound/bullets/bullet_vulture_impact.ogg'
 	flags_ammo_behavior = AMMO_BALLISTIC|AMMO_SNIPER|AMMO_IGNORE_COVER|AMMO_ANTIVEHICLE
 

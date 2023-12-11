@@ -67,6 +67,7 @@ It DOES NOT control where your bullets go, that's scatter and projectile varianc
 */
 
 #define SCATTER_AMOUNT_NEURO 60
+#define FULL_AUTO_SCATTER_MAX_BASE 6.5
 #define SCATTER_AMOUNT_TIER_1 15
 #define SCATTER_AMOUNT_TIER_2 10
 #define SCATTER_AMOUNT_TIER_3 8
@@ -76,6 +77,7 @@ It DOES NOT control where your bullets go, that's scatter and projectile varianc
 #define SCATTER_AMOUNT_TIER_7 4
 #define SCATTER_AMOUNT_TIER_8 3
 #define SCATTER_AMOUNT_TIER_9 2
+#define SCATTER_AMOUNT_TIER_M39 1.5
 #define SCATTER_AMOUNT_TIER_10 1
 #define SCATTER_AMOUNT_NONE 0
 
@@ -84,7 +86,10 @@ It DOES NOT control where your bullets go, that's scatter and projectile varianc
 // How many shots on full auto before you hit max full auto scatter
 */
 
+#define FULL_AUTO_SCATTER_PEAK_TIER_PPSH 1
+#define FULL_AUTO_SCATTER_PEAK_BASE 4 //The default set.
 #define FULL_AUTO_SCATTER_PEAK_TIER_1 10
+#define FULL_AUTO_SCATTER_PEAK_TIER_SKORPION 15
 #define FULL_AUTO_SCATTER_PEAK_TIER_2 20
 #define FULL_AUTO_SCATTER_PEAK_TIER_3 30
 #define FULL_AUTO_SCATTER_PEAK_TIER_4 40
@@ -119,7 +124,8 @@ As such, don't expect any values assigned to common firearms to even consider ho
 .../update_projectiles/guns/code.dm
 */
 
-#define BASE_BULLET_DAMAGE_MULT 1
+#define BULLET_DAMAGE_MULT_OFF 0
+#define BULLET_DAMAGE_MULT_BASE 1
 #define BULLET_DAMAGE_MULT_TIER_1 0.05
 #define BULLET_DAMAGE_MULT_TIER_2 0.10
 #define BULLET_DAMAGE_MULT_TIER_3 0.15
@@ -152,6 +158,7 @@ As such, don't expect any values assigned to common firearms to even consider ho
 #define FIRE_DELAY_TIER_SG 2
 #define FIRE_DELAY_TIER_SMG 1.5
 #define FIRE_DELAY_TIER_12 1
+#define FIRE_DELAY_BURST_OFF 0 //In case you want to shoot all burst projectiles together.
 
 /*
 ////RANGE RELATED////
@@ -168,6 +175,7 @@ As such, don't expect any values assigned to common firearms to even consider ho
 #define DAMAGE_FALLOFF_TIER_8 3
 #define DAMAGE_FALLOFF_TIER_9 2
 #define DAMAGE_FALLOFF_TIER_10 1
+#define DAMAGE_FALLOFF_OFF 0
 
 #define DAMAGE_BUILDUP_TIER_1 1
 #define DAMAGE_BUILDUP_TIER_2 2

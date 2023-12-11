@@ -58,6 +58,16 @@
 #define CO_GUN_MATEBA_COUNCIL "Colonel's Mateba"
 #define CO_GUN_DEAGLE_COUNCIL "Golden Desert Eagle"
 
+//Defines for various attachment slots.
+//Keep in mind that attachable slots have to match the offset defines.
+#define ATTACHMENT_SLOT_MUZZLE "muzzle" //Silencers/etc.
+#define ATTACHMENT_SLOT_STOCK "stock" //What you brace the firearm with.
+#define	ATTACHMENT_SLOT_RAIL "rail" //On top of the gun, like a scope.
+#define	ATTACHMENT_SLOT_UNDER "under" //Under the barrel, like a flashlight.
+#define ATTACHMENT_SLOT_BARREL "barrel" //Integrated barrels mostly. A lot of the old itengrated barrels need to be converted to this, including the gun _x and _y offsets.
+#define ATTACHMENT_SLOT_SPECIAL "special" //Anything that doesn't fit into another general category. Unused right now.
+//Other attachments hardpoints can be entered here.
+
 //This determines how many max objects are allowed for the ammo counter pool.
 //So they are not constantly generated when marines drop their guns.
 #define AMMO_COUNTER_OBJ_POOL_MAX 5
@@ -69,11 +79,11 @@
 #define MAGAZINE_TYPE_SPEEDLOADER 3
 
 //Jam chance compounds with the weapon fired. They use the same defines right now, but the vast majority are set to 0.
-#define FIREARM_MALFUNCTION_CHANCE_ZERO 0 //Default at the time of this comment.
-#define FIREARM_MALFUNCTION_CHANCE_VERY_LOW 0.01 //Very unlikely to jam, probably elite weapons.
-#define FIREARM_MALFUNCTION_CHANCE_LOW 0.1 //Base jam chance of the PPSH stick mag. Very reliable. This is a good baseline in the future.
-#define FIREARM_MALFUNCTION_CHANCE_MED_LOW 0.5
-#define FIREARM_MALFUNCTION_CHANCE_MEDIUM 1 //Jam chance of the PPSH drum mag. 1/100 bullets will jam.
-#define FIREARM_MALFUNCTION_CHANCE_HIGH 5 //Getting into unreliable teritory. 5/100 bullets will jam.
-#define FIREARM_MALFUNCTION_CHANCE_MED_HIGH 7.5 //Poor, very poor.
-#define FIREARM_MALFUNCTION_CHANCE_VERY_HIGH 10 //Unacceptable. The firearm could be damaged or something.
+#define GUN_MALFUNCTION_CHANCE_ZERO 0 //Default at the time of this comment.
+#define GUN_MALFUNCTION_CHANCE_VERY_LOW 0.01 //Very unlikely to jam, probably elite weapons.
+#define GUN_MALFUNCTION_CHANCE_LOW 0.1 //Base jam chance of the PPSH stick mag. Very reliable. This is a good baseline in the future.
+#define GUN_MALFUNCTION_CHANCE_MED_LOW 0.5
+#define GUN_MALFUNCTION_CHANCE_MEDIUM 1 //Jam chance of the PPSH drum mag. 1/100 bullets will jam.
+#define GUN_MALFUNCTION_CHANCE_HIGH 5 //Getting into unreliable teritory. 5/100 bullets will jam.
+#define GUN_MALFUNCTION_CHANCE_MED_HIGH 7.5 //Poor, very poor.
+#define GUN_MALFUNCTION_CHANCE_VERY_HIGH 10 //Unacceptable. The firearm could be damaged or something.

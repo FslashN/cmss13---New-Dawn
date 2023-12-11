@@ -1,3 +1,7 @@
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               SOUTO SLINGER SUPREMO                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/souto
 	name = "\improper Souto Slinger Supremo"
 	desc = "This appears to be a T-shirt cannon modified to fire cans of Souto at speeds fast enough to get them up into the top stands of a stadium. This can't be safe. Cobbled together in Havana."
@@ -8,20 +12,21 @@
 	fire_sound = 'sound/items/syringeproj.ogg'
 	attachable_allowed = list()
 	has_empty_icon = 0
-	var/range = 6 // This var is used as range for the weapon/toy.
 	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_AMMO_COUNTER|GUN_NO_SAFETY_SWITCH
 	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_IS_STATIC
-	var/obj/item/storage/backpack/souto/soutopack
 	current_mag = null
 	auto_retrieval_slot = WEAR_IN_BACK
 	start_automatic = TRUE
-	autofire_slow_mult = 0.8 //Fires FASTER when in Full Auto, that is the power of Souta
+	var/range = 6 // This var is used as range for the weapon/toy.
+	var/obj/item/storage/backpack/souto/soutopack
 
-/obj/item/weapon/gun/souto/set_gun_config_values()
-	. = ..()
+	//=========// GUN STATS //==========//
 	accuracy_mult = BASE_ACCURACY_MULT + 2*HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_10
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_10
+
+	autofire_slow_mult = 0.8 //Fires FASTER when in Full Auto, that is the power of Souta
+	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/souto/Fire(atom/target, mob/living/user, params, reflex = 0, dual_wield)
 	if(!soutopack)

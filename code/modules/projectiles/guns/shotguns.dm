@@ -1,3 +1,6 @@
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                   GENERIC SHOTGUN                  ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 /*
 Shotguns always start with an ammo buffer and they work by alternating ammo and ammo_buffer1
 in order to fire off projectiles. This is only done to enable burst fire for the shotgun.
@@ -26,30 +29,31 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	fire_delay_group = list(FIRE_DELAY_GROUP_SHOTGUN)
 	projectile_casing = PROJECTILE_CASING_SHELL
 
-/obj/item/weapon/gun/shotgun/Initialize(mapload, spawn_empty)
-	. = ..()
-	populate_internal_magazine(current_mag.current_rounds) //Populate the chamber.
-	ready_in_chamber() //Load a round into the chamber.
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_5
 
-/obj/item/weapon/gun/shotgun/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_5)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/Initialize(mapload, spawn_empty)
+	. = ..()
+	populate_internal_magazine(current_mag.current_rounds) //Populate the chamber.
+	ready_in_chamber() //Load a round into the chamber.
 
 /obj/item/weapon/gun/shotgun/unique_action(mob/user)
 	cycle_chamber(user)
 
 /obj/item/weapon/gun/shotgun/play_chamber_cycle_sound(mob/user, cocked_sound, volume = 20, sound_delay)
-	. = ..()
+	..()
 
-/obj/item/weapon/gun/shotgun/replace_magazine(mob/user, selection) //Shells are added forward.
+/obj/item/weapon/gun/shotgun/replace_magazine(mob/user, selection) //Shells are added forward, into the back of the tube.
 	//We move the position up when loading ammo. New rounds are always fired first though, in position 1. Index tracks where the last shell was inserted.
 	current_mag.chamber_contents[++current_mag.chamber_position] = selection //Just moves up one, unless the mag is full.
 
@@ -60,7 +64,14 @@ This is better than "empty" as a text string has value. null is easier to accoun
 
 	playsound(user, reload_sound, 25, TRUE)
 
-/obj/item/weapon/gun/shotgun/unload(mob/user, check_chamber_first = FALSE)
+/obj/item/weapon/gun/shotgun/ready_in_chamber()
+	if(current_mag.current_rounds > 0)
+		in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
+		current_mag.current_rounds--
+		current_mag.chamber_contents[current_mag.chamber_position--] = null
+		return in_chamber
+
+/obj/item/weapon/gun/shotgun/unload(mob/user)
 	if(flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
@@ -72,45 +83,36 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		return
 
 	//We know there is something loaded in the gun, and we want to remove it.
-	if(check_chamber_first && in_chamber) unload_shell(user, "chamber") //Check chamber first if needed.
-	else if(current_mag.current_rounds) unload_shell(user, "tube") //Unload a shell from the tube otherwise.
-	else unload_shell(user, "chamber") //If neither are true, empty out the chamber.
+	if(in_chamber) //Let's check the chamber first.
+		//If there's nothing in the tube this will clear out first. Alternatively, pumps will try to remove a shell from the chamber first.
+		if(!current_mag.current_rounds || ( flags_gun_receiver & GUN_MANUAL_CYCLE && !(flags_gun_receiver & GUN_CHAMBER_CAN_OPEN)) ) //The latter is for checking whether it's a pump or double.
+			retrieve_shell(in_chamber.type, user)
+			in_chamber = null
+
+			display_ammo(user)
+			return //Exit out early, we don't evaluate the next if().
+
+	if(current_mag.current_rounds) //It has some rounds. We'll fall back to this.
+		retrieve_shell(current_mag.chamber_contents[current_mag.chamber_position], user)
+		current_mag.current_rounds--
+		current_mag.chamber_contents[current_mag.chamber_position--] = null
 
 	display_ammo(user)
 
-/obj/item/weapon/gun/shotgun/proc/unload_shell(mob/user, shell_location = "tube")
-	var/obj/item/ammo_magazine/handful/new_handful
-
-	switch(shell_location)
-		if("tube")
-			new_handful = retrieve_shell(current_mag.chamber_contents[current_mag.chamber_position])
-			current_mag.current_rounds--
-			current_mag.chamber_contents[current_mag.chamber_position--] = null
-
-		if("chamber")
-			new_handful = retrieve_shell(in_chamber.type)
-			in_chamber = null
-
+/obj/item/weapon/gun/shotgun/proc/retrieve_shell(selection, mob/user)
 	if(user) //Want to put into hand first.
-		user.put_in_hands(new_handful)
+		var/obj/item/ammo_magazine/handful/H = new selection()
+		H.generate_handful(selection, caliber, 1) //This updates the handful stats.
+		user.put_in_hands(H)
 		playsound(user, reload_sound, 25, 1)
-	else new_handful.forceMove(get_turf(src))
+	else //Otherwise we eject it on to the turf, combining handfuls as needed. User should exist, but maybe in the future that will change.
+		eject_handful_to_turf(null, 1, selection)
 
-/obj/item/weapon/gun/shotgun/proc/retrieve_shell(selection)
-	var/datum/ammo/A = GLOB.ammo_list[selection]
-	var/obj/item/ammo_magazine/handful/new_handful = new A.handful_type()
-	new_handful.generate_handful(selection, caliber, 5, 1, /obj/item/weapon/gun/shotgun)
-	return new_handful
 
-/obj/item/weapon/gun/shotgun/ready_in_chamber()
-	if(current_mag.current_rounds > 0)
-		in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
-		current_mag.current_rounds--
-		current_mag.chamber_contents[current_mag.chamber_position--] = null
-		return in_chamber
-
-//-------------------------------------------------------
-//GENERIC MERC SHOTGUN //Not really based on anything.
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                CUSTOM / MERC SHOTGUN               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Not really based on anything.
 
 /obj/item/weapon/gun/shotgun/merc
 	name = "custom built shotgun"
@@ -118,52 +120,59 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "cshotgun"
 	item_state = "cshotgun"
-
 	fire_sound = 'sound/weapons/gun_shotgun_automatic.ogg'
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/merc
-	attachable_allowed = list(
-		/obj/item/attachable/compensator,
-	)
-
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH //No rules, no safety,
 
-/obj/item/weapon/gun/shotgun/merc/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 31, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 17, "under_y" = 14, "stock_x" = 17, "stock_y" = 14)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_6*2
+	burst_amount = BURST_AMOUNT_TIER_2
+	burst_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/shotgun/merc/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6*2)
-	set_burst_amount(BURST_AMOUNT_TIER_2)
-	set_burst_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_4
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/merc/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/compensator,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 31, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 17, "under_y" = 14, "stock_x" = 17, "stock_y" = 14)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/merc/damaged
 	name = "damaged custom built shotgun"
 	desc = "A cobbled-together pile of scrap and alien wood. Point end towards things you want to die. Has a burst fire feature, as if it needed it. Well, it had one, this one's barrel has apparently exploded outwards like an overripe grape. Guess that's what happens when you DIY a shotgun."
 	icon_state = "cshotgun_bad"
 
-/obj/item/weapon/gun/shotgun/merc/damaged/set_gun_config_values()
-	..()
-	set_fire_delay(1.5 SECONDS)
-	set_burst_amount(BURST_AMOUNT_TIER_1)
+	//=========// GUN STATS //==========//
+	fire_delay = 1.5 SECONDS
+	burst_amount = BURST_AMOUNT_TIER_1
+
 	accuracy_mult = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_6
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_5
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_3
 	scatter_unwielded = SCATTER_AMOUNT_TIER_1
-	damage_mult = BASE_BULLET_DAMAGE_MULT - BULLET_DAMAGE_MULT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE - BULLET_DAMAGE_MULT_TIER_2
 	recoil = RECOIL_AMOUNT_TIER_3
 	recoil_unwielded = RECOIL_AMOUNT_TIER_1
+	//=========// GUN STATS //==========//
 
-//-------------------------------------------------------
-//TACTICAL SHOTGUN
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               MK221 TACTICAL SHOTGUN               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/shotgun/combat
 	name = "\improper MK221 tactical shotgun"
@@ -175,45 +184,46 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	fire_sound = "gun_shotgun_tactical"
 	firesound_volume = 20
 	current_mag = /obj/item/ammo_magazine/internal/shotgun
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/bayonet/co2,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/stock/tactical,
-	)
 
-/obj/item/weapon/gun/shotgun/combat/racked/Initialize(mapload, spawn_empty = TRUE)
-	. = ..()
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_5*2
 
-/obj/item/weapon/gun/shotgun/combat/handle_starting_attachment()
-	..()
-	var/obj/item/attachable/attached_gun/grenade/ugl = new(src)
-	var/obj/item/attachable/stock/tactical/stock = new(src)
-	ugl.flags_attach_features &= ~ATTACH_REMOVABLE
-	ugl.vis_flags |= VIS_HIDE
-	Attach(ugl)
-	Attach(stock)
-
-/obj/item/weapon/gun/shotgun/combat/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 14, "under_y" = 16, "stock_x" = 11, "stock_y" = 13.)
-
-/obj/item/weapon/gun/shotgun/combat/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_5*2)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/combat/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/attached_gun/grenade/hidden, /obj/item/attachable/stock/tactical)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/bayonet/co2,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/stock/tactical,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 14, "under_y" = 16, "stock_x" = 11, "stock_y" = 13.)
+
+	..()
+
+/obj/item/weapon/gun/shotgun/combat/racked/Initialize(mapload, spawn_empty = TRUE)
+	. = ..()
 
 /obj/item/weapon/gun/shotgun/combat/riot
 	name = "\improper MK221 riot shotgun"
@@ -239,13 +249,31 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	desc = "Way back in 2168, Wey-Yu began testing the MK221. The USCM picked up an early prototype, and later adopted it with a limited military contract. But the USCM Special Operations Forces wasn't satisfied, and iterated on the early prototypes they had access to; eventually, their internal armorers and tinkerers produced the MK210, designated XM38, a lightweight folding shotgun that snaps to the belt. And to boot, it's fully automatic, made of stamped medal, and keeps the UGL. Truly an engineering marvel."
 	icon_state = "mk210"
 	item_state = "mk210"
-
-	current_mag = /obj/item/ammo_magazine/internal/shotgun/buckshot
-
 	flags_equip_slot = SLOT_WAIST|SLOT_BACK
 	auto_retrieval_slot = WEAR_J_STORE
+	current_mag = /obj/item/ammo_magazine/internal/shotgun/buckshot
 	start_automatic = TRUE
 	pixel_width_offset = -3
+
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_6
+
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3 - HIT_ACCURACY_MULT_TIER_5
+	scatter = SCATTER_AMOUNT_TIER_6
+	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
+	scatter_unwielded = SCATTER_AMOUNT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	recoil = RECOIL_AMOUNT_TIER_4
+	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/combat/marsoc/initialize_gun_lists()
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 14, "under_y" = 16, "stock_x" = 14, "stock_y" = 16)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/combat/marsoc/retrieve_to_slot(mob/living/carbon/human/user, retrieval_slot)
 	if(retrieval_slot == WEAR_J_STORE) //If we are using a magharness...
@@ -253,23 +281,10 @@ This is better than "empty" as a text string has value. null is easier to accoun
 			return TRUE
 	return ..()
 
-/obj/item/weapon/gun/shotgun/combat/marsoc/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 21, "under_x" = 14, "under_y" = 16, "stock_x" = 14, "stock_y" = 16)
-
-/obj/item/weapon/gun/shotgun/combat/marsoc/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_6)
-	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3 - HIT_ACCURACY_MULT_TIER_5
-	scatter = SCATTER_AMOUNT_TIER_6
-	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
-	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
-	recoil = RECOIL_AMOUNT_TIER_4
-	recoil_unwielded = RECOIL_AMOUNT_TIER_2
-
-//-------------------------------------------------------
-//TYPE 23. SEMI-AUTO UPP SHOTGUN, BASED ON KS-23
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                TYPE 23 RIOT SHOTGUN                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//SEMI-AUTO UPP SHOTGUN, BASED ON KS-23
 
 /obj/item/weapon/gun/shotgun/type23
 	name = "\improper Type 23 riot shotgun"
@@ -279,56 +294,81 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	item_state = "type23"
 	fire_sound = 'sound/weapons/gun_type23.ogg' //not perfect, too small
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/type23
-	attachable_allowed = list(
-		/obj/item/attachable/reddot, // Rail
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/bayonet, // Muzzle
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/verticalgrip, // Underbarrel
-		/obj/item/attachable/flashlight/grip,
-		/obj/item/attachable/attached_gun/flamer,
-		/obj/item/attachable/attached_gun/flamer/advanced,
-		/obj/item/attachable/attached_gun/extinguisher,
-		/obj/item/attachable/burstfire_assembly,
-		/obj/item/attachable/stock/type23, // Stock
-		)
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	flags_equip_slot = SLOT_BACK
 	map_specific_decoration = FALSE
-	starting_attachment_types = list(/obj/item/attachable/stock/type23)
 
-/obj/item/weapon/gun/shotgun/type23/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 13, "rail_y" = 21, "under_x" = 24, "under_y" = 15, "stock_x" = -1, "stock_y" = 17)
+	//=========// GUN STATS //==========//
+	fire_delay = 2.5 SECONDS //TODO Make it into its own define?
 
-/obj/item/weapon/gun/shotgun/type23/set_gun_config_values()
-	..()
-	set_fire_delay(2.5 SECONDS)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_4
 	scatter_unwielded = SCATTER_AMOUNT_TIER_1
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_1
 	recoil_unwielded = RECOIL_AMOUNT_TIER_1
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/type23/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/stock/type23)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/bayonet, // Muzzle
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/verticalgrip, // Underbarrel
+			/obj/item/attachable/flashlight/grip,
+			/obj/item/attachable/attached_gun/flamer,
+			/obj/item/attachable/attached_gun/flamer/advanced,
+			/obj/item/attachable/attached_gun/extinguisher,
+			/obj/item/attachable/burstfire_assembly,
+			/obj/item/attachable/stock/type23, // Stock
+			)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 13, "rail_y" = 21, "under_x" = 24, "under_y" = 15, "stock_x" = -1, "stock_y" = 17)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/type23/breacher
-	random_spawn_chance = 100
-	random_rail_chance = 100
-	random_spawn_rail = list(
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/flashlight,
-	)
-	random_muzzle_chance = 100
-	random_spawn_muzzle = list(
-		/obj/item/attachable/bayonet/upp,
-	)
-	random_under_chance = 40
-	random_spawn_under = list(
-		/obj/item/attachable/verticalgrip,
-	)
+	random_attachment_chance = 100
+
+/obj/item/weapon/gun/shotgun/type23/breacher/initialize_gun_lists()
+
+	if(!random_attachment_spawn_chance)
+		random_attachment_spawn_chance = list()
+
+	if(!random_attachment_spawn_chance[ATTACHMENT_SLOT_UNDER])
+		random_attachment_spawn_chance[ATTACHMENT_SLOT_UNDER] = 40 //Everything else 100.
+
+	if(!random_attachments_possible)
+		random_attachments_possible = list()
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_RAIL])
+		random_attachments_possible[ATTACHMENT_SLOT_RAIL] = list(
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/flashlight
+		)
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_MUZZLE])
+		random_attachments_possible[ATTACHMENT_SLOT_MUZZLE]	= list(
+			/obj/item/attachable/bayonet/upp
+		)
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_UNDER])
+		random_attachments_possible[ATTACHMENT_SLOT_UNDER] = list(
+			/obj/item/attachable/verticalgrip
+		)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/type23/breacher/slug
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/type23/slug
@@ -337,64 +377,98 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/type23/flechette
 
 /obj/item/weapon/gun/shotgun/type23/dual
-	random_spawn_chance = 100
-	random_rail_chance = 100
-	random_spawn_rail = list(
-		/obj/item/attachable/magnetic_harness,
-	)
-	random_muzzle_chance = 80
-	random_spawn_muzzle = list(
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/heavy_barrel,
-	)
-	random_under_chance = 100
-	random_spawn_under = list(
-		/obj/item/attachable/flashlight/grip,
-		/obj/item/attachable/verticalgrip,
-	)
+	random_attachment_chance = 100
+
+/obj/item/weapon/gun/shotgun/type23/dual/initialize_gun_lists()
+
+	if(!random_attachment_spawn_chance)
+		random_attachment_spawn_chance = list()
+
+	if(!random_attachment_spawn_chance[ATTACHMENT_SLOT_MUZZLE])
+		random_attachment_spawn_chance[ATTACHMENT_SLOT_MUZZLE] = 80
+
+	if(!random_attachments_possible)
+		random_attachments_possible = list()
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_RAIL])
+		random_attachments_possible[ATTACHMENT_SLOT_RAIL] = list(
+			/obj/item/attachable/magnetic_harness
+		)
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_MUZZLE])
+		random_attachments_possible[ATTACHMENT_SLOT_MUZZLE]	= list(
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/heavy_barrel
+		)
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_UNDER])
+		random_attachments_possible[ATTACHMENT_SLOT_UNDER] = list(
+			/obj/item/attachable/flashlight/grip,
+			/obj/item/attachable/verticalgrip
+		)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/type23/dragon
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/type23/dragonsbreath
-	random_spawn_chance = 100
-	random_rail_chance = 100
-	random_spawn_rail = list(
-		/obj/item/attachable/magnetic_harness,
-	)
-	random_muzzle_chance = 70
-	random_spawn_muzzle = list(
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/heavy_barrel,
-	)
-	random_under_chance = 100
-	random_spawn_under = list(
-		/obj/item/attachable/attached_gun/extinguisher,
-	)
+
+/obj/item/weapon/gun/shotgun/type23/dragon/initialize_gun_lists()
+
+	if(!random_attachment_spawn_chance)
+		random_attachment_spawn_chance = list()
+
+	if(!random_attachment_spawn_chance[ATTACHMENT_SLOT_MUZZLE])
+		random_attachment_spawn_chance[ATTACHMENT_SLOT_MUZZLE] = 70
+
+	if(!random_attachments_possible)
+		random_attachments_possible = list()
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_RAIL])
+		random_attachments_possible[ATTACHMENT_SLOT_RAIL] = list(
+			/obj/item/attachable/magnetic_harness
+		)
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_MUZZLE])
+		random_attachments_possible[ATTACHMENT_SLOT_MUZZLE]	= list(
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/heavy_barrel
+		)
+
+	if(!random_attachments_possible[ATTACHMENT_SLOT_UNDER])
+		random_attachments_possible[ATTACHMENT_SLOT_UNDER] = list(
+			/obj/item/attachable/attached_gun/extinguisher
+		)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/type23/riot_control
 	name = "\improper Type 23-R riot control shotgun"
 	desc = "This slow semi-automatic shotgun chambers 8 gauge, and packs a mean punch. The -R version is designed for UPP colony security personnel and handling colony rioting, sporting an integrated vertical grip but lacking in attachment choices."
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/type23/beanbag
-	attachable_allowed = list(
-		/obj/item/attachable/reddot, //Rail
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/verticalgrip, //Underbarrel
-		/obj/item/attachable/stock/type23, //Stock
-	)
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER
 	flags_equip_slot = SLOT_BACK
 	map_specific_decoration = FALSE
-	starting_attachment_types = list(/obj/item/attachable/stock/type23)
 
-/obj/item/weapon/gun/shotgun/type23/riot_control/handle_starting_attachment()
-	. = ..()
-	var/obj/item/attachable/verticalgrip/integrated_grip = new(src)
-	integrated_grip.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(integrated_grip)
+/obj/item/weapon/gun/shotgun/type23/riot_control/initialize_gun_lists()
 
-//-------------------------------------------------------
-//DOUBLE SHOTTY
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/stock/type23, /obj/item/attachable/verticalgrip/integrated)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot, //Rail
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/verticalgrip, //Underbarrel
+			/obj/item/attachable/stock/type23, //Stock
+		)
+
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[         SPEARHEAD RIVAL 78 / DOUBLE SHOTTY         ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/shotgun/double
 	name = "\improper Spearhead Rival 78"
@@ -402,47 +476,52 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "dshotgun"
 	item_state = "dshotgun"
-
-	current_mag = /obj/item/ammo_magazine/internal/shotgun/double
 	fire_sound = 'sound/weapons/gun_shotgun_heavy.ogg'
 	break_sound = 'sound/weapons/handling/gun_mou_open.ogg'
 	seal_sound = 'sound/weapons/handling/gun_mou_close.ogg'//replace w/ uniques
 	cocked_sound = null //We don't want this.
-	cycle_chamber_delay = 5 //Small delay between opening/closing the shotgun.
-
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/gyro,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/stock/double,
-	)
-
+	current_mag = /obj/item/ammo_magazine/internal/shotgun/double
 	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_MANUAL_CYCLE|GUN_CHAMBER_CAN_OPEN|GUN_ACCEPTS_HANDFUL
-	burst_delay = 0 //So doubleshotty can doubleshot
 	has_open_icon = TRUE
 	civilian_usable_override = TRUE // Come on. It's THE survivor shotgun.
-	additional_fire_group_delay = 1.5 SECONDS
 	pixel_width_offset = -4
 
-/obj/item/weapon/gun/shotgun/double/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 19,"rail_x" = 11, "rail_y" = 20, "under_x" = 15, "under_y" = 14, "stock_x" = 13, "stock_y" = 14)
+	//=========// GUN STATS //==========//
+	burst_amount = BURST_AMOUNT_TIER_2
+	fire_delay = FIRE_DELAY_TIER_11
+	burst_delay = FIRE_DELAY_BURST_OFF //So doubleshotty can doubleshot
 
-/obj/item/weapon/gun/shotgun/double/set_gun_config_values()
-	..()
-	set_burst_amount(BURST_AMOUNT_TIER_2)
-	set_fire_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_10
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+
+	cycle_chamber_delay = 5 //Small delay between opening/closing the shotgun.
+	additional_fire_group_delay = 1.5 SECONDS
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/double/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/gyro,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/stock/double,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 19,"rail_x" = 11, "rail_y" = 20, "under_x" = 15, "under_y" = 14, "stock_x" = 13, "stock_y" = 14)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/double/get_additional_gun_examine_text(mob/user)
 	. = ..() + ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "It's open with [current_mag.current_rounds? current_mag.current_rounds : "no"] shell\s loaded." : "It's closed." )
@@ -477,28 +556,30 @@ This is better than "empty" as a text string has value. null is easier to accoun
 
 	play_chamber_cycle_sound(user, ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? seal_sound : break_sound ), 20)
 
-/obj/item/weapon/gun/shotgun/double/with_stock/handle_starting_attachment()
-	. = ..()
-	var/obj/item/attachable/stock/double/S = new(src)
-	S.flags_attach_features &= ~ATTACH_REMOVABLE
-	Attach(S)
+/obj/item/weapon/gun/shotgun/double/with_stock/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/stock/double)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/double/damaged
 	name = "semi-sawn-off Spearhead Rival 78"
 	desc = "A double barrel shotgun produced by Spearhead. Archaic, sturdy, affordable. For some reason it seems that someone tried to saw through the barrel and gave up halfway through. This probably isn't going to be the greatest gun for combat.."
 	icon_state = "dshotgun_bad"
 
-/obj/item/weapon/gun/shotgun/double/damaged/set_gun_config_values()
-	..()
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	set_fire_delay(0.9 SECONDS)
+	//=========// GUN STATS //==========//
+	burst_amount = BURST_AMOUNT_TIER_1
+	fire_delay = 0.9 SECONDS
+
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_7
 	scatter_unwielded = SCATTER_AMOUNT_TIER_1
-	damage_mult = BASE_BULLET_DAMAGE_MULT - BULLET_DAMAGE_MULT_TIER_7
+	damage_mult = BULLET_DAMAGE_MULT_BASE - BULLET_DAMAGE_MULT_TIER_7
 	recoil = RECOIL_AMOUNT_TIER_3
 	recoil_unwielded = RECOIL_AMOUNT_TIER_1
+	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/shotgun/double/sawn
 	name = "\improper sawn-off Spearhead Rival 78"
@@ -507,26 +588,33 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	item_state = "sshotgun"
 	flags_equip_slot = SLOT_WAIST
 
-/obj/item/weapon/gun/shotgun/double/sawn/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 19, "rail_x" = 11, "rail_y" = 20, "under_x" = 15, "under_y" = 14,  "stock_x" = 18, "stock_y" = 16)
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_11
 
-/obj/item/weapon/gun/shotgun/double/sawn/set_gun_config_values()
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3 - HIT_ACCURACY_MULT_TIER_5
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_10
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_7
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_7
 	recoil = RECOIL_AMOUNT_TIER_3
 	recoil_unwielded = RECOIL_AMOUNT_TIER_1
+	//=========// GUN STATS //==========//
 
+/obj/item/weapon/gun/shotgun/double/sawn/initialize_gun_lists()
 
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 19, "rail_x" = 11, "rail_y" = 20, "under_x" = 15, "under_y" = 14,  "stock_x" = 18, "stock_y" = 16)
 
+	..()
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                CANE / HIDDEN SHOTGUN?              ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 // COULDN'T THINK OF ANOTHER WAY SORRY!!!! SOMEONE ADD A GUN COMPONENT!!
-//I'm not really sure what to make of this. The text refered to this as a cane revolver, yet it didn't load or behave like a revolver.
+//I'm not really sure what to make of this. The text referred to this as a cane revolver, yet it didn't load or behave like a revolver.
 //I have decided to change the text since I don't care enough to completely rework this item right now.
+
 /obj/item/weapon/gun/shotgun/double/cane
 	name = "fancy cane"
 	desc = "An ebony cane with a fancy, seemingly-golden tip. Feels hollow to the touch."
@@ -545,28 +633,35 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	fire_sound = list('sound/weapons/gun_silenced_oldshot1.ogg', 'sound/weapons/gun_silenced_oldshot2.ogg') // Uses the old sounds because they're more 'James Bond'-y
 	break_sound = 'sound/weapons/handling/pkd_open_chamber.ogg'
 	seal_sound = 'sound/weapons/handling/pkd_close_chamber.ogg'
-	attachable_allowed = list()
 	projectile_casing = PROJECTILE_CASING_BULLET
-
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_ANTIQUE|GUN_NO_DESCRIPTION|GUN_UNUSUAL_DESIGN
 	flags_gun_toggles = GUN_TRIGGER_SAFETY_ON
 	flags_item = NO_FLAGS
 
-	inherent_traits = list(TRAIT_GUN_IS_SILENCED)
+	//=========// GUN STATS //==========//
+	burst_amount = BURST_AMOUNT_TIER_1
+	fire_delay = FIRE_DELAY_TIER_7
+
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_10
+	scatter_unwielded = SCATTER_AMOUNT_TIER_7
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_5
+	recoil = RECOIL_AMOUNT_TIER_2
+	recoil_unwielded = RECOIL_AMOUNT_TIER_3
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/double/cane/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list() //Reset this.
+
+	if(!inherent_traits)
+		inherent_traits = list(TRAIT_GUN_IS_SILENCED)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/double/cane/Initialize(mapload, spawn_empty)
 	. = ..()
 	AddElement(/datum/element/traitbound/gun_silenced)
-
-/obj/item/weapon/gun/shotgun/double/cane/set_gun_config_values()
-	..()
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	set_fire_delay(FIRE_DELAY_TIER_7)
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_10
-	scatter_unwielded = SCATTER_AMOUNT_TIER_7
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_5
-	recoil = RECOIL_AMOUNT_TIER_2
-	recoil_unwielded = RECOIL_AMOUNT_TIER_3
 
 /obj/item/weapon/gun/shotgun/double/cane/gun_safety_handle(mob/user)
 	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
@@ -607,7 +702,10 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	else
 		icon_state = initial(icon_state) + "_gun"
 
-//M-OU53 SHOTGUN | Marine mid-range slug/flechette only coach gun (except its an over-under). Support weapon for slug stuns / flechette DOTS (when implemented). Buckshot in this thing is just stupidly strong, hence the denial.
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                 MOU53 BREAK ACTION                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Marine mid-range slug/flechette only coach gun (except its an over-under). Support weapon for slug stuns / flechette DOTS (when implemented). Buckshot in this thing is just stupidly strong, hence the denial.
 
 /obj/item/weapon/gun/shotgun/double/mou53
 	name = "\improper MOU53 break action shotgun"
@@ -618,41 +716,47 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	reload_sound = 'sound/weapons/handling/gun_mou_reload.ogg'//unique shell insert
 	flags_equip_slot = SLOT_BACK
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/double/mou53 //Take care, she comes loaded!
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/bayonet/co2,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/scope/mini,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/verticalgrip,
-		/obj/item/attachable/angledgrip,
-		/obj/item/attachable/flashlight/grip,
-		/obj/item/attachable/gyro,
-		/obj/item/attachable/lasersight,
-		/obj/item/attachable/stock/mou53,
-	)
 	map_specific_decoration = TRUE
 	civilian_usable_override = FALSE
 	pixel_width_offset = -1
 
-/obj/item/weapon/gun/shotgun/double/mou53/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 11, "rail_y" = 21, "under_x" = 17, "under_y" = 15, "stock_x" = 10, "stock_y" = 9) //Weird stock values, make sure any new stock matches the old sprite placement in the .dmi
+	//=========// GUN STATS //==========//
+	burst_amount = BURST_AMOUNT_TIER_1
+	fire_delay = FIRE_DELAY_TIER_11
 
-
-/obj/item/weapon/gun/shotgun/double/mou53/set_gun_config_values()
-	..()
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	set_fire_delay(FIRE_DELAY_TIER_11)
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_10
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_3
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/double/mou53/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/bayonet/co2,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/scope/mini,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/verticalgrip,
+			/obj/item/attachable/angledgrip,
+			/obj/item/attachable/flashlight/grip,
+			/obj/item/attachable/gyro,
+			/obj/item/attachable/lasersight,
+			/obj/item/attachable/stock/mou53,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 11, "rail_y" = 21, "under_x" = 17, "under_y" = 15, "stock_x" = 10, "stock_y" = 9) //Weird stock values, make sure any new stock matches the old sprite placement in the .dmi
+
+	..()
 
 /obj/item/weapon/gun/shotgun/double/mou53/reload(mob/user, obj/item/ammo_magazine/magazine)
 	if(ispath(magazine.default_ammo, /datum/ammo/bullet/shotgun/buckshot)) // No buckshot in this gun
@@ -660,7 +764,11 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		return
 	..()
 
-//TWO BORE - Van Bandolier's ginormous elephant gun.
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[              TWO-BORE RIFLE / SHOTGUN              ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Van Bandolier's ginormous elephant gun.
+
 /datum/action/item_action/specialist/twobore_brace
 	ability_primacy = SPEC_PRIMARY_ACTION_1
 
@@ -705,36 +813,48 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/event.dmi'
 	icon_state = "twobore"
 	item_state = "twobore"
-	force = 20 //Big heavy elephant gun.
-	current_mag = /obj/item/ammo_magazine/internal/shotgun/double/twobore
 	fire_sound = 'sound/weapons/gun_mateba.ogg'
 	break_sound = 'sound/weapons/handling/gun_mou_open.ogg'
 	seal_sound = 'sound/weapons/handling/gun_mou_close.ogg'//replace w/ uniques
+	current_mag = /obj/item/ammo_magazine/internal/shotgun/double/twobore
 	projectile_casing = PROJECTILE_CASING_TWOBORE
-	attachable_allowed = list()
 	delay_style = WEAPON_DELAY_NO_FIRE //This is a heavy, bulky weapon, and tricky to snapshot with.
 	flags_equip_slot = SLOT_BACK
-	actions_types = list(/datum/action/item_action/specialist/twobore_brace)
-	starting_attachment_types = list(/obj/item/attachable/stock/twobore)
 	aim_slowdown = SLOWDOWN_ADS_LMG //Quite slow, but VB has light-armor slowdown and doesn't feel pain.
 	civilian_usable_override = FALSE
 	pixel_width_offset = 0
 	var/braced = FALSE
 
-/obj/item/weapon/gun/shotgun/double/twobore/set_gun_config_values()
-	..()
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	set_fire_delay(2 SECONDS )//Less than the stun time, but you still have to brace to fire safely.
+	//=========// GUN STATS //==========//
+	force = 20 //Big heavy elephant gun.
+	burst_amount = BURST_AMOUNT_TIER_1
+	fire_delay = 2 SECONDS//Less than the stun time, but you still have to brace to fire safely.
+
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_8
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_OFF //This is done manually.
 	recoil_unwielded = RECOIL_OFF
+	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/shotgun/double/twobore/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 21,"rail_x" = 15, "rail_y" = 22, "under_x" = 21, "under_y" = 16, "stock_x" = 0, "stock_y" = 16)
+
+/obj/item/weapon/gun/shotgun/double/twobore/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/stock/twobore)
+
+	if(!attachable_allowed)
+		attachable_allowed = list()
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 21,"rail_x" = 15, "rail_y" = 22, "under_x" = 21, "under_y" = 16, "stock_x" = 0, "stock_y" = 16)
+
+	if(!actions_types)
+		actions_types = list(/datum/action/item_action/specialist/twobore_brace)
+
+	..()
 
 /obj/item/weapon/gun/shotgun/double/twobore/proc/brace(mob/living/carbon/human/user)
 	RegisterSignal(user, COMSIG_MOVABLE_MOVED, PROC_REF(unbrace), user)
@@ -874,8 +994,9 @@ This is better than "empty" as a text string has value. null is easier to accoun
 				SPAN_DANGER("The [initial(name)]'s recoil hammers you against an obstacle!"))
 		user.apply_damage(5, BRUTE)
 
-//-------------------------------------------------------
-//PUMP SHOTGUN
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                 M37A2 PUMP SHOTGUN                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Shotguns in this category will need to be pumped each shot.
 
 /obj/item/weapon/gun/shotgun/pump
@@ -890,55 +1011,56 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	firesound_volume = 60
 	cocked_sound = "shotgunpump"
 	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBERED_CYCLE|GUN_MANUAL_CYCLE|GUN_ACCEPTS_HANDFUL
-
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/bayonet/co2,
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/verticalgrip,
-		/obj/item/attachable/angledgrip,
-		/obj/item/attachable/flashlight/grip,
-		/obj/item/attachable/gyro,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/flashlight/grip,
-		/obj/item/attachable/extended_barrel,
-		/obj/item/attachable/heavy_barrel,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/attached_gun/extinguisher,
-		/obj/item/attachable/attached_gun/flamer,
-		/obj/item/attachable/attached_gun/flamer/advanced,
-		/obj/item/attachable/stock/shotgun,
-	)
 	map_specific_decoration = TRUE
 
-/obj/item/weapon/gun/shotgun/pump/racked/Initialize(mapload, spawn_empty = TRUE)
-	. = ..()
+	//=========// GUN STATS //==========//
+	burst_amount = BURST_AMOUNT_TIER_1
+	fire_delay = FIRE_DELAY_TIER_7 * 4
 
-/obj/item/weapon/gun/shotgun/pump/Initialize(mapload, spawn_empty)
-	. = ..()
-	cycle_chamber_delay = FIRE_DELAY_TIER_5*2
-	additional_fire_group_delay += cycle_chamber_delay
-
-/obj/item/weapon/gun/shotgun/pump/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 20, "under_x" = 20, "under_y" = 14, "stock_x" = 20, "stock_y" = 14)
-
-/obj/item/weapon/gun/shotgun/pump/set_gun_config_values()
-	..()
-	set_burst_amount(BURST_AMOUNT_TIER_1)
-	set_fire_delay(FIRE_DELAY_TIER_7 * 4)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 
-/obj/item/weapon/gun/shotgun/pump/unload(mob/user, check_chamber_first = TRUE)
+	cycle_chamber_delay = FIRE_DELAY_TIER_5*2
+	additional_fire_group_delay = FIRE_DELAY_TIER_5*2 //Should be identical to the above.
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/pump/initialize_gun_lists()
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/bayonet/co2,
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/verticalgrip,
+			/obj/item/attachable/angledgrip,
+			/obj/item/attachable/flashlight/grip,
+			/obj/item/attachable/gyro,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/flashlight/grip,
+			/obj/item/attachable/extended_barrel,
+			/obj/item/attachable/heavy_barrel,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/attached_gun/extinguisher,
+			/obj/item/attachable/attached_gun/flamer,
+			/obj/item/attachable/attached_gun/flamer/advanced,
+			/obj/item/attachable/stock/shotgun,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 19,"rail_x" = 10, "rail_y" = 20, "under_x" = 20, "under_y" = 14, "stock_x" = 20, "stock_y" = 14)
+
+	..()
+
+/obj/item/weapon/gun/shotgun/pump/racked/Initialize(mapload, spawn_empty = TRUE)
 	. = ..()
 
 //Modern shotguns normally lock after being pumped; this lock is undone by operating the slide release i.e. unloading a shell manually from the chamber.
@@ -969,7 +1091,9 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		to_chat(user, SPAN_WARNING("You disengage [src]'s pump lock with the slide release."))
 	. = ..()
 
-//-------------------------------------------------------
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               GENERIC DUAL TUBE PUMP               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/shotgun/pump/dual_tube
 	name = "generic dual-tube pump shotgun"
@@ -1019,6 +1143,9 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	if(shotgun == src)
 		swap_tube(usr)
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                HG 37-12 PUMP SHOTGUN               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //SHOTGUN FROM ISOLATION
 
 /obj/item/weapon/gun/shotgun/pump/dual_tube/cmb
@@ -1029,37 +1156,45 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	item_state = "hg3712"
 	fire_sound = 'sound/weapons/gun_shotgun_small.ogg'
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/cmb
-	attachable_allowed = list(
-		/obj/item/attachable/reddot,
-		/obj/item/attachable/reflex,
-		/obj/item/attachable/gyro,
-		/obj/item/attachable/flashlight,
-		/obj/item/attachable/compensator,
-		/obj/item/attachable/magnetic_harness,
-		/obj/item/attachable/attached_gun/extinguisher,
-		/obj/item/attachable/attached_gun/flamer,
-		/obj/item/attachable/attached_gun/flamer/advanced,
-	)
-	starting_attachment_types = list(/obj/item/attachable/stock/hg3712)
 	map_specific_decoration = FALSE
 	civilian_usable_override = TRUE // Come on. It's THE, er, other, survivor shotgun.
 
+	//=========// GUN STATS //==========//
+	fire_delay = 1.6 SECONDS
 
-/obj/item/weapon/gun/shotgun/pump/dual_tube/cmb/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 31, "muzzle_y" = 17,"rail_x" = 8, "rail_y" = 21, "under_x" = 22, "under_y" = 15, "stock_x" = 24, "stock_y" = 10)
-
-
-/obj/item/weapon/gun/shotgun/pump/dual_tube/cmb/set_gun_config_values()
-	..()
-	set_fire_delay(1.6 SECONDS)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/pump/dual_tube/cmb/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/stock/hg3712)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/reddot,
+			/obj/item/attachable/reflex,
+			/obj/item/attachable/gyro,
+			/obj/item/attachable/flashlight,
+			/obj/item/attachable/compensator,
+			/obj/item/attachable/magnetic_harness,
+			/obj/item/attachable/attached_gun/extinguisher,
+			/obj/item/attachable/attached_gun/flamer,
+			/obj/item/attachable/attached_gun/flamer/advanced,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 31, "muzzle_y" = 17,"rail_x" = 8, "rail_y" = 21, "under_x" = 22, "under_y" = 15, "stock_x" = 24, "stock_y" = 10)
+
+
+	..()
 
 /obj/item/weapon/gun/shotgun/pump/dual_tube/cmb/m3717
 	name = "\improper M37-17 pump shotgun"
@@ -1068,10 +1203,16 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	icon_state = "m3717"
 	item_state = "m3717"
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/cmb/m3717
-	starting_attachment_types = list(/obj/item/attachable/stock/hg3712/m3717)
 
-/obj/item/weapon/gun/shotgun/pump/dual_tube/cmb/m3717/set_gun_config_values()
+	//=========// GUN STATS //==========//
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_3
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/shotgun/pump/dual_tube/cmb/m3717/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/stock/hg3712/m3717)
+
 	..()
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_3
 
 //-------------------------------------------------------

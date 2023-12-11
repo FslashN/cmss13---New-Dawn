@@ -231,7 +231,7 @@ GLOBAL_LIST_EMPTY(vending_products)
 			to_chat(user, SPAN_WARNING("[G] is still loaded. Unload it before you can restock it."))
 			return
 		for(var/obj/item/attachable/A in G.contents) //Search for attachments on the gun. This is the easier method
-			if((A.flags_attach_features & ATTACH_REMOVABLE) && !(is_type_in_list(A, G.starting_attachment_types))) //There are attachments that are default and others that can't be removed
+			if( !(A.flags_attach_features & ATTACH_INTEGRATED) && (!G.starting_attachment_types || !(is_type_in_list(A, G.starting_attachment_types)) )) //There are attachments that are default and others that can't be removed
 				to_chat(user, SPAN_WARNING("[G] has non-standard attachments equipped. Detach them before you can restock it."))
 				return
 	//various stacks handling

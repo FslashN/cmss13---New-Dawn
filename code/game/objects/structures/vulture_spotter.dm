@@ -290,10 +290,10 @@
 		return
 
 	var/obj/item/weapon/gun/boltaction/vulture/rifle = bound_rifle.resolve()
-	if(!("rail" in rifle.attachments) || !istype(rifle.attachments["rail"], /obj/item/attachable/vulture_scope))
+	if(!(ATTACHMENT_SLOT_RAIL in rifle.attachments) || !istype(rifle.attachments[ATTACHMENT_SLOT_RAIL], /obj/item/attachable/vulture_scope))
 		return
 
-	return rifle.attachments["rail"]
+	return rifle.attachments[ATTACHMENT_SLOT_RAIL]
 
 /datum/action/vulture_tripod_unscope
 	name = "Stop Using Scope"

@@ -1,4 +1,6 @@
-
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               GENERIC BOLT ACTION RIFLE            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 // Bolt Action Rifle Code, credit to Alardun and Optimisticdude. This is for bolt action rifles which use external magazines, such as the AWM International, rather than internally fed rifles such as the Mosin-Nagant.
 // For internally fed bolt actions, it'd be more advised to use pump shotgun code, or obj/item/weapon/gun/shotgun/pump, to create that type of variant of bolt action rifle.
 
@@ -24,16 +26,7 @@
 	wield_delay = WIELD_DELAY_NORMAL
 	current_mag = /obj/item/ammo_magazine/rifle/boltaction
 	projectile_casing = PROJECTILE_CASING_CARTRIDGE
-	attachable_allowed = list(
-		/obj/item/attachable/bayonet,
-		/obj/item/attachable/bayonet/co2,
-		/obj/item/attachable/bayonet/upp,
-		/obj/item/attachable/scope,
-		/obj/item/attachable/scope/mini,
-		/obj/item/attachable/scope/mini/hunting,
-		/obj/item/attachable/stock/hunting,
-	)
-	starting_attachment_types = list(/obj/item/attachable/stock/hunting, /obj/item/attachable/scope/mini/hunting)
+
 	aim_slowdown = SLOWDOWN_ADS_RIFLE
 	wield_delay = WIELD_DELAY_NORMAL
 	civilian_usable_override = TRUE
@@ -42,13 +35,44 @@
 	var/used_casings = 0 //Since there is no internal mag, we track the gun itself. I don't like using a variable for this, but eh...
 	var/has_openbolt_icon = TRUE /// If this gun should change icon states when the bolt is open
 
-/obj/item/weapon/gun/boltaction/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 5, "rail_y" = 18, "under_x" = 25, "under_y" = 14, "stock_x" = 18, "stock_y" = 10)
+	//=========// GUN STATS //==========//
+	burst_amount = BURST_AMOUNT_TIER_1
+	fire_delay = FIRE_DELAY_TIER_4
+	cycle_chamber_delay = FIRE_DELAY_TIER_5
+
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
+	scatter = SCATTER_AMOUNT_TIER_6
+	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
+	scatter_unwielded = SCATTER_AMOUNT_TIER_2
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_8
+	recoil = RECOIL_AMOUNT_TIER_4
+	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/boltaction/initialize_gun_lists()
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/bayonet,
+			/obj/item/attachable/bayonet/co2,
+			/obj/item/attachable/bayonet/upp,
+			/obj/item/attachable/scope,
+			/obj/item/attachable/scope/mini,
+			/obj/item/attachable/scope/mini/hunting,
+			/obj/item/attachable/stock/hunting,
+		)
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(/obj/item/attachable/stock/hunting, /obj/item/attachable/scope/mini/hunting)
+
+	if(!attachable_offset)
+		attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 5, "rail_y" = 18, "under_x" = 25, "under_y" = 14, "stock_x" = 18, "stock_y" = 10)
+
+	..()
 
 /obj/item/weapon/gun/boltaction/Initialize(mapload, spawn_empty)
 	. = ..()
 	ready_in_chamber()
-	cycle_chamber_delay = FIRE_DELAY_TIER_5
 
 /obj/item/weapon/gun/boltaction/unique_action(mob/user)
 	cycle_chamber(user)
@@ -56,19 +80,6 @@
 /obj/item/weapon/gun/boltaction/update_icon() // needed for bolt action sprites
 	..()
 	icon_state = (bolt_is_open && has_openbolt_icon) ? icon_state + "_o" : icon_state
-
-/obj/item/weapon/gun/boltaction/set_gun_config_values()
-	..()
-	set_burst_amount(0)
-	set_fire_delay(FIRE_DELAY_TIER_4)
-	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
-	scatter = SCATTER_AMOUNT_TIER_6
-	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
-	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_8
-	recoil = RECOIL_AMOUNT_TIER_4
-	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 
 /obj/item/weapon/gun/boltaction/cycle_chamber(mob/user)
 	if(cycle_chamber_cooldown > world.time)
@@ -85,8 +96,9 @@
 		if(used_casings)
 			used_casings--
 			make_casing(projectile_casing)
-		else
-			unload_chamber(user)
+		else if(in_chamber)
+			eject_handful_to_turf(user)
+			in_chamber = null
 	else
 		to_chat(user, SPAN_DANGER("You close the bolt of [src]!"))
 		play_chamber_cycle_sound(user, open_bolt_sound, 15)
@@ -106,8 +118,12 @@
 	. = ..()
 	if(!active_attachable) used_casings++ //Sadly have to check for this again in case an attachable was used.
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[             VULTURE ANTI-MATERIAL RIFLE            ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/boltaction/vulture
-	name = "\improper M707 \"Vulture\" anti-materiel rifle"
+	name = "\improper M707 'Vulture' anti-materiel rifle"
 	desc = "The M707 is a crude but highly powerful rifle, designed for disabling lightly armored vehicles and hitting targets inside buildings. Its unwieldy scope and caliber necessitates a spotter to be fully effective, suffering severe scope drift without one."
 	desc_lore = {"
 		Put into production in 2175 as an economical answer to rising militancy in the Outer Rim, the M707 was derived from jury-rigged anti-materiel rifles that were captured during the Linna 349 campaign.
@@ -134,54 +150,62 @@
 	wield_delay = WIELD_DELAY_VERY_SLOW
 	map_specific_decoration = TRUE
 	current_mag = /obj/item/ammo_magazine/rifle/boltaction/vulture
-	attachable_allowed = list(
-		/obj/item/attachable/sniperbarrel/vulture,
-		/obj/item/attachable/vulture_scope,
-		/obj/item/attachable/bipod/vulture,
-		/obj/item/attachable/stock/vulture,
-	)
-	starting_attachment_types = list(
-		/obj/item/attachable/sniperbarrel/vulture,
-		/obj/item/attachable/vulture_scope,
-		/obj/item/attachable/bipod/vulture,
-		/obj/item/attachable/stock/vulture,
-	)
 	civilian_usable_override = FALSE
-	projectile_type = /obj/projectile/vulture
-	actions_types = list(
-		/datum/action/item_action/vulture,
-	)
 	has_openbolt_icon = FALSE
 	cycle_chamber_delay = 1 SECONDS
 	/// How far out people can tell the direction of the shot
+	projectile_type = /obj/projectile/vulture
 	var/fire_message_range = 25
 	/// If the gun should bypass the trait requirement
 	var/bypass_trait = FALSE
 
-/obj/item/weapon/gun/boltaction/vulture/skillless
-	bypass_trait = TRUE
+	//=========// GUN STATS //==========//
+	fire_delay = FIRE_DELAY_TIER_VULTURE
 
-/obj/item/weapon/gun/boltaction/vulture/update_icon()
-	. = ..()
-	if(bolt_is_open)
-		overlays += "vulture_bolt_open" //Does it not remove it?
-
-
-/obj/item/weapon/gun/boltaction/vulture/set_gun_config_values() //check that these work
-	..()
-	set_fire_delay(FIRE_DELAY_TIER_VULTURE)
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_7
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_10
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_2
-	damage_mult = BASE_BULLET_DAMAGE_MULT
+	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_4
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
-	damage_falloff_mult = 0
+	damage_falloff_mult = DAMAGE_FALLOFF_OFF
+	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/boltaction/vulture/set_gun_attachment_offsets()
-	attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19, "rail_x" = 11, "rail_y" = 24, "under_x" = 25, "under_y" = 14, "stock_x" = 11, "stock_y" = 15)
+/obj/item/weapon/gun/boltaction/vulture/skillless
+	bypass_trait = TRUE
+
+/obj/item/weapon/gun/boltaction/vulture/initialize_gun_lists()
+
+	if(!starting_attachment_types)
+		starting_attachment_types = list(
+			/obj/item/attachable/barrel/sniper/vulture,
+			/obj/item/attachable/vulture_scope,
+			/obj/item/attachable/bipod/vulture,
+			/obj/item/attachable/stock/vulture,
+		)
+
+	if(!attachable_allowed)
+		attachable_allowed = list(
+			/obj/item/attachable/barrel/sniper/vulture,
+			/obj/item/attachable/vulture_scope,
+			/obj/item/attachable/bipod/vulture,
+			/obj/item/attachable/stock/vulture,
+		)
+
+	if(!attachable_offset)
+		attachable_offset = list("barrel_x" = 33, "barrel_y" = 19, "rail_x" = 11, "rail_y" = 24, "under_x" = 25, "under_y" = 14, "stock_x" = 11, "stock_y" = 15)
+
+	if(!actions_types)
+		actions_types = list(/datum/action/item_action/vulture)
+
+	..()
+
+/obj/item/weapon/gun/boltaction/vulture/update_icon()
+	. = ..()
+	if(bolt_is_open)
+		overlays += "vulture_bolt_open" //Does it not remove it?
 
 /obj/item/weapon/gun/boltaction/vulture/check_additional_able_to_fire(mob/user)
 	. = ..()
@@ -191,7 +215,7 @@
 		return FALSE
 
 /obj/item/weapon/gun/boltaction/vulture/Fire(atom/target, mob/living/user, params, reflex, dual_wield)
-	var/obj/item/attachable/vulture_scope/scope = attachments["rail"]
+	var/obj/item/attachable/vulture_scope/scope = attachments[ATTACHMENT_SLOT_RAIL]
 	if(istype(scope) && scope.scoping)
 		var/turf/viewed_turf = scope.get_viewed_turf()
 		target = viewed_turf

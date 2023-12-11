@@ -410,7 +410,7 @@
 		if(istype(src, /obj/item/storage/pouch/magazine/pistol))
 			return..()
 		else
-			dump_ammo_to(M,user, M.transfer_handful_amount)
+			dump_ammo_to(M,user)
 	else
 		return ..()
 
@@ -546,7 +546,7 @@
 /obj/item/storage/pouch/shotgun/attackby(obj/item/W, mob/user)
 	if(istype(W, /obj/item/ammo_magazine/shotgun))
 		var/obj/item/ammo_magazine/shotgun/M = W
-		dump_ammo_to(M, user, M.transfer_handful_amount)
+		dump_ammo_to(M, user)
 	else
 		return ..()
 

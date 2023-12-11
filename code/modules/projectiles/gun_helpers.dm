@@ -1,9 +1,10 @@
-//----------------------------------------------------------
-			//   							\\
-			//  EQUIPMENT AND INTERACTION  	\\
-			//   							\\
-			//   							\\
-//----------------------------------------------------------
+//|********************\============================================================/********************|
+//\____________________/                                           	                \____________________/
+//							>>>>>>>>>>	 EQUIPMENT AND INTERACTION  	<<<<<<<<<
+//
+//|********************|____________________________________________________________|********************|
+//\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
+//--------------------------------------------------------------------------------------------------------
 
 /obj/item/weapon/gun/clicked(mob/user, list/mods)
 	if (mods["alt"])
@@ -217,6 +218,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		var/oil_verb = pick("lubes", "oils", "cleans", "tends to", "gently strokes")
 		if(do_after(user, 30, INTERRUPT_NO_NEEDHAND, BUSY_ICON_FRIENDLY, user, INTERRUPT_MOVED, BUSY_ICON_GENERIC))
 			user.visible_message("[user] [oil_verb] [src]. It shines like new.", "You oil up and immaculately clean [src]. It shines like new.")
+			malfunction_chance_mod = GUN_MALFUNCTION_CHANCE_ZERO //Resets this since you cleaned the gun.
 			clean_blood()
 		else
 			return
@@ -259,7 +261,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		if(user.skills.get_skill_level(SKILL_FIREARMS) == 0)
 			to_chat(user, SPAN_WARNING("You don't know how to do tactical reloads."))
 			return
-		if(istype(src, magazine.gun_type) || (magazine.type in accepted_ammo))
+		if(istype(src, magazine.gun_type) || (additional_type_magazines && (magazine.type in additional_type_magazines) ))
 			if(current_mag)
 				unload(user, FALSE, TRUE)
 			to_chat(user, SPAN_NOTICE("You start a tactical reload."))
@@ -326,17 +328,17 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 
 	return FALSE
 
-//----------------------------------------------------------
-				//  					 	\\
-				//  						\\
-				// ATTACHMENTS AND OVERLAYS \\
-				// 						 	\\
-				//  					 	\\
-//----------------------------------------------------------
-
+//|********************\============================================================/********************|
+//\____________________/                                           	                \____________________/
+//							>>>>>>>>>>	 ATTACHMENTS AND OVERLAYS  	<<<<<<<<<
+//
+//|********************|____________________________________________________________|********************|
+//\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
+//--------------------------------------------------------------------------------------------------------
 //I really hate how this proc runs every time a gun changes stats.
 //Ideally it should only do the functions needed to reflect the change, not do everything over and over.
 //Practically speaking, if there is trait overlap, making changes will be tricky. Probably why it'st set up like this.
+
 /obj/item/weapon/gun/proc/recalculate_attachment_bonuses()
 	//reset weight and force mods
 	force = initial(force)
@@ -351,7 +353,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		REMOVE_TRAITS_IN(src, TRAIT_SOURCE_ATTACHMENT(slot))
 
 	//Get default gun config values
-	set_gun_config_values()
+	reset_gun_stat_values()
 
 	//Add attachment bonuses
 	var/obj/item/attachable/R
@@ -391,6 +393,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		else if(M.r_hand == src)
 			M.update_inv_r_hand()
 
+	update_force_list() //This updates the gun to use proper force verbs.
 	setup_firemodes()
 
 	SEND_SIGNAL(src, COMSIG_GUN_RECALCULATE_ATTACHMENT_BONUSES)
@@ -399,17 +402,20 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 /obj/item/attachable/proc/handle_attaching(mob/user, obj/item/weapon/gun/current_gun)
 	return TRUE
 
-/obj/item/weapon/gun/proc/Attach(obj/item/attachable/attachment, mob/user)
+/obj/item/weapon/gun/proc/Attach(obj/item/attachable/attachment, mob/user, recalculate_bonuses = TRUE)
+	attachment.pixel_x = 0 //We need these to be centered correctly.
+	attachment.pixel_y = 0
+
 	if(ishuman(user))
 		var/mob/living/carbon/human/M = user
 		M.drop_held_item(attachment)
 
 	attachment.forceMove(src)
-
 	attachment.handle_attaching(user, src)
 	attachments[attachment.slot] = attachment
-	recalculate_attachment_bonuses()
-	update_force_list() //This updates the gun to use proper force verbs.
+
+	if(recalculate_bonuses) //We may want to only recalculate bonuses once we're done setting up all attachments instead of doing it every individual Attach.
+		recalculate_attachment_bonuses()
 
 	var/mob/living/living
 	if(isliving(user))
@@ -425,10 +431,6 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 
 	// Sharp attachments (bayonet) make weapons sharp as well.
 	sharp ^= attachment.sharp //This just flips it
-
-	//Viva no more dang projectiles in_chamber. We don't have to worry about applying effects to in_chamber. That's only handled when the gun fires.
-	for(var/trait in attachment.gun_traits)
-		ADD_TRAIT(src, trait, TRAIT_SOURCE_ATTACHMENT(attachment.slot))
 
 	add_attachment_overlay(attachment) //Handles vis_contents.
 
@@ -446,10 +448,12 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	if(attachment.flags_attach_features & ATTACH_ACTIVATION) //Turn it off if it's on.
 		attachment.activate_attachment(src, null, TRUE)
 
+	for(var/trait in attachment.gun_traits) //Handle removing traits first. recaculcuating will add traits back if needed.
+		REMOVE_TRAIT(src, trait, TRAIT_SOURCE_ATTACHMENT(attachment.slot))
+
 	attachment.handle_detaching(user, src)
-	attachments[attachment.slot] = null
+	attachments -= attachment.slot
 	recalculate_attachment_bonuses()
-	update_force_list() //Let's not forget this as well.
 
 	for(var/X in actions) //Remove actions.
 		var/datum/action/DA = X
@@ -461,38 +465,33 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 
 	sharp ^= attachment.sharp
 
-	for(var/trait in attachment.gun_traits)
-		REMOVE_TRAIT(src, trait, TRAIT_SOURCE_ATTACHMENT(attachment.slot))
-
+	attachment.scatter_item() //Scatter it properly so it doesn't stack on top of itself. Eugh.
 	clean_attachment_overlay(attachment)  //Handles vis_contents.
 
 /obj/item/weapon/gun/proc/handle_starting_attachment()
 	if(starting_attachment_types?.len)
-		for(var/path in starting_attachment_types)
-			var/obj/item/attachable/attachment = new path(src)
-			Attach(attachment) //Attach handles the rest.
+		var/obj/item/attachable/attachment
+		var/slot
+		for(var/i = 1 to starting_attachment_types.len)
+			attachment = starting_attachment_types[i]
+			slot = initial(attachment.slot)
+
+			if(!attachments[slot]) //If there are no random attachments already there.
+				attachment = new attachment(src)
+				Attach(attachment, null, i == starting_attachment_types.len ? TRUE : FALSE) //Only recalc when on the last attachment, so everything is attached first.
 
 /obj/item/weapon/gun/proc/handle_random_attachments()
-	if(!prob(random_spawn_chance))
-		return
-
-	//These should all be lists and not variables.
-	var/L[] = list("rail" = random_rail_chance,"muzzle" = random_muzzle_chance,"under" = random_under_chance,"stock" = random_stock_chance)
-	var/choice_path
-	for(var/i in L)
-		if(prob(L[i]) && !attachments[i]) //Can't have something in the slot already.
-			switch(i)
-				if("rail")
-					choice_path = SAFEPICK(random_spawn_rail)
-				if("muzzle")
-					choice_path = SAFEPICK(random_spawn_muzzle)
-				if("under")
-					choice_path = SAFEPICK(random_spawn_under)
-				if("stock")
-					choice_path = SAFEPICK(random_spawn_stock)
-			if(choice_path) //Got something?
-				var/obj/item/attachable/attachment = new choice_path(src)
+	if(random_attachments_possible && prob(random_attachment_chance)) //random_attachments_possible may not exist. Random chance is set to 50 by default, so we check for for both.
+		var/selected_path
+		var/obj/item/attachable/attachment
+		for(var/i in random_attachments_possible)
+			if(prob(random_attachment_spawn_chance[i])) //We need to know if the attachment will spawn.
+				selected_path = pick(random_attachments_possible[i]) //Get the path to the slot. This grabs the list associated with the slot.
+				attachment = new selected_path(src) //Should always be at least one item.
 				Attach(attachment)
+	//We clear out the information as it doesn't matter now.
+	random_attachments_possible	= null
+	random_attachment_spawn_chance = null
 
 /obj/item/weapon/gun/proc/has_attachment(obj/item/attachable/attachment)
 	if(!istype(attachment)) return FALSE
@@ -500,7 +499,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	return FALSE
 
 /obj/item/attachable/proc/can_be_attached_to_gun(mob/user, obj/item/weapon/gun/G)
-	if(G.attachable_allowed && !(type in G.attachable_allowed) )
+	if( !G.attachable_allowed || !(type in G.attachable_allowed) )
 		to_chat(user, SPAN_WARNING("[src] doesn't fit on [G]!"))
 		return FALSE
 	return TRUE
@@ -512,7 +511,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	//Checks if they can attach the thing in the first place, like with fixed attachments.
 	if(attachments[attachment.slot])
 		var/obj/item/attachable/current_attachment = attachments[attachment.slot]
-		if(current_attachment && !(current_attachment.flags_attach_features & ATTACH_REMOVABLE))
+		if(current_attachment && current_attachment.flags_attach_features & ATTACH_INTEGRATED)
 			to_chat(user, SPAN_WARNING("The attachment on [src]'s [attachment.slot] cannot be removed!"))
 			return FALSE
 
@@ -546,19 +545,13 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 
 //These two procs implicitly know that there is something to change.
 /obj/item/weapon/gun/proc/clean_attachment_overlay(obj/item/attachable/attachment)
-	vis_contents -= attachment
 	attachment.pixel_x = initial(pixel_x) //We want to reset these.
 	attachment.pixel_y = initial(pixel_y)
 	if(attachment.attach_icon) //If it has an attach_icon, it may have reset its appearance. Like with foldable stocks and the like. We switch it all back.
 		var/updated_attach_icon = attachment.icon_state // This is the current attached appearance.
 		attachment.icon_state = attachment.attach_icon //Attach icon contains that UI appearance right now.
 		attachment.attach_icon = updated_attach_icon //Then we reset it to the attached appearance.
-	/*
-	else
-		attachment.icon_state = initial(attachment.icon_state) //Reset it anyway for selecting game_mode_skin.
-
-	if(attachment.flags_attach_features & ATTACH_SKIN_SELECTION) //Just in case check this too.
-		attachment.select_gamemode_skin(attachment.type)*/
+	vis_contents -= attachment
 
 /obj/item/weapon/gun/proc/add_attachment_overlay(obj/item/attachable/attachment)
 	var/slot = attachment.slot
@@ -568,7 +561,6 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		var/UI_icon = attachment.icon_state
 		attachment.icon_state = attachment.attach_icon
 		attachment.attach_icon = UI_icon
-
 	vis_contents += attachment //And add it to overlays. If it doesn't have an icon, it will be transparent.
 
 /obj/item/weapon/gun/proc/x_offset_by_attachment_type(attachment_type)
@@ -577,43 +569,24 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 /obj/item/weapon/gun/proc/y_offset_by_attachment_type(attachment_type)
 	return 0
 
-/obj/item/weapon/gun/proc/update_mag_overlay()
-	var/image/gun_image = attachable_overlays["mag"]
-	if(istype(gun_image))
-		overlays -= gun_image
-		attachable_overlays["mag"] = null
-	if(current_mag && current_mag.bonus_overlay)
-		gun_image = image(current_mag.icon,src,current_mag.bonus_overlay)
-		gun_image.pixel_x += bonus_overlay_x
-		gun_image.pixel_y += bonus_overlay_y
-		attachable_overlays["mag"] = gun_image
-		overlays += gun_image
-	else
-		attachable_overlays["mag"] = null
-	return
-
-/obj/item/weapon/gun/proc/update_special_overlay(new_icon_state)
-	overlays -= attachable_overlays["special"]
-	attachable_overlays["special"] = null
-	var/image/gun_image = image(icon,src,new_icon_state)
-	attachable_overlays["special"] = gun_image
-	overlays += gun_image
-
-//----------------------------------------------------------
-				//  					 \\
-				// OTHER HELPER PROCS    \\
-				// 						 \\
-				//  					 \\
-//----------------------------------------------------------
+//_______________________________________________________________________________________________________
+//|********************\============================================================/********************|
+//\____________________/                                           	                \____________________/
+//							>>>>>>>>>>		   MISC PROCS 		<<<<<<<<<
+//
+//|********************|____________________________________________________________|********************|
+//\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
+//--------------------------------------------------------------------------------------------------------
 
 /obj/item/weapon/proc/unique_action(mob/user) //moved this up a path to make macroing for other weapons easier -spookydonut
 	return
 
 /obj/item/weapon/gun/proc/update_force_list()
 	switch(force)
-		if(-50 to 15) attack_verb = list("struck", "hit", "bashed") //Unlikely to ever be -50, but just to be safe.
+		if(36 to INFINITY) attack_verb = list("slashed", "stabbed", "speared", "torn", "punctured", "pierced", "gored") //Greater than 35
 		if(16 to 35) attack_verb = list("smashed", "struck", "whacked", "beaten", "cracked")
-		else attack_verb = list("slashed", "stabbed", "speared", "torn", "punctured", "pierced", "gored") //Greater than 35
+		if(-50 to 15) attack_verb = list("struck", "hit", "bashed") //Unlikely to ever be -50, but just to be safe.
+		else attack_verb = list("tapped")
 
 /obj/item/weapon/gun/proc/get_active_firearm(mob/user, restrictive = TRUE)
 	if(!ishuman(usr))
@@ -703,8 +676,9 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 /obj/item/weapon/gun/proc/turn_off_light(mob/bearer)
 	if (!(flags_gun_toggles & GUN_FLASHLIGHT_ON))
 		return FALSE
+	var/obj/item/attachable/attachment
 	for (var/slot in attachments)
-		var/obj/item/attachable/attachment = attachments[slot]
+		attachment = attachments[slot]
 		if (!attachment || !attachment.light_mod)
 			continue
 		attachment.activate_attachment(src, bearer)
@@ -723,12 +697,28 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	torch.turn_light(toggle_on = on, forced = TRUE)
 	return TRUE
 
-//----------------------------------------------------------
-					//    				\\
-					// GUN VERBS PROCS  \\
-					//    				\\
-					//    				\\
-//----------------------------------------------------------
+/obj/item/weapon/gun/attack_alien(mob/living/carbon/xenomorph/xeno)
+	..()
+	var/slashed_light = FALSE
+	for(var/slot in attachments)
+		if(istype(attachments[slot], /obj/item/attachable/flashlight))
+			var/obj/item/attachable/flashlight/flashlight = attachments[slot]
+			if(flashlight.activate_attachment(src, xeno, TRUE))
+				slashed_light = TRUE
+	if(slashed_light)
+		playsound(loc, "alien_claw_metal", 25, 1)
+		xeno.animation_attack_on(src)
+		xeno.visible_message(SPAN_XENOWARNING("\The [xeno] slashes the lights on \the [src]!"), SPAN_XENONOTICE("You slash the lights on \the [src]!"))
+	return XENO_ATTACK_ACTION
+
+//_______________________________________________________________________________________________________
+//|********************\============================================================/********************|
+//\____________________/                                           	                \____________________/
+//							>>>>>>>>>>		   GUN VERBS PROCS			<<<<<<<<<
+//
+//|********************|____________________________________________________________|********************|
+//\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
+//--------------------------------------------------------------------------------------------------------
 
 //For the holster hotkey
 /mob/living/silicon/robot/verb/holster_verb(unholster_number_offset = 1 as num)
@@ -804,7 +794,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	var/list/choice_to_attachment = list()
 	for(var/slot in attachments)
 		var/obj/item/attachable/attached_attachment = attachments[slot]
-		if(attached_attachment && (attached_attachment.flags_attach_features & ATTACH_REMOVABLE))
+		if(attached_attachment && !(attached_attachment.flags_attach_features & ATTACH_INTEGRATED))
 			var/capitalized_name = capitalize_first_letters(attached_attachment.name)
 			choices[capitalized_name] = image(icon = attached_attachment.icon, icon_state = attached_attachment.icon_state)
 			choice_to_attachment[capitalized_name] = attached_attachment
@@ -821,7 +811,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		var/choice = use_radials ? show_radial_menu(usr, usr, choices, require_near = TRUE) : tgui_input_list(usr, "Which attachment to remove?", "Remove Attachment", choices)
 		attachment = choice_to_attachment[choice]
 
-	if(!attachment || get_active_firearm(usr) != src || usr.action_busy || zoom || (!(attachment == attachments[attachment.slot])) || !(attachment.flags_attach_features & ATTACH_REMOVABLE))
+	if(!attachment || get_active_firearm(usr) != src || usr.action_busy || zoom || (!(attachment == attachments[attachment.slot])) || attachment.flags_attach_features & ATTACH_INTEGRATED)
 		return
 
 	usr.visible_message(SPAN_NOTICE("[usr] begins stripping [attachment] from [src]."),
@@ -833,7 +823,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	if(attachment != attachments[attachment.slot])
 		return
 
-	if(!(attachment.flags_attach_features & ATTACH_REMOVABLE))
+	if(attachment.flags_attach_features & ATTACH_INTEGRATED)
 		return
 
 	if(zoom)
@@ -1053,7 +1043,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		return
 	src = active_firearm
 
-	var/obj/item/attachable/attachment = attachments["rail"]
+	var/obj/item/attachable/attachment = attachments[ATTACHMENT_SLOT_RAIL]
 	if(attachment)
 		attachment.activate_attachment(src, usr)
 	else
@@ -1090,7 +1080,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		return
 	src = active_firearm
 
-	var/obj/item/attachable/attachment = attachments["under"]
+	var/obj/item/attachable/attachment = attachments[ATTACHMENT_SLOT_UNDER]
 	if(attachment)
 		attachment.activate_attachment(src, usr)
 	else
@@ -1108,7 +1098,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		return
 	src = active_firearm
 
-	var/obj/item/attachable/attachment = attachments["stock"]
+	var/obj/item/attachable/attachment = attachments[ATTACHMENT_SLOT_STOCK]
 	if(attachment)
 		attachment.activate_attachment(src, usr)
 	else

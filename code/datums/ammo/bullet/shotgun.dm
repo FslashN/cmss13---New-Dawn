@@ -6,6 +6,7 @@
 
 /datum/ammo/bullet/shotgun
 	headshot_state = HEADSHOT_OVERLAY_HEAVY
+	handful_max = 5
 
 /datum/ammo/bullet/shotgun/slug
 	name = "shotgun slug"
@@ -136,8 +137,6 @@
 	shell_speed = AMMO_SPEED_TIER_2
 	damage_armor_punch = 0
 	pen_armor_punch = 0
-	handful_state = "buckshot_shell"
-	multiple_handful_name = TRUE
 
 /datum/ammo/bullet/shotgun/buckshot/incendiary
 	name = "incendiary buckshot shell"
@@ -182,6 +181,9 @@
 /*
 					8 GAUGE SHOTGUN AMMO
 */
+
+/datum/ammo/bullet/shotgun/heavy
+	handful_max = 4
 
 /datum/ammo/bullet/shotgun/heavy/buckshot
 	name = "heavy buckshot shell"
@@ -314,6 +316,7 @@
 	name = "two bore bullet"
 	icon_state = "autocannon"
 	handful_state = "twobore"
+	handful_max = 3
 
 	accurate_range = 8 //Big low-velocity projectile; this is for blasting dangerous game at close range.
 	max_range = 14 //At this range, it's lost all its damage anyway.

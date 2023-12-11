@@ -61,10 +61,9 @@
 	if(istype(W, /obj/item/ammo_magazine/shotgun))
 		if(/obj/item/ammo_magazine/handful in src.can_hold)
 			var/obj/item/ammo_magazine/shotgun/M = W
-			dump_ammo_to(M,user, M.transfer_handful_amount)
+			dump_ammo_to(M,user)
 			return
 	. = ..()
-
 
 /obj/item/storage/belt/champion
 	name = "championship belt"
@@ -73,11 +72,6 @@
 	item_state = "champion"
 	storage_slots = 1
 	can_hold = list(/obj/item/clothing/mask/luchador)
-
-
-
-
-
 
 //============================//MARINE BELTS\\==================================\\
 //=======================================================================\\
@@ -466,7 +460,7 @@
 /obj/item/storage/belt/marine/attackby(obj/item/W, mob/user)
 	if(istype(W, /obj/item/ammo_magazine/shotgun))
 		var/obj/item/ammo_magazine/shotgun/M = W
-		dump_ammo_to(M,user, M.transfer_handful_amount)
+		dump_ammo_to(M,user)
 	else
 		return ..()
 
@@ -654,7 +648,7 @@
 /obj/item/storage/belt/shotgun/attackby(obj/item/W, mob/user)
 	if(istype(W, /obj/item/ammo_magazine/shotgun))
 		var/obj/item/ammo_magazine/shotgun/M = W
-		dump_ammo_to(M, user, M.transfer_handful_amount)
+		dump_ammo_to(M, user)
 	else
 		return ..()
 
@@ -723,7 +717,7 @@
 /obj/item/storage/belt/shotgun/lever_action/attackby(obj/item/W, mob/user)
 	if(istype(W, /obj/item/ammo_magazine/lever_action))
 		var/obj/item/ammo_magazine/lever_action/M = W
-		dump_ammo_to(M, user, M.transfer_handful_amount)
+		dump_ammo_to(M, user)
 
 	if(istype(W, /obj/item/storage/belt/gun/m44/lever_action/attach_holster))
 		if(length(contents) || length(W.contents))
@@ -752,7 +746,7 @@
 /obj/item/storage/belt/shotgun/xm88/attackby(obj/item/W, mob/user)
 	if(istype(W, /obj/item/ammo_magazine/lever_action/xm88))
 		var/obj/item/ammo_magazine/lever_action/xm88/B = W
-		dump_ammo_to(B, user, B.transfer_handful_amount)
+		dump_ammo_to(B, user)
 	else
 		return ..()
 
@@ -1034,7 +1028,7 @@
 			break
 	..()
 
-/obj/item/storage/belt/gun/dump_ammo_to(obj/item/ammo_magazine/ammo_dumping, mob/user, amount_to_dump)
+/obj/item/storage/belt/gun/dump_ammo_to(obj/item/ammo_magazine/ammo_dumping, mob/user)
 	if(user.action_busy)
 		return
 
@@ -1043,26 +1037,24 @@
 		return
 
 	if(ammo_dumping.flags_magazine & AMMUNITION_HANDFUL_BOX)
-		var/handfuls = round(ammo_dumping.current_rounds / amount_to_dump, 1) //The number of handfuls, we round up because we still want the last one that isn't full
-		if(ammo_dumping.current_rounds != 0)
+		if(ammo_dumping.current_rounds)
 			if(contents.len < storage_slots - 1) //this is because it's a gunbelt and the final slot is reserved for the gun
 				to_chat(user, SPAN_NOTICE("You start refilling [src] with [ammo_dumping]."))
 				if(!do_after(user, 1.5 SECONDS, INTERRUPT_ALL, BUSY_ICON_GENERIC)) return
-				for(var/i = 1 to handfuls)
+				while(ammo_dumping.current_rounds)
 					if(contents.len < storage_slots - 1)
-						var/obj/item/ammo_magazine/handful/new_handful = new /obj/item/ammo_magazine/handful
-						var/transferred_handfuls = min(ammo_dumping.current_rounds, amount_to_dump)
-						new_handful.generate_handful(ammo_dumping.default_ammo, ammo_dumping.caliber, amount_to_dump, transferred_handfuls, ammo_dumping.gun_type)
-						ammo_dumping.current_rounds -= transferred_handfuls
+						var/obj/item/ammo_magazine/handful/new_handful = new
+						ammo_dumping.current_rounds -= new_handful.generate_handful(ammo_dumping.default_ammo, ammo_dumping.caliber, ammo_dumping.current_rounds)
 						handle_item_insertion(new_handful, TRUE,user)
-						update_icon(-transferred_handfuls)
-					else
-						break
+					else break
+
+				update_icon()
 				playsound(user.loc, "rustle", 15, TRUE, 6)
 				ammo_dumping.update_icon()
 			else
 				to_chat(user, SPAN_WARNING("[src] is full."))
-
+		else
+			to_chat(user, SPAN_WARNING("[ammo_dumping] is empty."))
 
 /obj/item/storage/belt/gun/m4a3
 	name = "\improper M276 pattern general pistol holster rig"
@@ -1264,7 +1256,7 @@
 /obj/item/storage/belt/gun/m44/lever_action/attackby(obj/item/W, mob/user)
 	if(istype(W, /obj/item/ammo_magazine/lever_action))
 		var/obj/item/ammo_magazine/lever_action/M = W
-		dump_ammo_to(M,user, M.transfer_handful_amount)
+		dump_ammo_to(M,user)
 	else
 		return ..()
 

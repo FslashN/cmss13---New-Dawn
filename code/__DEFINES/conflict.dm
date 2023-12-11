@@ -122,11 +122,11 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 #define MOVES_WHEN_LEVERING (1<<2)
 
 //Gun attachable related flags.
-#define ATTACH_REMOVABLE (1<<0)
-#define ATTACH_ACTIVATION (1<<1)
-#define ATTACH_PROJECTILE (1<<2) /// for attachments that fire bullets
-#define ATTACH_RELOADABLE (1<<3)
-#define ATTACH_WEAPON (1<<4) /// is a weapon that fires stuff
+#define ATTACH_INTEGRATED (1<<0) ///Cannot be removed by the player.
+#define ATTACH_ACTIVATION (1<<1) ///Can be activated.
+#define ATTACH_PROJECTILE (1<<2) /// For attachments that fire bullets.
+#define ATTACH_RELOADABLE (1<<3) ///Can be reloaded with ammo.
+#define ATTACH_WEAPON (1<<4) /// Is a weapon that fires stuff.
 #define ATTACH_IGNORE_EMPTY (1<<5) /// This attachment should override ignore if it is empty
 #define ATTACH_MELEE (1<<6) /// This attachment should activate if you attack() with it attached.
 #define ATTACH_WIELD_OVERRIDE (1<<7) /// Override for attachies so you can fire them with a single hand . ONLY FOR PROJECTILES!!
