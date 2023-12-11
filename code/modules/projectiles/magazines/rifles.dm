@@ -68,7 +68,7 @@
 
 
 /obj/item/ammo_magazine/rifle/rubber
-	name = "M41A Rubber Magazine (10x24mm)"
+	name = "\improper M41A rubber magazine (10x24mm)"
 	desc = "A 10mm magazine filled with rubber bullets."
 	default_ammo = /datum/ammo/bullet/rifle/rubber
 	ammo_band_color = AMMO_BAND_COLOR_RUBBER
@@ -142,7 +142,7 @@
 	max_rounds = 35
 
 /obj/item/ammo_magazine/rifle/m4ra/rubber
-	name = "M4RA rubber magazine (10x24mm)"
+	name = "\improper M4RA rubber magazine (10x24mm)"
 	desc = "A magazine of less than lethal rubber 10x24mm rounds for use in the M4RA battle rifle."
 	default_ammo = /datum/ammo/bullet/rifle/rubber
 	ammo_band_color = AMMO_BAND_COLOR_RUBBER
@@ -439,7 +439,7 @@
 	w_class = SIZE_SMALL
 
 /obj/item/ammo_magazine/rifle/boltaction/vulture
-	name = "\improper M707 \"Vulture\" magazine (20x102mm)"
+	name = "\improper M707 'Vulture' magazine (20x102mm)"
 	desc = "A magazine for the M707 \"Vulture\" anti-matieriel rifle. Contains up to 4 massively oversized rounds."
 	caliber = "20x102mm"
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/uscm.dmi'

@@ -1,6 +1,6 @@
 // STANDARD Sentry
 /obj/item/ammo_magazine/sentry
-	name = "M30 ammo drum (10x28mm Caseless)"
+	name = "\improper M30 ammo drum (10x28mm Caseless)"
 	desc = "An ammo drum of 500 10x28mm caseless rounds for the UA 571-C Sentry Gun. Just feed it into the sentry gun's ammo port when its ammo is depleted."
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/uscm.dmi'
 	icon_state = "ua571c"

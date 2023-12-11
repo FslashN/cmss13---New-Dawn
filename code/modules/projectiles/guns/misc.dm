@@ -293,7 +293,7 @@
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/rifle/techweb_railgun
-	name = "\improper Railgun"
+	name = "railgun"
 	desc = "A poggers hellbliterator"
 	icon_state = "m42a"
 	item_state = "m42a"

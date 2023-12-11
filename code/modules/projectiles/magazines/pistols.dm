@@ -269,7 +269,7 @@
 //-------------------------------------------------------
 //CLF HOLDOUT PISTOL
 /obj/item/ammo_magazine/pistol/clfpistol
-	name = "D18 magazine (9mm)"
+	name = "\improper D18 magazine (9mm)"
 	desc = "A small D18 magazine storing 7 9mm bullets. How is it even this small?"
 	default_ammo = /datum/ammo/bullet/pistol
 	caliber = "9mm"

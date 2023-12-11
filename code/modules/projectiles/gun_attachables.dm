@@ -356,7 +356,7 @@ Defined in conflicts.dm of the #defines folder.
 	gun_traits = list(TRAIT_GUN_IS_SILENCED)
 
 /obj/item/attachable/barrel/suppressor/type73
-	name = "Type 73 Integrated Suppressor"
+	name = "\improper Type 73 Integrated Suppressor"
 	icon_state = "type73_suppressor"
 	attach_icon = "type73_suppressor"
 
@@ -455,18 +455,18 @@ Defined in conflicts.dm of the #defines folder.
 			attach_icon = new_attach_icon ? new_attach_icon : "c_" + attach_icon
 
 /obj/item/attachable/barrel/pkp
-	name = "QYJ-72 Barrel"
+	name = "\improper QYJ-72 Barrel"
 	icon_state = "uppmg_barrel"
 	attach_icon = "uppmg_barrel"
 	hud_offset_mod = -6
 
 /obj/item/attachable/barrel/m60
-	name = "M60 barrel"
+	name = "\improper M60 barrel"
 	icon_state = "m60barrel"
 	hud_offset_mod = -6
 
 /obj/item/attachable/barrel/type88
-	name = "Type-88 Barrel"
+	name = "\improper Type-88 Barrel"
 	icon_state = "type88_barrel"
 	attach_icon = "type88_barrel"
 
@@ -502,7 +502,7 @@ Defined in conflicts.dm of the #defines folder.
 	//=========// ATTACH STATS //==========//
 
 /obj/item/attachable/barrel/f90
-	name = "f90 barrel"
+	name = "\improper f90 barrel"
 
 /obj/item/attachable/barrel/f90/dmr
 	icon_state = "aug_dmr_barrel_a"
@@ -513,7 +513,7 @@ Defined in conflicts.dm of the #defines folder.
 	attach_icon = "aug_mkey_barrel_a"
 
 /obj/item/attachable/barrel/mar50
-	name = "MAR-50 barrel"
+	name = "\improper MAR-50 barrel"
 	icon_state = "mar50barrel"
 	hud_offset_mod = -6
 
@@ -530,7 +530,7 @@ Defined in conflicts.dm of the #defines folder.
 	hud_offset_mod = -4
 
 /obj/item/attachable/barrel/l56a2 //Technically a smart gun barrel, but w/e.
-	name = "l56a2 barrel"
+	name = "\improper L56A2 barrel"
 	icon_state = "magsg_barrel_a"
 	attach_icon = "magsg_barrel_a"
 
@@ -541,7 +541,7 @@ Defined in conflicts.dm of the #defines folder.
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>//
 
 /obj/item/attachable/reddot
-	name = "S5 red-dot sight"
+	name = "\improper S5 red-dot sight"
 	desc = "An ARMAT S5 red-dot sight. A zero-magnification optic that offers faster, and more accurate target acquisition."
 	desc_lore = "An all-weather collimator sight, designated as the AN/PVQ-64 Dot Sight. Equipped with a sunshade to increase clarity in bright conditions and resist weathering. Compact and efficient, a marvel of military design, until you realize that this is actually just an off-the-shelf design that got a military designation slapped on."
 	icon = 'icons/obj/items/weapons/guns/attachments/rail.dmi'
@@ -556,7 +556,7 @@ Defined in conflicts.dm of the #defines folder.
 	//=========// ATTACH STATS //==========//
 
 /obj/item/attachable/reflex
-	name = "S6 reflex sight"
+	name = "\improper S6 reflex sight"
 	desc = "An ARMAT S6 reflex sight. A zero-magnification alternative to iron sights with a more open optic window when compared to the S5 red-dot. Helps to reduce scatter during automated fire."
 	desc_lore = "A simple folding reflex sight designated as the AN/PVG-72 Reflex Sight, compatible with most rail systems. Bulky and built to last, it can link with military HUDs for limited point-of-aim calculations."
 	icon = 'icons/obj/items/weapons/guns/attachments/rail.dmi'
@@ -737,7 +737,7 @@ Defined in conflicts.dm of the #defines folder.
 		to_chat(user, SPAN_NOTICE("Hold on there cowboy, that grip is bolted on. You are unable to modify it."))
 
 /obj/item/attachable/flashlight/laser_light_combo //Unique attachment for the VP78 based on the fact it has a Laser-Light Module in AVP2010
-	name = "VP78 Laser-Light Module"
+	name = "\improper VP78 Laser-Light Module"
 	desc = "A Laser-Light module for the VP78 Service Pistol which is currently undergoing limited field testing as part of the USCMs next generation pistol program. All VP78 pistols come equipped with the module."
 	icon = 'icons/obj/items/weapons/guns/attachments/under.dmi'
 	icon_state = "vplaserlight"
@@ -800,7 +800,7 @@ Defined in conflicts.dm of the #defines folder.
 	G.RemoveElement(/datum/element/drop_retrieval/gun, retrieval_slot)
 
 /obj/item/attachable/magnetic_harness/lever_sling
-	name = "R4T magnetic sling" //please don't make this attachable to any other guns...
+	name = "\improper R4T magnetic sling" //please don't make this attachable to any other guns...
 	desc = "A custom sling designed for comfortable holstering of a 19th century lever action rifle, for some reason. Contains magnets specifically built to make sure the lever-action rifle never drops from your back, however they somewhat get in the way of the grip."
 	icon = 'icons/obj/items/weapons/guns/attachments/under.dmi'
 	icon_state = "r4t-sling"
@@ -843,7 +843,7 @@ Defined in conflicts.dm of the #defines folder.
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/attachable/scope
-	name = "S8 4x telescopic scope"
+	name = "\improper S8 4x telescopic scope"
 	icon = 'icons/obj/items/weapons/guns/attachments/rail.dmi'
 	icon_state = "sniperscope"
 	attach_icon = "sniperscope_a"
@@ -944,7 +944,7 @@ Defined in conflicts.dm of the #defines folder.
 #define ZOOM_LEVEL_4X 1
 
 /obj/item/attachable/scope/variable_zoom
-	name = "S10 variable zoom telescopic scope"
+	name = "\improper S10 variable zoom telescopic scope"
 	desc = "An ARMAT S10 telescopic eye piece. Can be switched between 2x zoom, which allows the user to move while scoped in, and 4x zoom. Press the 'use rail attachment' HUD icon or use the verb of the same name to zoom."
 	attachment_action_type = /datum/action/item_action/toggle
 
@@ -1021,7 +1021,7 @@ Defined in conflicts.dm of the #defines folder.
 	desc = "Oppa! Why did you get this off glorious Stalin weapon? Blyat, put back on and do job tovarish. Yankee is not shoot self no?"
 
 /obj/item/attachable/scope/variable_zoom/eva
-	name = "RXF-M5 EVA telescopic variable scope"
+	name = "\improper RXF-M5 EVA telescopic variable scope"
 	icon_state = "rxfm5_eva_scope"
 	attach_icon = "rxfm5_eva_scope_a"
 	desc = "A civilian-grade scope that can be switched between short and long range magnification, intended for use in extraterrestrial scouting. Looks ridiculous on a pistol."
@@ -1035,7 +1035,7 @@ Defined in conflicts.dm of the #defines folder.
 
 
 /obj/item/attachable/scope/mini
-	name = "S4 2x telescopic mini-scope"
+	name = "\improper S4 2x telescopic mini-scope"
 	icon_state = "miniscope"
 	attach_icon = "miniscope_a"
 	desc = "An ARMAT S4 telescoping eye piece. Fixed at a modest 2x zoom. Press the 'use rail attachment' HUD icon or use the verb of the same name to zoom."
@@ -1101,7 +1101,7 @@ Defined in conflicts.dm of the #defines folder.
 	desc = "This civilian-grade scope is a common sight on hunting rifles due to its cheap price and great optics. Fixed at a modest 2x zoom. Press the 'use rail attachment' HUD icon or use the verb of the same name to zoom."
 
 /obj/item/attachable/scope/mini/nsg23
-	name = "W-Y S4 2x advanced telescopic mini-scope"
+	name = "\improper W-Y S4 2x advanced telescopic mini-scope"
 	desc = "An ARMAT S4 telescoping eye piece, custom-tuned by W-Y scientists to be as ergonomic as possible."
 	icon_state = "miniscope_nsg23"
 	attach_icon = "miniscope_nsg23_a"
@@ -1112,7 +1112,7 @@ Defined in conflicts.dm of the #defines folder.
 	//=========// ATTACH STATS //==========//
 
 /obj/item/attachable/scope/mini/xm88
-	name = "XS-9 targeting relay"
+	name = "\improper XS-9 targeting relay"
 	desc = "An ARMAT XS-9 optical interface. Unlike a traditional scope, this rail-mounted device features no telescoping lens. Instead, the firearm's onboard targeting system relays data directly to the optic for the system operator to reference in realtime."
 	icon_state = "boomslang-scope"
 	attach_icon = null
@@ -1128,7 +1128,7 @@ Defined in conflicts.dm of the #defines folder.
 	select_gamemode_skin(type)
 
 /obj/item/attachable/scope/mini_iff
-	name = "B8 Smart-Scope"
+	name = "\improper B8 Smart-Scope"
 	icon_state = "iffbarrel"
 	attach_icon = "iffbarrel_a"
 	desc = "An experimental B8 Smart-Scope. Based on the technologies used in the Smart Gun by ARMAT, this sight has integrated IFF systems. It can only attach to the M4RA Battle Rifle and M44 Combat Revolver."
@@ -1917,7 +1917,7 @@ Defined in conflicts.dm of the #defines folder.
 	//=========// ATTACH STATS //==========//
 
 /obj/item/attachable/stock/hg3712
-	name = "hg3712 stock"
+	name = "\improper HG3712 stock"
 	desc = "The non-detachable stock of a HG 37-12 pump shotgun."
 	icon_state = "hg3712_stock"
 	pixel_shift_x = 41
@@ -1934,7 +1934,7 @@ Defined in conflicts.dm of the #defines folder.
 	//=========// ATTACH STATS //==========//
 
 /obj/item/attachable/stock/hg3712/m3717
-	name = "hg3717 stock"
+	name = "\improper HG3717 stock"
 	desc = "The non-detachable stock of a M37-17 pump shotgun."
 	icon_state = "hg3717_stock"
 	flags_attach_features = ATTACH_INTEGRATED
@@ -2058,7 +2058,7 @@ Defined in conflicts.dm of the #defines folder.
 	//=========// ATTACH STATS //==========//
 
 /obj/item/attachable/stock/m16/xm177
-	name = "\improper collapsible M16 stock"
+	name = "collapsible M16 stock"
 	desc = "Very illegal in the state of California."
 	icon_state = "m16_folding"
 	attach_icon = "m16_folding"
@@ -2228,7 +2228,7 @@ Defined in conflicts.dm of the #defines folder.
 	//=========// ATTACH STATS //==========//
 
 /obj/item/attachable/upp_rpg_breech
-	name = "HJRA-12 Breech"
+	name = "\improper HJRA-12 Breech"
 	desc = "This isn't supposed to be seperated from the gun, how'd this happen?"
 	icon = 'icons/obj/items/weapons/guns/attachments/stock.dmi'
 	icon_state = "hjra_breech"
@@ -2237,7 +2237,7 @@ Defined in conflicts.dm of the #defines folder.
 	flags_attach_features = ATTACH_INTEGRATED
 
 /obj/item/attachable/stock/pkp
-	name = "QYJ-72 Stock"
+	name = "\improper QYJ-72 Stock"
 	desc = "This isn't supposed to be seperated from the gun, how'd this happen?"
 	icon = 'icons/obj/items/weapons/guns/attachments/stock.dmi'
 	icon_state = "uppmg_stock"
@@ -2250,7 +2250,7 @@ Defined in conflicts.dm of the #defines folder.
 	sprite_pixel_width = 9
 
 /obj/item/attachable/stock/type71
-	name = "Type 71 Stock"
+	name = "\improper Type 71 Stock"
 	desc = "This isn't supposed to be seperated from the gun, how'd this happen?"
 	icon = 'icons/obj/items/weapons/guns/attachments/stock.dmi'
 	icon_state = "type71_stock"
@@ -2361,7 +2361,7 @@ Defined in conflicts.dm of the #defines folder.
 	gun.recalculate_attachment_bonuses()
 
 /obj/item/attachable/stock/smg/collapsible/brace
-	name = "\improper submachinegun arm brace"
+	name = "submachinegun arm brace"
 	desc = "A specialized stock for use on an M39 submachine gun. It makes one handing more accurate at the expense of burst amount. Wielding the weapon with this stock attached confers a major inaccuracy and recoil debuff."
 	size_mod = 1
 	icon_state = "smg_brace"
@@ -2512,7 +2512,7 @@ Defined in conflicts.dm of the #defines folder.
 		R.flags_equip_slot |= SLOT_WAIST
 
 /obj/item/attachable/stock/nsg23
-	name = "NSG 23 stock"
+	name = "\improper NSG 23 stock"
 	desc = "If you can read this, someone screwed up. Go Github this and bug a coder."
 	icon_state = "nsg23_stock"
 	slot = ATTACHMENT_SLOT_STOCK
@@ -2612,7 +2612,7 @@ Defined in conflicts.dm of the #defines folder.
 
 //The requirement for an attachable being alt fire is AMMO CAPACITY > 0.
 /obj/item/attachable/attached_gun/grenade
-	name = "U1 grenade launcher"
+	name = "\improper U1 grenade launcher"
 	desc = "A weapon-mounted, reloadable grenade launcher."
 	icon_state = "grenade"
 	attach_icon = "grenade_a"
@@ -3029,7 +3029,7 @@ Defined in conflicts.dm of the #defines folder.
 	to_chat(user, SPAN_WARNING("[src] only accepts shotgun buckshot."))
 
 /obj/item/attachable/attached_gun/extinguisher
-	name = "HME-12 underbarrel extinguisher"
+	name = "\improper HME-12 underbarrel extinguisher"
 	icon_state = "extinguisher"
 	attach_icon = "extinguisher_a"
 	desc = "A Taiho-Technologies HME-12 underbarrel extinguisher. Attaches to the underbarrel of most weapons. Point at flame before applying pressure."
@@ -3066,7 +3066,7 @@ Defined in conflicts.dm of the #defines folder.
 	internal_extinguisher.reagents.add_reagent("water", internal_extinguisher.max_water)
 
 /obj/item/attachable/attached_gun/extinguisher/pyro
-	name = "HME-88B underbarrel extinguisher"
+	name = "\improper HME-88B underbarrel extinguisher"
 	desc = "An experimental Taiho-Technologies HME-88B underbarrel extinguisher integrated with a select few gun models. It is capable of putting out the strongest of flames. Point at flame before applying pressure."
 	flags_attach_features = ATTACH_INTEGRATED|ATTACH_ACTIVATION|ATTACH_WEAPON|ATTACH_MELEE //not removable
 
@@ -3077,7 +3077,7 @@ Defined in conflicts.dm of the #defines folder.
 	internal_extinguisher.reagents.add_reagent("water", internal_extinguisher.max_water)
 
 /obj/item/attachable/attached_gun/flamer_nozzle
-	name = "XM-VESG-1 flamer nozzle"
+	name = "\improper XM-VESG-1 flamer nozzle"
 	desc = "A special nozzle designed to alter flamethrowers to be used in a more offense orientated manner. As the inside of the nozzle is coated in a special gel and resin substance that takes the fuel that passes through and hardens it. Upon exiting the barrel, a cluster of burning gel is projected instead of a stream of burning naphtha."
 	desc_lore = "The Experimental Volatile-Exothermic-Sphere-Generator clip-on nozzle attachment for the M240A1 incinerator unit was specifically designed to allow marines to launch fireballs into enemy foxholes and bunkers. Despite the gel and resin coating, the flaming ball of naptha tears apart due the drag caused by launching it through the air, leading marines to use the attachment as a makeshift firework launcher during shore leave."
 	icon_state = "flamer_nozzle"
@@ -3432,7 +3432,7 @@ Defined in conflicts.dm of the #defines folder.
 	//=========// ATTACH STATS //==========//
 
 /obj/item/attachable/eva_doodad
-	name = "RXF-M5 EVA beam projector"
+	name = "\improper RXF-M5 EVA beam projector"
 	desc = "A strange little doodad that projects an invisible beam that the EVA pistol's actual laser travels in, used as a focus that slightly weakens the laser's intensity. Or at least that's what the manual said."
 	icon = 'icons/obj/items/weapons/guns/attachments/under.dmi'
 	icon_state = "rxfm5_eva_doodad"

@@ -125,7 +125,7 @@
 //M5 RPG
 
 /obj/item/ammo_magazine/rocket
-	name = "\improper 84mm high explosive rocket"
+	name = "84mm high explosive rocket"
 	desc = "A rocket tube loaded with a HE warhead. Deals high damage to soft targets on direct hit and stuns most targets in a 5-meter-wide area for a short time. Has decreased effect on heavily armored targets."
 	caliber = "rocket"
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/uscm.dmi'
@@ -199,7 +199,7 @@
 
 /obj/item/ammo_magazine/rocket/update_icon()
 	if(current_rounds <= 0)
-		name = "\improper 84mm spent rocket tube"
+		name = "84mm spent rocket tube"
 		icon_state = "rocket_e"
 		desc = "Spent rocket tube for M5 RPG rocket launcher. Activate in hand to disassemble for metal."
 		add_to_garbage(src)
@@ -221,19 +221,19 @@
 		icon_state = initial(icon_state)
 
 /obj/item/ammo_magazine/rocket/ap
-	name = "\improper 84mm anti-armor rocket"
+	name = "84mm anti-armor rocket"
 	icon_state = "ap_rocket"
 	default_ammo = /datum/ammo/rocket/ap
 	desc = "A rocket tube loaded with an AP warhead. Capable of piercing heavily armored targets. Deals very little to no splash damage. Inflicts guaranteed stun to most targets. Has high accuracy within 7 meters."
 
 /obj/item/ammo_magazine/rocket/wp
-	name = "\improper 84mm white-phosphorus rocket"
+	name = "84mm white-phosphorus rocket"
 	icon_state = "wp_rocket"
 	default_ammo = /datum/ammo/rocket/wp
 	desc = "Rocket tube loaded with WP warhead. Has two damaging factors. On hit disperses X-Variant Napthal (blue flames) in a 4-meter radius circle, ignoring cover, while simultaneously bursting into highly heated shrapnel that ignites targets within slightly bigger area."
 
 /obj/item/ammo_magazine/rocket/custom
-	name = "\improper 84mm custom rocket"
+	name = "84mm custom rocket"
 	desc = "An 84mm custom rocket."
 	icon_state = "custom_rocket"
 	default_ammo = /datum/ammo/rocket/custom
@@ -305,7 +305,7 @@
 //M5 RPG'S MEAN FUCKING COUSIN
 
 /obj/item/ammo_magazine/rocket/m57a4
-	name = "\improper 84mm thermobaric rocket array"
+	name = "84mm thermobaric rocket array"
 	desc = "A thermobaric rocket tube for an M57-A4 quad launcher with 4 warheads."
 	caliber = "rocket array"
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/event.dmi'
@@ -319,7 +319,7 @@
 /obj/item/ammo_magazine/rocket/m57a4/update_icon()
 	..()
 	if(current_rounds <= 0)
-		name = "\improper 84mm spent rocket array"
+		name = "84mm spent rocket array"
 		desc = "A spent rocket tube assembly for the M57-A4 quad launcher. Activate in hand to disassemble for metal."
 		icon_state = "quad_rocket_e"
 
@@ -327,7 +327,7 @@
 //Anti-tank rocket
 
 /obj/item/ammo_magazine/rocket/anti_tank
-	name = "\improper 84mm Anti-Tank Rocket"
+	name = "84mm Anti-Tank Rocket"
 	desc = "An anti-armor rocket specifically modified for penetration of armored vehicle hulls."
 	caliber = "rocket"
 	icon_state = "at_rocket"

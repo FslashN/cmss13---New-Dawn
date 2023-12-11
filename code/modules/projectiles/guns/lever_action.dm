@@ -323,7 +323,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/lever_action/r4t
-	name = "R4T lever-action rifle"
+	name = "\improper R4T lever-action rifle"
 	desc = "This lever-action was designed for small scout operations in harsh environments such as the jungle or particularly windy deserts, as such its internal mechanisms are simple yet robust."
 	icon_state = "r4t"
 	item_state = "r4t"

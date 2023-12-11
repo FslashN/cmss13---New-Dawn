@@ -19,7 +19,7 @@
 //M60
 
 /obj/item/ammo_magazine/m60
-	name = "M60 ammo box (7.62x51mm)"
+	name = "\improper M60 ammo box (7.62x51mm)"
 	desc = "A blast from the past chambered in 7.62X51mm NATO."
 	caliber = "7.62x51mm"
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/colony.dmi'
@@ -32,7 +32,7 @@
 	gun_type = /obj/item/weapon/gun/m60
 
 /obj/item/ammo_magazine/pkp
-	name = "QYJ-72 ammo box (7.62x54mmR)"
+	name = "\improper QYJ-72 ammo box (7.62x54mmR)"
 	desc = "A 250 round box for the UPP's standard GPMG, the QYJ-72. Chambered in 7.62x54mmR."
 	caliber = "7.62x54mmR"
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/upp.dmi'
@@ -61,8 +61,8 @@
 //Techweb railgun
 
 /obj/item/ammo_magazine/techweb_railgun
-	name = "\improper Railgun Ammunition (5 rounds)"
-	desc = "A magazine ammo for the poggers Railgun."
+	name = "railgun ammunition (5 rounds)"
+	desc = "A magazine ammo for the poggers railgun."
 	caliber = "14mm"
 	icon_state = "m42c" //PLACEHOLDER
 	w_class = SIZE_MEDIUM
