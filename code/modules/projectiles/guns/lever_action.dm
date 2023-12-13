@@ -525,12 +525,16 @@ their unique feature is that a direct hit will buff your damage and firerate
 		switch(floating_penetration)
 			if(FLOATING_PENETRATION_TIER_1)
 				P.ammo = GLOB.ammo_list[/datum/ammo/bullet/lever_action/xm88/pen20]
+				direct_hit_sound = "sound/weapons/gun_xm88_directhit_low.ogg"
 			if(FLOATING_PENETRATION_TIER_2)
 				P.ammo = GLOB.ammo_list[/datum/ammo/bullet/lever_action/xm88/pen30]
+				direct_hit_sound = "sound/weapons/gun_xm88_directhit_medium.ogg"
 			if(FLOATING_PENETRATION_TIER_3)
 				P.ammo = GLOB.ammo_list[/datum/ammo/bullet/lever_action/xm88/pen40]
+				direct_hit_sound = "sound/weapons/gun_xm88_directhit_medium.ogg"
 			if(FLOATING_PENETRATION_TIER_4)
 				P.ammo = GLOB.ammo_list[/datum/ammo/bullet/lever_action/xm88/pen50]
+				direct_hit_sound = "sound/weapons/gun_xm88_directhit_high.ogg"
 	return ..()
 
 /obj/item/weapon/gun/lever_action/xm88/unload(mob/user)
@@ -550,6 +554,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 	lever_message = initial(lever_message)
 	wield_delay = initial(wield_delay)
 	cur_onehand_chance = initial(cur_onehand_chance)
+	direct_hit_sound = "sound/weapons/gun_xm88_directhit_low.ogg"
 	if(in_chamber)
 		var/obj/projectile/P = in_chamber
 		P.ammo = GLOB.ammo_list[/datum/ammo/bullet/lever_action/xm88]
@@ -561,6 +566,10 @@ their unique feature is that a direct hit will buff your damage and firerate
 	recalculate_attachment_bonuses() //stock wield delay
 	if(one_hand_lever)
 		addtimer(VARSET_CALLBACK(src, cur_onehand_chance, reset_onehand_chance), 4 SECONDS, TIMER_OVERRIDE|TIMER_UNIQUE)
+
+/obj/item/weapon/gun/lever_action/xm88/direct_hit_buff(mob/user, mob/target, one_hand_lever = FALSE)
+	. = ..()
+	playsound(target, direct_hit_sound, 75)
 
 #undef FLOATING_PENETRATION_TIER_0
 #undef FLOATING_PENETRATION_TIER_1
