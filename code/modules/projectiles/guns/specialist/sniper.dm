@@ -33,12 +33,12 @@
 		LAZYADD(actions_types, list(/datum/action/item_action/specialist/aimed_shot, /datum/action/item_action/specialist/toggle_laser))
 	return ..()
 
-/obj/item/weapon/gun/rifle/sniper/check_additional_able_to_fire(mob/living/user)
-	. = ..()
-
+/obj/item/weapon/gun/rifle/sniper/recalculate_user_attributes(mob/living/user)
 	if(skill_locked && !skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_SNIPER)
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
-		return FALSE
+		unable_to_fire_message = "You don't seem to know how to use \the [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 // Aimed shot ability
 /datum/action/item_action/specialist/aimed_shot

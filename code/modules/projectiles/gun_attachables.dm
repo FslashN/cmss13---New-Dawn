@@ -1,5 +1,9 @@
 #define ATTACH_RESET_ZERO 0 //All attach mods start at 0, this indicates when a particular bonus is reset from whatever the parent had set to cut down on ambiguous numbers.
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                  GENERIC ATTACHMENT                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 //Gun attachable items code. Lets you add various effects to firearms.
 //Some attachables are hardcoded in the projectile firing system, like grenade launchers, flamethrowers.
 /*
@@ -14,7 +18,7 @@ ATTACHMENT_SLOT_STOCK / "stock" - The back of the gun, where it rests on the sho
 ATTACHMENT_SLOT_SPECIAL / "special" - Anything else unusual. Currently unused. It was previously used to install some barrels instead of ATTACHMENT_SLOT_BARREL.
 
 Defined in conflicts.dm of the #defines folder.
-#define ATTACH_INTEGRATED (1<<0) ///Cannot be removed by the player.
+#define ATTACH_INTEGRATED (1<<0) ///Cannot be removed or replaced by the player.
 #define ATTACH_ACTIVATION (1<<1) ///Can be activated.
 #define ATTACH_PROJECTILE (1<<2) /// For attachments that fire bullets.
 #define ATTACH_RELOADABLE (1<<3) ///Can be reloaded with ammo.
@@ -34,6 +38,9 @@ Defined in conflicts.dm of the #defines folder.
 
 	//Thing to keep in mind about vis_flags is that they act as overlays and are drawn over regular overlays as of right now.
 	vis_flags = VIS_INHERIT_LAYER|VIS_INHERIT_PLANE|VIS_INHERIT_ID
+
+	ground_offset_x = 6
+	ground_offset_y = 6
 
 	var/attach_icon //the sprite to show when the attachment is attached when we want it different from the icon_state.
 	var/pixel_shift_x = 16 //Determines the amount of pixels to move the icon state for the overlay.
@@ -345,7 +352,7 @@ Defined in conflicts.dm of the #defines folder.
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>//
 
 /obj/item/attachable/barrel
-	name = "integrated barrel" //Should always be integrated, so they cannot be removed by normal means. Mateba, for example, has a special way to remove the barrel.
+	name = "integrated barrel" //Should always be integrated, so they cannot be removed by normal means. Mateba, for example, has a special key to remove the barrel.
 	desc = "This isn't supposed to be seperated from the gun, how'd this happen?"
 	icon = 'icons/obj/items/weapons/guns/attachments/barrel.dmi'
 	slot = ATTACHMENT_SLOT_BARREL

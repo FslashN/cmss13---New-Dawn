@@ -41,8 +41,6 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 	/client/proc/toggle_ignore_self,
 	/client/proc/toggle_help_intent_safety,
-	/client/proc/toggle_auto_eject,
-	/client/proc/toggle_auto_eject_to_hand,
 	/client/proc/toggle_eject_to_hand,
 	/client/proc/toggle_automatic_punctuation,
 	/client/proc/toggle_middle_mouse_click,

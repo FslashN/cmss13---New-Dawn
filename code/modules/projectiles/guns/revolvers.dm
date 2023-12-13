@@ -11,7 +11,7 @@
 	matter = list("metal" = 2000)
 	fire_sound = 'sound/weapons/gun_44mag_v3.ogg'
 	reload_sound = 'sound/weapons/gun_44mag_speed_loader.wav'
-	cocked_sound = 'sound/weapons/gun_revolver_spun.ogg'
+	cocked_sound = 'sound/weapons/gun_revolver_cocked.ogg'
 	unload_sound = 'sound/weapons/gun_44mag_open_chamber.wav'
 	var/chamber_close_sound = 'sound/weapons/gun_44mag_close_chamber.wav'
 	var/hand_reload_sound = 'sound/weapons/gun_revolver_load3.ogg'
@@ -20,7 +20,6 @@
 	var/trick_delay = 2.5 SECONDS //Yeah, 4 seconds is too long.
 	var/recent_trick //So they're not spamming tricks.
 	var/list/cylinder_click = list('sound/weapons/gun_empty.ogg')
-	var/russian_roulette = FALSE //God help you if you do this.
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES|GUN_ACCEPTS_HANDFUL|GUN_ACCEPTS_SPEEDLOADER
 	gun_category = GUN_CATEGORY_HANDGUN
@@ -32,6 +31,8 @@
 	projectile_casing = PROJECTILE_CASING_BULLET
 
 	//=========// GUN STATS //==========//
+	cycle_chamber_delay = FIRE_DELAY_TIER_8 //Almost no cocking delay.
+
 	fire_delay = FIRE_DELAY_TIER_5
 
 	accuracy_mult = BASE_ACCURACY_MULT
@@ -44,147 +45,168 @@
 	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_3
 	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/revolver/Initialize(mapload, spawn_empty)
+/*
+The chamber counts up (to simulate clockwise rotation), resetting when it reaches the max;
+this behavior is the same for right side up and upside down cylinders (counter clockwise rotation).
+
+	  1		  4
+	2	6	3	5
+	3	5	2	6
+	  4		  1
+
+Alternative setup that would count down instead (this was originally used). Changed in favor of loading bullets sequentially.
+
+  	  1		  4
+	6	2	5	3
+	5	3	6	2
+  	  4		  1
+
+The chamber rotates before each bullet is fired, so the first firing position is usually 2.
+*/
+#define ROTATE_CYLINDER current_mag.chamber_position = (current_mag.chamber_position == current_mag.max_rounds) ? 1 : ++current_mag.chamber_position
+#define ROTATE_CYLINDER_BACK current_mag.chamber_position = (current_mag.chamber_position == 1) ? current_mag.max_rounds : --current_mag.chamber_position
+
+/obj/item/weapon/gun/revolver/Initialize(mapload, spawn_empty = FALSE, custom_list_override = FALSE)
 	. = ..()
-	populate_internal_magazine(current_mag.current_rounds)
+
+	if(!spawn_empty && !custom_list_override) //If it's empty or has a custom feeder contents list, we will attempt to populate it fully.
+		for(var/i = 1 to min(current_mag.current_rounds, current_mag.max_rounds)) //We want to make sure to populate the cylinder.
+			current_mag.feeder_contents += current_mag.default_ammo //Defaults to whatever the gun uses for default.
 
 /obj/item/weapon/gun/revolver/get_additional_gun_examine_text(mob/user)
 	. = ..() + ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "The cylinder is open with [current_mag.current_rounds] round\s loaded." : "The cylinder is closed." )
 
-/obj/item/weapon/gun/revolver/proc/rotate_cylinder(mob/user) //Cylinder moves backward.
-	if(current_mag)
-		current_mag.chamber_position = current_mag.chamber_position == 1 ? current_mag.max_rounds : current_mag.chamber_position - 1
+/obj/item/weapon/gun/revolver/cycle_chamber(mob/user)
+	if(flags_gun_toggles & GUN_BURST_FIRING)
+		return
 
-//Make sure to create handful before running this.
+	if(cycle_chamber_cooldown > world.time)
+		return
+
+	cycle_chamber_cooldown = world.time + cycle_chamber_delay
+
+	play_chamber_cycle_sound(user, cocked_sound)
+
+	flags_gun_receiver ^= GUN_HAMMER_IS_COCKED //Cock/decock the hammer.
+	if(flags_gun_receiver & GUN_HAMMER_IS_COCKED && !(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)) //Only rotates if the cylinder is closed and the hammer was pulled back.
+		ROTATE_CYLINDER
+
+//Generally never need to use this. If the gun is working properly, it will null on the go and when emptied out.
 /obj/item/weapon/gun/revolver/proc/empty_cylinder()
-	if(current_mag)
-		for(var/i = 1 to current_mag.max_rounds)
-			current_mag.chamber_contents[i] = null
+	var/L[current_mag.max_rounds] //We just make a new, empty list.
+	current_mag.feeder_contents = L
 
 //The cylinder is always emptied out before a reload takes place.
-/obj/item/weapon/gun/revolver/replace_magazine(mob/user, ammunition_reference) //Bullets are added forward.
-
-	//First we're going to try and replace the current bullet.
-	if(!current_mag.current_rounds)
-		current_mag.chamber_contents[current_mag.chamber_position] = ammunition_reference
-	else //Failing that, we'll try to replace the next bullet in line.
-		if((current_mag.chamber_position + 1) > current_mag.max_rounds)
-			current_mag.chamber_contents[1] = ammunition_reference
-			current_mag.chamber_position = 1
+/obj/item/weapon/gun/revolver/replace_magazine(mob/user, ammunition_reference) //Bullets are added forward, starting with the index.
+	//We want to make sure the gun can load any ammo into any slot, if the cylinder is spun or not. But we don't necessarily know which slots are already filled.
+	var/slots_to_check = current_mag.max_rounds
+	for(chamber_index, slots_to_check, slots_to_check--) //While we still have slots to check, decrease slots. Chamber index also acts as a counter.
+		if(current_mag.feeder_contents[i]) //
+			ROTATE_CYLINDER //We move on to wherever this takes us instead of changing chamber_index in the proc argument, allowing us to loop around.
 		else
-			current_mag.chamber_contents[current_mag.chamber_position + 1] = ammunition_reference
-			current_mag.chamber_position++
+			current_mag.feeder_contents[chamber_index] = ammunition_reference
+			break //Found an empty one, get out.
+
 	playsound(user, hand_reload_sound, 25, 1)
 	return TRUE
 
 /obj/item/weapon/gun/revolver/unload(mob/user, reloading_override = FALSE)
 	if(flags_gun_toggles & GUN_BURST_FIRING) return
 
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN) //If it's actually closed.
-		flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
-		playsound(src, unload_sound, 25, 1)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
+		playsound(src, chamber_close_sound, 25, 1)
 	else
-		flags_gun_receiver |= GUN_CHAMBER_IS_OPEN
 		if(make_casing(projectile_casing) || reloading_override) //If we have some spent rounds in the chamber or we're reloading manually,
 			sort_cylinder_ammo(user) //This first before the cylinder is dumped.
-			empty_cylinder() //dump everything out.
 			to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
-		//current_mag.create_handful(user)
 
-		russian_roulette = FALSE //Resets the RR variable.
-		playsound(src, chamber_close_sound, 25, 1)
+		flags_gun_toggles &= ~GUN_PLAYING_RUS_ROULETTE //Resets the RR variable.
+		playsound(src, unload_sound, 25, 1)
+
+	flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
+
 	update_icon()
 
+/*
+We want the ammo with the most rounds first, so it gets placed in hand if possible. We don't care to sort the entire list,
+and there generally will be only two possible ammo types if not fewer. If mixed handfuls are introduced, this proc will not be needed.
+*/
 /obj/item/weapon/gun/revolver/proc/sort_cylinder_ammo(mob/user)
 	if(current_mag)
-		var/list/ammo_available = list() //we need a list of all the different ammo in the cylinder.
-		var/h
-		var/c = 0
-		var/L[0]
+		var/ammo_available[0] //we need a list of all the different ammo in the cylinder.
+		var/leading_ammo[0] //And a second list for the ammo that will be the most numerous. Or whatever it may be if tied.
+		var/ammo_path //Our generic path tracker.
+		var/lead_counter = 0 //What we use to measure against.
 
-		for(var/i = 1 to current_mag.max_rounds) //This will give us an associated list of the ammo and how many "rounds" each ammo had.
-			h = current_mag.chamber_contents[i]
-			if(h) //Is it null or not?
-				if(h in ammo_available) //Is it already in the list?
-					ammo_available[h]++ //Move up the number.
-					//We want the ammo with the most rounds first, so it gets placed in hand if possible.
-					//We don't care to sort the entire list, and there generally will be only two possible
-					//ammo types if not less.
+		//This will give us an associated list of the ammo and how many "rounds" each ammo had.
+		for(var/i = 1 to current_mag.max_rounds)
+			ammo_path = current_mag.feeder_contents[i]
+			if(ammo_path) //Is it null or not?
+				current_mag.feeder_contents[i] = null //Null it out as we won't need it.
+				if(ammo_path in ammo_available) //Is it already in the list?
+					ammo_available[ammo_path]++ //Move up the number.
+				else //If it's not, add it to make the association.
+					ammo_available[ammo_path] = 1
 
-				else //Add if it's not, add it.
-					ammo_available += h//Make the association.
-					ammo_available[h] = 1
-
-				if(c < ammo_available[h] && !(h in L) ) //Found a candidate. If there's even one ammo type, this will fire.
-					c++ //Move it up.
-					L.len = 0 //Empty list
-					L += h //Add it
+				if(ammo_available[ammo_path] > lead_counter && !(ammo_path in leading_ammo) ) //Found a candidate. If there's even one ammo type, this will fire.
+					lead_counter++ //Move it up. This is what the next number has to be greater than.
+					leading_ammo.len = 0 //Empty list
+					leading_ammo += ammo_path
 
 		//Now we should have two lists. We make sure that our main one is in the first position.
-		//Let's fine out where it's breaking.
-		to_chat(user, SPAN_WARNING("ammo len is [ammo_available.len] and L len is [L.len]"))
-
 		if(ammo_available.len) //We have some ammo.
-
+			ammo_available = leading_ammo | ammo_available //We simply make a new list with both elements. L in the first position, so it gets added first.
 			for(var/i in ammo_available)
-				to_chat(user, SPAN_WARNING("Checking [ammo_available[i]] rounds of [i] pre merge"))
-
-			if(ammo_available.len > 1) //And there is more than one ammo type present.
-				ammo_available = L | ammo_available //L in the first position, so it gets added first.
-
-			for(var/i in ammo_available)
-				to_chat(user, SPAN_WARNING("Checking [ammo_available[i]] rounds of [i] post merge"))
-
-			for(var/i in ammo_available)
-				to_chat(user, SPAN_WARNING("Sending [ammo_available[i]] rounds of [i]"))
 				current_mag.create_handful(user, null, ammo_available[i], i)
 
 /obj/item/weapon/gun/revolver/check_additional_able_to_fire(mob/user)
-	. = ..()
-
 	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		to_chat(user, SPAN_WARNING("Close the cylinder!"))
 		playsound(user, pick(cylinder_click), 25, 1, 5)
 		return FALSE
+	return TRUE
+
+/obj/item/weapon/gun/revolver/load_into_chamber()
+	if(!active_attachable) //No active attachable,
+		if(!(flags_gun_receiver & GUN_MANUAL_CYCLE))//revolver isn't single action.
+			ROTATE_CYLINDER //Rotate once; this is default double action behavior. Pull the trigger, rotate cylinder and fire the bullet (if there is one).
+		else if(!(flags_gun_receiver & GUN_HAMMER_IS_COCKED)) //If the gun is a manual cycle, ie single action.
+			return FALSE //If the hammer isn't cocked, can't fire.
+	. = ..()
 
 /obj/item/weapon/gun/revolver/ready_in_chamber()
-	if(current_mag.current_rounds > 0)
-		if(current_mag.chamber_contents[current_mag.chamber_position]) //If it's not null.
-			in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
+	if(current_mag.current_rounds)
+		if(current_mag.feeder_contents[current_mag.chamber_position]) //If it's not null.
+			in_chamber = GLOB.ammo_list[current_mag.feeder_contents[current_mag.chamber_position]]
 			current_mag.current_rounds-- //Subtract the round from the mag.
 			return in_chamber
 	else if(!(flags_gun_receiver & GUN_CHAMBER_IS_OPEN))
 		unload(null)
 
-/obj/item/weapon/gun/revolver/load_into_chamber(mob/user)
-	if(ready_in_chamber())
-		return in_chamber
-	rotate_cylinder() //If we fail to return to chamber the round, we just move the firing pin some.
-
 /obj/item/weapon/gun/revolver/reload_into_chamber(mob/user)
-	in_chamber = null
-	if(current_mag)
-		current_mag.chamber_contents[current_mag.chamber_position] = null //We shot the bullet.
-		current_mag.used_casings++
-		rotate_cylinder()
-		return TRUE
+	if(!active_attachable)
+		current_mag.feeder_contents[current_mag.chamber_position] = null //We shot the bullet.
+		flags_gun_receiver &= ~GUN_HAMMER_IS_COCKED //No longer cocked, if it was previously.
+	. = ..()
+
 
 // FLUFF
 /obj/item/weapon/gun/revolver/unique_action(mob/user)
+	cycle_chamber(user)
+	/*
 	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		make_casing(projectile_casing)
 		sort_cylinder_ammo(user)
-		empty_cylinder()
 		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
 	else
 		spin_cylinder(user)
+		*/
 
 /obj/item/weapon/gun/revolver/proc/spin_cylinder(mob/user)
-	if(!(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)) //We're not spinning while it's open. Could screw up reloading.
-		current_mag.chamber_position = rand(1,current_mag.max_rounds)
-		to_chat(user, SPAN_NOTICE("You spin the cylinder."))
-		playsound(user, cocked_sound, 25, 1)
-		russian_roulette = TRUE //Sets to play RR. Resets when the gun is emptied.
+	current_mag.chamber_position = rand(1,current_mag.max_rounds)
+	to_chat(user, SPAN_NOTICE("You spin the cylinder."))
+	playsound(user, 'sound/weapons/gun_revolver_spun.ogg', 25, 1)
+	flags_gun_toggles |= GUN_PLAYING_RUS_ROULETTE //Sets to play RR. Resets when the gun is emptied.
 
 /obj/item/weapon/gun/revolver/proc/revolver_basic_spin(mob/living/carbon/human/user, direction = 1, obj/item/weapon/gun/revolver/double)
 	set waitfor = 0
@@ -277,6 +299,8 @@
 		to_chat(user, SPAN_WARNING("You fumble with [src] like an idiot... Uncool."))
 		return FALSE
 
+#undef ROTATE_CYLINDER
+#undef ROTATE_CYLINDER_BACK
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                  M44 COMBAT REVOLVER               ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -328,11 +352,10 @@
 	..()
 
 /obj/item/weapon/gun/revolver/m44/check_additional_able_to_fire(mob/user)
-	. = ..()
-
 	if(folded)
-		to_chat(user, SPAN_NOTICE("You need to unfold the stock to fire!"))//this is stupid
+		to_chat(user, SPAN_NOTICE("You need to unfold the stock to fire!"))
 		return FALSE
+	. = ..()
 
 /obj/item/weapon/gun/revolver/m44/mp //No differences (yet) beside spawning with marksman ammo loaded
 	current_mag = /obj/item/ammo_magazine/internal/revolver/m44/marksman
@@ -528,7 +551,7 @@
 //hhhhhhhhhhhhhhhhh===========[         S&W .38 MODEL 37 / TRICK REVOLVER          ]=========hhhhhhhhhhhhhhhhhhhhhhh
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //357 REVOLVER //Based on the generic S&W 357.
-//a lean mean machine, pretty inaccurate unless you play its dance.
+//a lean mean machine, pretty inaccurate unless you play its dance. It is now single action, too! What fun.
 
 /obj/item/weapon/gun/revolver/small
 	name = "\improper S&W .38 model 37 revolver"
@@ -540,6 +563,7 @@
 	current_mag = /obj/item/ammo_magazine/internal/revolver/small
 	force = 6
 	flags_gun_features = GUN_ANTIQUE|GUN_ONE_HAND_WIELDED|GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES|GUN_ACCEPTS_HANDFUL|GUN_ACCEPTS_SPEEDLOADER|GUN_MANUAL_CYCLE
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_6
@@ -563,7 +587,6 @@
 	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		make_casing(projectile_casing)
 		sort_cylinder_ammo(user)
-		empty_cylinder()
 		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
 	else
 		if(revolver_trick(user))

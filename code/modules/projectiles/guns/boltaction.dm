@@ -108,8 +108,6 @@
 	update_icon()
 
 /obj/item/weapon/gun/boltaction/check_additional_able_to_fire(mob/user)
-	. = ..()
-
 	if(bolt_is_open)
 		to_chat(user, SPAN_WARNING("The bolt is still open, you can't fire [src]."))
 		return FALSE
@@ -207,12 +205,12 @@
 	if(bolt_is_open)
 		overlays += "vulture_bolt_open" //Does it not remove it?
 
-/obj/item/weapon/gun/boltaction/vulture/check_additional_able_to_fire(mob/user)
-	. = ..()
-
+/obj/item/weapon/gun/boltaction/vulture/recalculate_user_attributes(mob/living/user)
 	if(!bypass_trait && !HAS_TRAIT(user, TRAIT_VULTURE_USER))
-		to_chat(user, SPAN_WARNING("You don't know how to use this!"))
-		return FALSE
+		unable_to_fire_message = "You don't know how to use this!"
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 /obj/item/weapon/gun/boltaction/vulture/Fire(atom/target, mob/living/user, params, reflex, dual_wield)
 	var/obj/item/attachable/vulture_scope/scope = attachments[ATTACHMENT_SLOT_RAIL]

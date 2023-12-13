@@ -293,30 +293,6 @@
 		to_chat(src, SPAN_BOLDNOTICE("Help intent can perform harmful actions again."))
 	prefs.save_preferences()
 
-/client/proc/toggle_auto_eject() // Toggle whether guns with auto-ejectors will automatically eject magazines
-	prefs.toggle_prefs ^= TOGGLE_AUTO_EJECT_MAGAZINE_OFF
-	if(prefs.toggle_prefs & TOGGLE_AUTO_EJECT_MAGAZINE_OFF)
-		var/msg = "Guns with auto-ejectors will no longer automatically eject their magazines."
-		if (prefs.toggle_prefs & TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND)
-			prefs.toggle_prefs ^= TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND
-			msg += " The preference for auto-ejecting magazines to your hand has been toggled off."
-		to_chat(src, msg)
-	else
-		to_chat(src, SPAN_BOLDNOTICE("Guns with auto-ejectors will automatically eject their magazines."))
-	prefs.save_preferences()
-
-/client/proc/toggle_auto_eject_to_hand() // Toggle whether guns with auto-ejectors will eject their magazines to your offhand
-	prefs.toggle_prefs ^= TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND
-	if(prefs.toggle_prefs & TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND)
-		var/msg = "Guns with auto-ejectors will eject their magazines to your offhand."
-		if (prefs.toggle_prefs & TOGGLE_AUTO_EJECT_MAGAZINE_OFF)
-			prefs.toggle_prefs ^= TOGGLE_AUTO_EJECT_MAGAZINE_OFF
-			msg += " The preference for removing magazine auto-ejecting has been toggled off."
-		to_chat(src, SPAN_BOLDNOTICE(msg))
-	else
-		to_chat(src, SPAN_BOLDNOTICE("Guns with auto-ejectors will no longer eject their magazines to your offhand."))
-	prefs.save_preferences()
-
 /client/proc/toggle_eject_to_hand() // Toggle whether unloading a magazine with the 'Unload Weapon' verb will put the magazine in your offhand
 	prefs.toggle_prefs ^= TOGGLE_EJECT_MAGAZINE_TO_HAND
 	if(prefs.toggle_prefs & TOGGLE_EJECT_MAGAZINE_TO_HAND)

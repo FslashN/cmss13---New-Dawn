@@ -310,24 +310,31 @@
 //more general procs
 
 /obj/item/weapon/gun/smartgun/check_additional_able_to_fire(mob/living/user)
-	. = ..()
-
 	if(!ishuman(user))
 		return FALSE
+
 	var/mob/living/carbon/human/H = user
-	if(!skillcheckexplicit(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_SMARTGUN) && !skillcheckexplicit(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL))
-		to_chat(H, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
-		return FALSE
+
 	if(requires_harness)
 		if(!H.wear_suit || !(H.wear_suit.flags_inventory & SMARTGUN_HARNESS))
 			to_chat(H, SPAN_WARNING("You need a harness suit to be able to fire [src]..."))
 			return FALSE
+
 	if(cover_open)
 		to_chat(H, SPAN_WARNING("You can't fire \the [src] with the feed cover open! (alt-click to close)"))
 		return FALSE
 
+	return TRUE
+
+/obj/item/weapon/gun/smartgun/recalculate_user_attributes(mob/living/user)
+	if(!skillcheckexplicit(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_SMARTGUN) && !skillcheckexplicit(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL))
+		unable_to_fire_message = "You don't seem to know how to use \the [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
+
 /obj/item/weapon/gun/smartgun/unique_action(mob/user)
-	if(isobserver(usr) || isxeno(usr))
+	if(isobserver(user) || isxeno(user)) //How?
 		return
 	toggle_ammo_type(usr)
 

@@ -94,8 +94,6 @@
 		overlays += I
 
 /obj/item/weapon/gun/flamer/check_additional_able_to_fire(mob/user)
-	. = ..()
-
 	if(!current_mag || !current_mag.current_rounds) //Can this be false? Todo: investigate.
 		return FALSE
 
@@ -362,12 +360,12 @@
 		return
 	..()
 
-/obj/item/weapon/gun/flamer/M240T/check_additional_able_to_fire(mob/user)
-	. = ..()
-
+/obj/item/weapon/gun/flamer/M240T/recalculate_user_attributes(mob/living/user)
 	if(!skillcheck(user, SKILL_SPEC_WEAPONS,  SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_PYRO)
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return FALSE
+		unable_to_fire_message = "You don't seem to know how to use [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 /obj/item/weapon/gun/flamer/M240T/proc/link_fuelpack(mob/user)
 	if (fuelpack)

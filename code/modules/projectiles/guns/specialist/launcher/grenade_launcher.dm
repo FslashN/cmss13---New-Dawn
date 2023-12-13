@@ -148,17 +148,16 @@
 
 
 /obj/item/weapon/gun/launcher/grenade/check_additional_able_to_fire(mob/living/user) //Skillchecks and fire blockers go in the child items.
-	. = ..()
-
 	if(!length(cylinder.contents))
 		to_chat(user, SPAN_WARNING("The [name] is empty."))
 		return FALSE
+
 	var/obj/item/explosive/grenade/G = cylinder.contents[1]
+
 	if(G.antigrief_protection && user.faction == FACTION_MARINE && explosive_antigrief_check(G, user))
 		to_chat(user, SPAN_WARNING("\The [name]'s safe-area accident inhibitor prevents you from firing!"))
 		msg_admin_niche("[key_name(user)] attempted to prime \a [G.name] in [get_area(src)] [ADMIN_JMP(src.loc)]")
 		return FALSE
-
 
 /obj/item/weapon/gun/launcher/grenade/afterattack(atom/target, mob/user, flag) //Not actually after the attack. After click, more like.
 	if(able_to_fire(user))
@@ -168,7 +167,6 @@
 				to_chat(user, SPAN_WARNING("The grenade launcher beeps a warning noise. You are too close!"))
 				return
 		fire_grenade(target,user)
-
 
 /obj/item/weapon/gun/launcher/grenade/proc/fire_grenade(atom/target, mob/user)
 	set waitfor = 0
@@ -284,12 +282,12 @@
 
 	..()
 
-/obj/item/weapon/gun/launcher/grenade/m92/check_additional_able_to_fire(mob/living/user)
-	. = ..()
-
+/obj/item/weapon/gun/launcher/grenade/m92/recalculate_user_attributes(mob/living/user)
 	if(!skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_GRENADIER)
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
-		return FALSE
+		unable_to_fire_message = "You don't seem to know how to use \the [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                         M81                        ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -320,13 +318,13 @@
 	..()
 	playsound(usr, unload_sound, 30, 1)
 
-/obj/item/weapon/gun/launcher/grenade/m81/riot/check_additional_able_to_fire(mob/living/user)
-	. = ..()
 
+/obj/item/weapon/gun/launcher/grenade/m81/riot/recalculate_user_attributes(mob/living/user)
 	if(!skillcheck(user, SKILL_POLICE, SKILL_POLICE_SKILLED))
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use \the [src]..."))
-		return FALSE
+		unable_to_fire_message = "You don't seem to know how to use \the [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
 
+	..()
 
 /obj/item/weapon/gun/launcher/grenade/m81/riot
 	name = "\improper M81 riot grenade launcher"

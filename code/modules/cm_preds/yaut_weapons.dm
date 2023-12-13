@@ -849,12 +849,12 @@
 /obj/item/weapon/gun/launcher/spike/update_icon()
 	icon_state = spikes <=1 ? "spikelauncher_e" : "spikelauncher" + "[round(spikes/4, 1)]"
 
-/obj/item/weapon/gun/launcher/spike/check_additional_able_to_fire(mob/user)
-	. = ..()
-
+/obj/item/weapon/gun/launcher/spike/recalculate_user_attributes(mob/living/user)
 	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
-		to_chat(user, SPAN_WARNING("You have no idea how this thing works!"))
-		return FALSE
+		unable_to_fire_message = "You have no idea how this thing works!"
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 /obj/item/weapon/gun/launcher/spike/ready_in_chamber()
 	if(spikes > 0)
@@ -880,6 +880,13 @@
 	var/obj/projectile/P = ..()
 	P.set_light(1)
 	. = P
+
+/obj/item/weapon/gun/energy/yautja/recalculate_user_attributes(mob/living/user)
+	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
+		unable_to_fire_message = "You have no idea how this thing works!"
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                   PLASMA RIFLE                     ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -945,9 +952,6 @@
 /obj/item/weapon/gun/energy/yautja/plasmarifle/check_additional_able_to_fire(mob/user)
 	. = ..()
 
-	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
-		to_chat(user, SPAN_WARNING("You have no idea how this thing works!"))
-		return FALSE
 	if(charge_time < 7)
 		to_chat(user, SPAN_WARNING("The rifle does not have enough power remaining!"))
 		return FALSE
@@ -1020,13 +1024,6 @@
 
 	. += SPAN_NOTICE("It currently has <b>[charge_time]/40</b> charge.")
 	. += mode == FIRE_MODE_INCENDIARY ? SPAN_RED("It is set to fire incendiary plasma bolts.") : SPAN_ORANGE("It is set to fire plasma bolts.")
-
-/obj/item/weapon/gun/energy/yautja/plasmapistol/check_additional_able_to_fire(mob/user)
-	. = ..()
-
-	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
-		to_chat(user, SPAN_WARNING("You have no idea how this thing works!"))
-		return FALSE
 
 /obj/item/weapon/gun/energy/yautja/plasmapistol/ready_in_chamber()
 	if(charge_time >= shot_cost)
@@ -1202,9 +1199,6 @@
 	. = ..()
 
 	if(!source)
-		return FALSE
-	if(!HAS_TRAIT(user, TRAIT_YAUTJA_TECH))
-		to_chat(user, SPAN_WARNING("You have no idea how this thing works!"))
 		return FALSE
 
 /obj/item/weapon/gun/energy/yautja/plasma_caster/ready_in_chamber(mob/user)

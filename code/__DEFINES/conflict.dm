@@ -75,19 +75,22 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 
 //================================
 //These are temporary gun states set through flags_gun_toggles. They can change depending on various factors.
-#define GUN_TRIGGER_SAFETY_ON (1<<0) ///Disable safety, so setting through flags means the gun starts with the SAFETY ON.
-#define GUN_FLASHLIGHT_ON (1<<1) ///From an attachment, if the attached light source is on.
-#define GUN_BURST_FIRING (1<<2) ///Added when the gun is burst firing.
-#define GUN_AUTO_EJECTING_OFF (1<<3) ///If the gun has an auto ejector, it defaults to ON when spawned in. Adding this toggles it off instead. Must have GUN_AUTO_EJECTOR
+#define GUN_UNABLE_TO_FIRE (1<<0) ///If the gun is unable to fire for some reason, like the being WY restricted. Offloads some checks to this bitfield. Moving the gun to an empty hand will recalc this.
+#define GUN_TRIGGER_SAFETY_ON (1<<1) ///Disable safety, so setting through flags means the gun starts with the SAFETY ON.
+#define GUN_FLASHLIGHT_ON (1<<2) ///From an attachment, if the attached light source is on.
+#define GUN_BURST_FIRING (1<<3) ///Added when the gun is burst firing.
+#define GUN_AUTO_EJECTING_OFF (1<<4) ///If the gun has an auto ejector, it defaults to ON when spawned in. Adding this toggles it off instead. Must have GUN_AUTO_EJECTOR
+#define GUN_AUTO_EJECTING_TO_HAND (1<<5) ///If the gun will auto-eject into the hand instead. Must have GUN_AUTO_EJECTOR
 ///These defines are still part of flags_gun_toggles, but they primarily function with the smartgun. Can be used on other things.
-#define GUN_IFF_SYSTEM_ON (1<<4) ///We want this to default to ON in most circumstances.
-#define GUN_RECOIL_COMP_ON (1<<5) ///If the gun is toggled to minimize recoil.
-#define GUN_ACCURACY_ASSIST_ON (1<<6) ///If the gun is set to assist with accuracy.
-#define GUN_AUTOMATIC_AIM_ASSIST_ON (1<<7) ///If the gun will fire at targets by itself.
-#define GUN_SECONDARY_MODE_ON (1<<8) ///If the gun has a secondary mode, like an alternative ammo to fire, this is used.
-#define GUN_MOTION_DETECTOR_ON (1<<9) //If the gun comes with a motion detection module built in, this can be toggled too.
-#define GUN_ID_LOCK_ON (1<<10) ///If the gun can lock itself from use, requiring a specific ID to unlock or something.
+#define GUN_IFF_SYSTEM_ON (1<<6) ///We want this to default to ON in most circumstances.
+#define GUN_RECOIL_COMP_ON (1<<7) ///If the gun is toggled to minimize recoil.
+#define GUN_ACCURACY_ASSIST_ON (1<<8) ///If the gun is set to assist with accuracy.
+#define GUN_AUTOMATIC_AIM_ASSIST_ON (1<<9) ///If the gun will fire at targets by itself.
+#define GUN_SECONDARY_MODE_ON (1<<10) ///If the gun has a secondary mode, like an alternative ammo to fire, this is used.
+#define GUN_MOTION_DETECTOR_ON (1<<11) //If the gun comes with a motion detection module built in, this can be toggled too.
+#define GUN_ID_LOCK_ON (1<<12) ///If the gun can lock itself from use, requiring a specific ID to unlock or something.
 //////////////////////////////////
+#define GUN_PLAYING_RUS_ROULETTE (1<<13) ///For revolvers. Mostly legacy tracking, but it's better as a bitfield as it won't require istype() checking elsewhere.
 
 //================================
 //These are receiver features set through flags_gun_receiver
@@ -97,11 +100,12 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 #define GUN_CHAMBER_CAN_OPEN (1<<3)///The receiver can be opened, like a double barrel or revolver.
 #define GUN_CHAMBER_IS_OPEN (1<<4)///If the above is set, this means the receiver is currently open.
 #define GUN_CHAMBER_ROTATES (1<<5)///The chamber position can move around, typically with a cylinder.
-#define GUN_CHAMBER_IS_STATIC (1<<6)///in_chamber is always "on" acting as the default ammo for the gun and ignores most of the fire cycle. It should never be nulled.
+#define GUN_CHAMBER_IS_STATIC (1<<6)///in_chamber is always "on" acting as the default ammo for the gun and ignores some of the fire cycle. It should never be nulled.
 #define GUN_ACCEPTS_SPEEDLOADER (1<<7) //The receiver is loaded with speedloaders, only really affects revolvers.
 #define GUN_ACCEPTS_HANDFUL (1<<8) //Some guns with internal mags use this loading method.
 #define GUN_CHAMBER_EMPTY_CASING (1<<9) ///If there is an empty casing in the chamber. For jams and edge case guns that don't have internal mags (bolt).
 #define GUN_CHAMBER_IS_JAMMED (1<<10) ///When a gun jams during the fire cycle, this is set. Can happen in reload_into_chamber().
+#define GUN_HAMMER_IS_COCKED (1<<11) //Specifically for revolvers but may be applied elsewhere. This is used to emulate cocking without an active in_chamber.
 
 //Gun weapon categories, currently used for firing while dualwielding. Changed these to bitflags in case I want to mix and match. Unique from the flags above, could combine with gun designs.
 #define GUN_CATEGORY_HANDGUN (1<<0)

@@ -52,20 +52,23 @@
 	return
 
 /obj/item/weapon/gun/souto/check_additional_able_to_fire(mob/user)
-	. = ..()
-
 	if(!current_mag || !current_mag.current_rounds) //Can apparently be false. Todo: fix this whatever it is.
-		return FALSE
-	if(!skillcheck(user, SKILL_SPEC_WEAPONS,  SKILL_SPEC_ALL))
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
 		return FALSE
 
 	var/mob/living/carbon/human/H = user
 	if(!istype(H))
 		return FALSE
+
 	if(!istype(H.back, /obj/item/storage/backpack/souto))
 		click_empty(H)
 		return FALSE
+
+/obj/item/weapon/gun/souto/recalculate_user_attributes(mob/living/user)
+	if(!skillcheck(user, SKILL_SPEC_WEAPONS,  SKILL_SPEC_ALL))
+		unable_to_fire_message = "You don't seem to know how to use [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 //Ughhh.
 /obj/item/weapon/gun/souto/create_bullet(datum/ammo/chambered, bullet_source)

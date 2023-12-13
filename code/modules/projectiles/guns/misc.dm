@@ -44,15 +44,16 @@
 	desc = "A gas-operated rotary machine gun used by UPP heavies. Its enormous volume of fire and ammunition capacity allows the suppression of large concentrations of enemy forces. Heavy weapons training is required control its recoil."
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER|GUN_RECOIL_BUILDUP|GUN_CAN_POINTBLANK
 
-/obj/item/weapon/gun/minigun/upp/check_additional_able_to_fire(mob/living/user)
-	. = ..()
+/obj/item/weapon/gun/minigun/upp/recalculate_user_attributes(mob/living/user)
+	if(!skillcheck(user, SKILL_FIREARMS, SKILL_FIREARMS_TRAINED)) //Skills are set up in the parent, which is ran after.
+		unable_to_fire_message = "You don't seem to know how to use [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
 
-	if(!skillcheck(user, SKILL_FIREARMS, SKILL_FIREARMS_TRAINED))
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return FALSE
 	if(!skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_UPP)
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return FALSE
+		unable_to_fire_message = "You don't seem to know how to use [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                    M60 MACHINE GUN                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -155,8 +156,6 @@
 		overlays += "+[base_gun_icon]_cover_closed"
 
 /obj/item/weapon/gun/m60/check_additional_able_to_fire(mob/living/user)
-	. = ..()
-
 	if(cover_open)
 		to_chat(user, SPAN_WARNING("You can't fire [src] with the feed cover open! <b>(alt-click to close)</b>"))
 		return FALSE
@@ -264,17 +263,20 @@
 		overlays += "+[base_gun_icon]_cover_closed"
 
 /obj/item/weapon/gun/pkp/check_additional_able_to_fire(mob/living/user)
-	. = ..()
-
 	if(cover_open)
 		to_chat(user, SPAN_WARNING("You can't fire [src] with the feed cover open! <b>(alt-click to close)</b>"))
 		return FALSE
+
+/obj/item/weapon/gun/pkp/recalculate_user_attributes(mob/living/user)
 	if(!skillcheck(user, SKILL_FIREARMS, SKILL_FIREARMS_TRAINED))
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return FALSE
+		unable_to_fire_message = "You don't seem to know how to use [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
 	if(!skillcheck(user, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && user.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_UPP)
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return FALSE
+		unable_to_fire_message = "You don't seem to know how to use [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 /obj/effect/syringe_gun_dummy
 	name = ""
@@ -338,7 +340,7 @@
 	))
 
 /obj/item/weapon/gun/rifle/techweb_railgun/check_additional_able_to_fire()
-	return charged //??
+	return charged //???? WHAT IS THIS WEAPON ???? It's a mystery wrapped in an enigma.
 
 /obj/item/weapon/gun/rifle/techweb_railgun/proc/start_charging(user)
 	if (charged)

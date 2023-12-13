@@ -245,12 +245,12 @@
 
 	..()
 
-/obj/item/weapon/gun/energy/taser/check_additional_able_to_fire(mob/living/user)
-	. = ..()
-
+/obj/item/weapon/gun/energy/taser/recalculate_user_attributes(mob/living/user)
 	if(skilllock && !skillcheck(user, SKILL_POLICE, skilllock))
-		to_chat(user, SPAN_WARNING("You don't seem to know how to use [src]..."))
-		return FALSE
+		unable_to_fire_message = "You don't seem to know how to use [src]..."
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
+
+	..()
 
 /obj/item/weapon/gun/energy/taser/unique_action(mob/user)
 	change_mode(user)

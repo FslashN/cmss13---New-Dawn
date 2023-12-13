@@ -1,4 +1,6 @@
-//Magazine items, and casings.
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                 GENERIC AMMO MAGAZINE              ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 /*
 Boxes of ammo. Certain weapons have internal boxes of ammo that cannot be removed and function as part of the weapon.
 They're all essentially identical when it comes to getting the job done.
@@ -22,6 +24,8 @@ They're all essentially identical when it comes to getting the job done.
 	ground_offset_x = 7
 	ground_offset_y = 6
 	var/default_ammo = /datum/ammo/bullet
+	var/feeding_ammo //What is currently used to load the chamber, also a path, starts as default_ammo on New(). Change this if you have mixed ammo.
+	var/list/feeder_contents //Contents of the feeder, broken up by their position. Initialized on New().
 	var/caliber = null // This is used for matching handfuls to each other or whatever the mag is. Examples are" "12g" ".44" ".357" etc.
 	var/current_rounds = -1 //This will fill the mag to full at initialize. Change this to a different number to have it start with less than full ammo.
 	var/max_rounds = 7 //How many rounds can it hold?
@@ -41,9 +45,13 @@ They're all essentially identical when it comes to getting the job done.
 	/// Is the greyscale icon used for the ammo band when it's empty of bullets.
 	var/ammo_band_icon_empty
 
+//Children should reference this proc from the bottom of a stack, after their own processing.
 /obj/item/ammo_magazine/Initialize(mapload, spawn_empty)
 	. = ..()
 	GLOB.ammo_magazine_list += src
+	feeding_ammo = feeding_ammo ? feeding_ammo : default_ammo //If we have something set, we use that instead of default ammo.
+	feeder_contents = list() //Generate a list for the contents, if we didn't override it for a child.
+
 	if(spawn_empty) current_rounds = 0
 	switch(current_rounds)
 		if(-1) current_rounds = max_rounds //Fill it up. Anything other than -1 and 0 will just remain so.
@@ -70,24 +78,32 @@ They're all essentially identical when it comes to getting the job done.
 	ammo_band_image.appearance_flags = RESET_COLOR|KEEP_APART
 	overlays += ammo_band_image
 
-/obj/item/ammo_magazine/update_icon(round_diff = 0)
-	if(current_rounds <= 0)
-		icon_state = initial(icon_state) + "_e"
-		item_state = initial(item_state) + "_e"
-		vis_state = initial(vis_state) + "_e"
-		add_to_garbage(src)
-	else if(current_rounds - round_diff <= 0)
-		icon_state = initial(icon_state)
-		item_state = initial(item_state) //to-do, unique magazine inhands for majority firearms.
-		vis_state = initial(vis_state)
-	if(iscarbon(loc))
-		var/mob/living/carbon/C = loc
-		if(C.r_hand == src)
-			C.update_inv_r_hand()
-		else if(C.l_hand == src)
-			C.update_inv_l_hand()
-	if(ammo_band_color && ammo_band_icon && !istype(loc, /obj/item/weapon/gun)) //Bandaid for until I can fix a proper bit define.
-		update_ammo_band()
+/obj/item/ammo_magazine/update_icon(round_diff = 0, obj/item/weapon/gun/G)
+	if(G && icon == 'icons/obj/items/weapons/guns/ammo_by_faction/colony.dmi')
+		pixel_x = 0 //It may have been scattered, we need to reset these to properly align the sprites.
+		pixel_y = 0
+		if(overlays.len) overlays.len = 0 //Get rid of overlays if they exist.
+		icon_state = initial(icon_state) + "_vis" //Add the visual state.
+		if(!current_rounds) icon_state += "_e" //Make it empty if there are no rounds remaining.
+		G.vis_contents += src
+	else
+		if(current_rounds <= 0)
+			icon_state = initial(icon_state) + "_e"
+			item_state = initial(item_state) + "_e"
+			vis_state = initial(vis_state) + "_e"
+			add_to_garbage(src)
+		else if(current_rounds - round_diff <= 0)
+			icon_state = initial(icon_state)
+			item_state = initial(item_state) //to-do, unique magazine inhands for majority firearms.
+			vis_state = initial(vis_state)
+		if(iscarbon(loc))
+			var/mob/living/carbon/C = loc
+			if(C.r_hand == src)
+				C.update_inv_r_hand()
+			else if(C.l_hand == src)
+				C.update_inv_l_hand()
+		if(ammo_band_color && ammo_band_icon) //Bandaid for until I can fix a proper bit define.
+			update_ammo_band()
 
 /obj/item/ammo_magazine/get_examine_text(mob/user)
 	. = ..()
@@ -110,7 +126,7 @@ They're all essentially identical when it comes to getting the job done.
 			if (current_rounds > 0)
 				if(create_handful(user))
 					return
-			else to_chat(user, "[src] is empty. Nothing to grab.")
+			else to_chat(user, SPAN_WARNING("[src] is empty. Nothing to grab."))
 			return
 	return ..() //Do normal stuff.
 
@@ -122,14 +138,12 @@ They're all essentially identical when it comes to getting the job done.
 			if(flags_magazine & AMMUNITION_REFILLABLE) //and a refillable magazine
 				var/obj/item/ammo_magazine/handful/transfer_from = I
 				if(src == user.get_inactive_hand() || bypass_hold_check) //It has to be held.
-					if(default_ammo == transfer_from.default_ammo)
-						if(transfer_bullet_number(transfer_from,user,transfer_from.current_rounds)) // This takes care of the rest.
-							to_chat(user, SPAN_NOTICE("You transfer rounds to [src] from [transfer_from]."))
-					else
-						to_chat(user, SPAN_NOTICE("Those aren't the same rounds. Better not mix them up."))
+					if(transfer_bullet_number(transfer_from,user,transfer_from.current_rounds)) // This takes care of the rest.
+						to_chat(user, SPAN_NOTICE("You transfer rounds to [src] from [transfer_from]."))
 				else
-					to_chat(user, SPAN_NOTICE("Try holding [src] before you attempt to restock it."))
+					to_chat(user, SPAN_WARNING("Try holding [src] before you attempt to restock it."))
 
+/*
 //Generic proc to transfer ammo between ammo mags. Can work for anything, mags, handfuls, etc.
 /obj/item/ammo_magazine/proc/transfer_bullet_number(obj/item/ammo_magazine/source, mob/user, transfer_amount = 1)
 	if(current_rounds == max_rounds) //Does the mag actually need reloading?
@@ -154,6 +168,63 @@ They're all essentially identical when it comes to getting the job done.
 
 	update_icon(S)
 	return S // We return the number transferred if it was successful.
+*/
+
+
+
+/obj/item/ammo_magazine/proc/transfer_bullet_number(obj/item/ammo_magazine/source, mob/user, transfer_amount = 1)
+	if(current_rounds == max_rounds) //Does the mag actually need reloading?
+		to_chat(user, SPAN_WARNING("[src] is already full."))
+		return
+
+	if(source.caliber != caliber) //Are they the same caliber?
+		to_chat(user, SPAN_WARNING("Not the same caliber, they won't fit right."))
+		return
+
+	var/transfered_bullets = 0 //Previous checks will make sure there's at least something to transfer.
+	while(transfer_amount--)
+		if(current_rounds == max_rounds || !source.current_rounds) break //Either our mag is full or the source is empty.
+
+		//Let's determine if our source has a break point or it will continue using the current ammo.
+		if("[source.current_rounds]" in source.feeder_contents)
+			source.feeding_ammo = source.feeder_contents["[source.current_rounds]"]
+			source.feeder_contents -= "[source.current_rounds]"
+
+		if(current_rounds) //Has some rounds, we may need to determine break points.
+			if(feeding_ammo != source.feeding_ammo) //Looks like we found one.
+				feeder_contents["[current_rounds]"] = feeding_ammo //Make the break point on what we currently have it set to.
+				feeding_ammo = source.feeding_ammo //Set it to the source.
+
+		else //If the magazine is completely empty, we don't set break points for our mag.
+			feeding_ammo = source.feeding_ammo
+
+		source.current_rounds--
+		current_rounds++
+		transfered_bullets++
+
+	if(!source.current_rounds && source.magazine_type == MAGAZINE_TYPE_HANDFUL) //We want to delete it if it's a handful.
+		if(user)
+			user.temp_drop_inv_item(source)
+		qdel(source) //Dangerous. Can mean future procs break if they reference the source. Have to account for this.
+	else source.update_icon()
+
+	if(magazine_type != MAGAZINE_TYPE_INTERNAL) //If we are not reloading into an internal mag.
+		playsound(loc, pick('sound/weapons/handling/mag_refill_1.ogg', 'sound/weapons/handling/mag_refill_2.ogg', 'sound/weapons/handling/mag_refill_3.ogg'), 25, 1)
+
+	update_icon(transfered_bullets)
+
+	return transfered_bullets
+
+//Returns a number of rounds until a break point, where feeder_ammo switches.
+/obj/item/ammo_magazine/proc/rounds_until_switch(amount_to_check = 1)
+	var/rounds_before_switch = 0
+	var/round_count = current_rounds
+	while(amount_to_check--)
+		if(!round_count || ("[round_count--]" in feeder_contents))
+			break
+		else rounds_before_switch++
+
+	return rounds_before_switch
 
 /// Proc to reload the current_ammo using the items existing inherent ammo, used for Sentry Post
 /obj/item/ammo_magazine/proc/inherent_reload(mob/user)
@@ -190,6 +261,10 @@ They're all essentially identical when it comes to getting the job done.
 /obj/item/ammo_magazine/flamer_tank/flamer_fire_act(damage, datum/cause_data/flame_cause_data)
 	return
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                   INTERNAL MAGAZINE                ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 //Magazines that actually cannot be removed from the firearm. Functionally the same as the regular thing, but they do have two extra vars.
 /obj/item/ammo_magazine/internal
 	name = "internal chamber"
@@ -197,14 +272,17 @@ They're all essentially identical when it comes to getting the job done.
 	//For revolvers and shotguns.
 	magazine_type = MAGAZINE_TYPE_INTERNAL
 	vis_flags = VIS_HIDE //Hide em, if ever added.
-	var/chamber_contents[] //What is actually in the chamber. Initiated on New().
+	var/list/chamber_contents //What is actually in the chamber. Initiated on New().
 	var/chamber_position = 1 //This tracks where either the firing pin is located or where a bullet was last inserted.
 
 //Helper proc, to allow us to see a percentage of how full the magazine is.
 /obj/item/ammo_magazine/proc/get_ammo_percent() // return % charge of cell
 	return 100.0*current_rounds/max_rounds
 
-//----------------------------------------------------------------//
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[               GENERIC HANDFUL OF AMMO              ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //Now for handfuls, which follow their own rules and have some special differences from regular boxes.
 
 /*
@@ -260,13 +338,20 @@ If it is the same and the other stack isn't full, transfer an amount (default 1)
 	if(istype(transfer_from)) // We have a handful. They don't need to hold it.
 		if(default_ammo == transfer_from.default_ammo) //Has to match.
 			transfer_bullet_number(transfer_from,user, transfer_from.current_rounds) // Transfer it from currently held to src
-		else to_chat(user, "Those aren't the same rounds. Better not mix them up.")
+		else to_chat(user, SPAN_WARNING("Those aren't the same rounds. Better not mix them up."))
 
 //This will attempt to place the ammo in the user's hand if possible. High level proc from ammo_magazine parent. Every parameter is optional. Will default to a max sized handful using whatever rounds the mag has left.
 /obj/item/ammo_magazine/proc/create_handful(mob/user, obj_name = src, transfer_amount = current_rounds, ammo_override)
 	if (current_rounds > 0)
+		transfer_amount = rounds_until_switch(transfer_amount) //will try to make handful with all available rounds by default, but we check for break points, so it's first until break.
+
 		var/obj/item/ammo_magazine/handful/new_handful = new
-		current_rounds -= new_handful.generate_handful(ammo_override ? ammo_override : default_ammo, caliber, transfer_amount) //Generate a handful; will try to make handful with all available rounds by default.
+		current_rounds -= new_handful.generate_handful(ammo_override ? ammo_override : default_ammo, caliber, transfer_amount) //Generate a handful
+
+		if("[current_rounds]" in feeder_contents) //Remove break point and switch ammo.
+			feeding_ammo = feeder_contents["[current_rounds]"]
+			feeder_contents -= "[current_rounds]"
+
 		update_icon(-new_handful.current_rounds) //Update the src icon.
 
 		if(magazine_type == MAGAZINE_TYPE_DETACHABLE) //Play a sound if this is a regular mag getting a handful dumped.
@@ -285,6 +370,7 @@ If it is the same and the other stack isn't full, transfer an amount (default 1)
 	if(!new_rounds) new_rounds = A.handful_max //Default to the max rounds in case we're dumping it or something.
 	name = "handful of [A.name + (A.multiple_handful_name ? " ":"s ") + "([new_caliber])"]"
 	default_ammo = new_ammo_path
+	feeding_ammo = new_ammo_path
 	caliber = new_caliber
 	max_rounds = A.handful_max
 	current_rounds = min(new_rounds, max_rounds) //If rounds exceed the max rounds possible in the handful.
@@ -293,8 +379,9 @@ If it is the same and the other stack isn't full, transfer an amount (default 1)
 
 	return current_rounds //This is how many rounds we were actually able to create, regardless of the number provided.
 
-//----------------------------------------------------------------//
-
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                     USED CASINGS                   ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 /*
 Doesn't do anything or hold anything anymore.
 Generated per the various mags, and then changed based on the number of
@@ -321,12 +408,12 @@ Turn() or Shift() as there is virtually no overhead other than generating a few 
 	var/current_icon = 0
 	var/number_of_states = 10 //How many variations of this item there are.
 	garbage = TRUE
+	ground_offset_x = 2 //This offsets it on spawn.
+	ground_offset_y = 2
 
 /obj/item/ammo_casing/Initialize()
 	. = ..()
 	matter = list("metal" = 8) //tiny amount of metal
-	pixel_x = rand(-2.0, 2) //Want to move them just a tad.
-	pixel_y = rand(-2.0, 2)
 	icon_state += "_[rand(1,number_of_states)]" //Set the icon to it.
 
 //This does most of the heavy lifting. It updates the icon and name if needed, then changes .dir to simulate new casings.

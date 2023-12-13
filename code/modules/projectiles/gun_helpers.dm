@@ -56,6 +56,8 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 			force_light(on = TRUE)
 			REMOVE_TRAIT(src, TRAIT_GUN_LIGHT_DEACTIVATED, user)
 
+		recalculate_user_attributes(user) //When they pick up a gun or switch it to a different hand, we check if they're able to fire it.
+
 		if(flags_gun_features & GUN_AMMO_COUNTER) //Display ammo already checks for this, but this only runs when the weapon is equipped, not per shot.
 			create_ammo_counter()
 			vis_contents += ammo_counter
@@ -127,11 +129,8 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		wield_time += 5
 	guaranteed_delay_time = world.time + WEAPON_GUARANTEED_DELAY
 	//slower or faster wield delay depending on skill.
-	if(user.skills)
-		if(user.skills.get_skill_level(SKILL_FIREARMS) == SKILL_FIREARMS_CIVILIAN && !is_civilian_usable(user))
-			wield_time += 3
-		else
-			wield_time -= 2*user.skills.get_skill_level(SKILL_FIREARMS)
+	if(!isnull(user_skill_level))
+		wield_time += ( user_skill_level == SKILL_FIREARMS_CIVILIAN && !civilian_usable_override) ? 3 : -(2 * user_skill_level)
 
 	return TRUE
 
@@ -258,7 +257,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 			to_chat(user, SPAN_WARNING("Can't do tactical reloads with [src]."))
 			return
 		//no tactical reload for the untrained.
-		if(user.skills.get_skill_level(SKILL_FIREARMS) == 0)
+		if(!user_skill_level || user_skill_level == SKILL_FIREARMS_CIVILIAN) //Civillian is 0, but that can change.
 			to_chat(user, SPAN_WARNING("You don't know how to do tactical reloads."))
 			return
 		if(istype(src, magazine.gun_type) || (additional_type_magazines && (magazine.type in additional_type_magazines) ))
@@ -266,9 +265,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 				unload(user, FALSE, TRUE)
 			to_chat(user, SPAN_NOTICE("You start a tactical reload."))
 			var/old_mag_loc = magazine.loc
-			var/tac_reload_time = 15
-			if(user.skills)
-				tac_reload_time = max(15 - 5*user.skills.get_skill_level(SKILL_FIREARMS), 5)
+			var/tac_reload_time = max(15 - (5 * user_skill_level), 5)
 			if(do_after(user,tac_reload_time, INTERRUPT_ALL, BUSY_ICON_FRIENDLY) && magazine.loc == old_mag_loc && !current_mag)
 				if(isstorage(magazine.loc))
 					var/obj/item/storage/master_storage = magazine.loc
@@ -617,51 +614,63 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		return FALSE
 	return TRUE
 
-/obj/item/weapon/gun/proc/wy_allowed_check(mob/living/carbon/human/user)
-	if(CONFIG_GET(flag/remove_gun_restrictions))
-		return TRUE //Not if the config removed it.
+/*
+This proc checks various permissions and then sets skill level for the user. Will return the first error message it finds when the gun fires, if unable to fire the gun.
+This was originally all done during the fire cycle, checking several times for some things, which was not optimal.
+That means if something changes that allows the user to fire the gun, the user has to pick up the gun/switch the gun to a different hand to recalc their permissions.
+May need testing on spawned-in people with equipment, so that their minds are set first before the equipment gets placed on them, so this triggers correctly.
+Could potentially add a manual recalc to all guns when a skill or trait or whatever is changed by an admin, but that seems snowflakey.
+Perhaps add a callback?
+*/
+/obj/item/weapon/gun/proc/recalculate_user_attributes(mob/living/user)
+	flags_gun_toggles &= ~GUN_UNABLE_TO_FIRE //Reset it.
 
-	if(user.mind)
-		switch(user.job)
-			if(
-				"PMC",
-				"WY Agent",
-				"Corporate Liaison",
-				"Event",
-				"UPP Armsmaster", //this rank is for the Fun - Ivan preset, it allows him to use the PMC guns randomly generated from his backpack
-			) return TRUE
-		switch(user.faction)
-			if(
-				FACTION_WY_DEATHSQUAD,
-				FACTION_PMC,
-				FACTION_MERCENARY,
-				FACTION_FREELANCER,
-			) return TRUE
+	if(ishuman(user))
+		var/mob/living/carbon/human/H = user
+		if(!H.allow_gun_usage)
+			unable_to_fire_message = issynth(user) ? "Your programming does not allow you to use firearms." : "You are unable to use firearms."
+			return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
 
-		for(var/faction in user.faction_group)
-			if(faction in FACTION_LIST_WY)
-				return TRUE
+	else if(!user.IsAdvancedToolUser())
+		unable_to_fire_message = "You don't have the dexterity to do this!"
+		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
 
-		if(user.faction in FACTION_LIST_WY)
-			return TRUE
+	if(flags_gun_features & GUN_WY_RESTRICTED && !CONFIG_GET(flag/remove_gun_restrictions)) //Checks only if config doesn't disable restrictions.
+		var/WY_authorized = FALSE
+		if(user.mind)
+			switch(user.job)
+				if(
+					"PMC",
+					"WY Agent",
+					"Corporate Liaison",
+					"Event",
+					"UPP Armsmaster", //this rank is for the Fun - Ivan preset, it allows him to use the PMC guns randomly generated from his backpack
+				) WY_authorized = TRUE
 
-	to_chat(user, SPAN_WARNING("[src] flashes a warning sign indicating unauthorized use!"))
+			switch(user.faction)
+				if(
+					FACTION_WY_DEATHSQUAD,
+					FACTION_PMC,
+					FACTION_MERCENARY,
+					FACTION_FREELANCER,
+				) WY_authorized = TRUE
 
-/**
- * Returns one of the two override values if either are null, preferring the argument value.
- * Otherwise, returns TRUE if it is in a civilian usable category (Handguns or SMGs), FALSE if it is not.
- */
-/obj/item/weapon/gun/proc/is_civilian_usable(mob/user, arg_override)
-	if(!isnull(arg_override))
-		return arg_override
+			for(var/faction in user.faction_group)
+				if(faction in FACTION_LIST_WY)
+					WY_authorized = TRUE
+					break
 
-	if(!isnull(civilian_usable_override))
-		return civilian_usable_override
+			if(user.faction in FACTION_LIST_WY)
+				WY_authorized = TRUE
 
-	if(gun_category in UNTRAINED_USABLE_CATEGORIES)
-		return TRUE
+		if(!WY_authorized)
+			unable_to_fire_message = "[src] flashes a warning sign indicating unauthorized use!"
+			return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
 
-	return FALSE
+	//Looks like we're authorized, let's set skill levels and such so we don't need to check them later.
+	user_skill_level = (user.mind && user.skills) ? user.skills.get_skill_level(SKILL_FIREARMS) : null
+	//And the civ override. Return whatever non-null value it has set. If it's null, check in the list and set it to true if it's in there.
+	civilian_usable_override = !isnull(civilian_usable_override) ? civilian_usable_override : ( (gun_category in UNTRAINED_USABLE_CATEGORIES) ? TRUE : initial(civilian_usable_override) )
 
 ///Helper proc that processes a clicked target, if the target is not black tiles, it will not change it. If they are it will return the turf of the black tiles. It will return null if the object is a screen object other than black tiles.
 /proc/get_turf_on_clickcatcher(atom/target, mob/user, params)
@@ -1053,21 +1062,33 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 /obj/item/weapon/gun/verb/toggle_auto_eject_verb()
 	set category = "Weapons"
 	set name = "Toggle Auto Eject"
-	set desc = "Enable/Disable the gun's magazine ejection system"
+	set desc = "Toggles the auto-ejector between ejecting on the ground (default), ejecting to hand, and off."
 	set src = usr.contents
 
 	var/obj/item/weapon/gun/active_firearm = get_active_firearm(usr)
 	if(!active_firearm)
 		return
+
 	src = active_firearm
 
 	if( !(flags_gun_features & GUN_AUTO_EJECTOR) )
-		to_chat(usr, SPAN_WARNING("[src] has no auto ejection system!"))
+		to_chat(usr, SPAN_WARNING("[src] has no automatic ejection system!"))
 		return
-	else
-		flags_gun_toggles ^= GUN_AUTO_EJECTING_OFF
-		to_chat(usr, SPAN_INFO("You toggle the auto ejector [flags_gun_toggles & GUN_AUTO_EJECTING_OFF ? "off" : "on"].")) //Toggles off when the flag is set.
+	else //We can't switch here, so we have to check them in order.
+		var/m = "You toggle the auto ejector"
 
+		if(flags_gun_toggles & GUN_AUTO_EJECTING_OFF) //If it was off, we return to default.
+			flags_gun_toggles &= ~GUN_AUTO_EJECTING_OFF
+			m += " to <b>MODE 1</b>, ejecting on to the ground (default)."
+		else if(flags_gun_toggles & GUN_AUTO_EJECTING_TO_HAND) //If it was returning to hand, we turn it off.
+			flags_gun_toggles &= ~GUN_AUTO_EJECTING_TO_HAND
+			flags_gun_toggles |= GUN_AUTO_EJECTING_OFF
+			m += " to <b>OFF</b>."
+		else //If neither is true, we eject to hand, as we were in the default state.
+			flags_gun_toggles |= GUN_AUTO_EJECTING_TO_HAND
+			m += " to <b>MODE 2</b>, ejecting to your inactive hand."
+
+		to_chat(usr, SPAN_INFO(m))
 
 /obj/item/weapon/gun/verb/toggle_underbarrel_attachment_verb()
 	set category = "Weapons"

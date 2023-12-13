@@ -44,32 +44,22 @@ This is better than "empty" as a text string has value. null is easier to accoun
 
 /obj/item/weapon/gun/shotgun/Initialize(mapload, spawn_empty)
 	. = ..()
-	populate_internal_magazine(current_mag.current_rounds) //Populate the chamber.
 	ready_in_chamber() //Load a round into the chamber.
 
 /obj/item/weapon/gun/shotgun/unique_action(mob/user)
 	cycle_chamber(user)
 
-/obj/item/weapon/gun/shotgun/play_chamber_cycle_sound(mob/user, cocked_sound, volume = 20, sound_delay)
+/obj/item/weapon/gun/shotgun/play_chamber_cycle_sound(mob/user, cocked_sound, volume = 20, sound_delay) //Quieter sound for cocking.
 	..()
 
 /obj/item/weapon/gun/shotgun/replace_magazine(mob/user, selection) //Shells are added forward, into the back of the tube.
 	//We move the position up when loading ammo. New rounds are always fired first though, in position 1. Index tracks where the last shell was inserted.
-	current_mag.chamber_contents[++current_mag.chamber_position] = selection //Just moves up one, unless the mag is full.
-
 	if(!(flags_gun_receiver & GUN_MANUAL_CYCLE) && !in_chamber) //Round has been loaded but nothing is chambered, for semi-auto shotguns.
-		if(user?.skills?.get_skill_level(SKILL_FIREARMS) > SKILL_FIREARMS_CIVILIAN) //If we're skilled with firearms, automatically cock the gun.
+		if(user_skill_level > SKILL_FIREARMS_CIVILIAN) //If we're skilled with firearms, automatically cock the gun.
 			ready_in_chamber()
 			play_chamber_cycle_sound(user, null, null, 0.5 SECONDS) //To account for loading the shell.
 
 	playsound(user, reload_sound, 25, TRUE)
-
-/obj/item/weapon/gun/shotgun/ready_in_chamber()
-	if(current_mag.current_rounds > 0)
-		in_chamber = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
-		current_mag.current_rounds--
-		current_mag.chamber_contents[current_mag.chamber_position--] = null
-		return in_chamber
 
 /obj/item/weapon/gun/shotgun/unload(mob/user)
 	if(flags_gun_toggles & GUN_BURST_FIRING)
@@ -93,15 +83,17 @@ This is better than "empty" as a text string has value. null is easier to accoun
 			return //Exit out early, we don't evaluate the next if().
 
 	if(current_mag.current_rounds) //It has some rounds. We'll fall back to this.
-		retrieve_shell(current_mag.chamber_contents[current_mag.chamber_position], user)
-		current_mag.current_rounds--
-		current_mag.chamber_contents[current_mag.chamber_position--] = null
+		var/current_rounds_string = "[current_mag.current_rounds--]" //Let's not forget to subtract a bullet.
+		if(current_rounds_string in current_mag.feeder_contents) //Remove break point and switch ammo.
+			current_mag.feeding_ammo = current_mag.feeder_contents[current_rounds_string]
+			current_mag.feeder_contents -= current_rounds_string
+		retrieve_shell(current_mag.feeding_ammo, user)
 
 	display_ammo(user)
 
 /obj/item/weapon/gun/shotgun/proc/retrieve_shell(selection, mob/user)
 	if(user) //Want to put into hand first.
-		var/obj/item/ammo_magazine/handful/H = new selection()
+		var/obj/item/ammo_magazine/handful/H = new
 		H.generate_handful(selection, caliber, 1) //This updates the handful stats.
 		user.put_in_hands(H)
 		playsound(user, reload_sound, 25, 1)
@@ -531,8 +523,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	cycle_chamber(user)
 
 /obj/item/weapon/gun/shotgun/double/check_additional_able_to_fire(mob/user)
-	. = ..()
-
 	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		to_chat(user, SPAN_WARNING("Close the chamber first to fire!"))
 		return FALSE
