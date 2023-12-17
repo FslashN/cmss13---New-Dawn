@@ -23,9 +23,13 @@ They're all essentially identical when it comes to getting the job done.
 	throw_range = 6
 	ground_offset_x = 7
 	ground_offset_y = 6
-	var/default_ammo = /datum/ammo/bullet
-	var/feeding_ammo //What is currently used to load the chamber, also a path, starts as default_ammo on New(). Change this if you have mixed ammo.
+
+	var/default_ammo = /datum/ammo/bullet //This is what populates the magazine by default. It can be overriden.
+	//For cylinders/speedloaders, this is the last ammo type inserted into/removed from/fired from the cylinder.
+	var/feeding_ammo  //What is currently used to load the chamber, also a path, starts as default_ammo on New(). Change this if you have mixed ammo.
 	var/list/feeder_contents //Contents of the feeder, broken up by their position. Initialized on New().
+	var/chamber_position = 1 //This tracks where the firing pin is located for internal mags.
+
 	var/caliber = null // This is used for matching handfuls to each other or whatever the mag is. Examples are" "12g" ".44" ".357" etc.
 	var/current_rounds = -1 //This will fill the mag to full at initialize. Change this to a different number to have it start with less than full ammo.
 	var/max_rounds = 7 //How many rounds can it hold?
@@ -49,8 +53,6 @@ They're all essentially identical when it comes to getting the job done.
 /obj/item/ammo_magazine/Initialize(mapload, spawn_empty)
 	. = ..()
 	GLOB.ammo_magazine_list += src
-	feeding_ammo = feeding_ammo ? feeding_ammo : default_ammo //If we have something set, we use that instead of default ammo.
-	feeder_contents = list() //Generate a list for the contents, if we didn't override it for a child.
 
 	if(spawn_empty) current_rounds = 0
 	switch(current_rounds)
@@ -60,6 +62,13 @@ They're all essentially identical when it comes to getting the job done.
 			item_state += "_e"
 			vis_state += "_e"
 		else current_rounds = abs(min(max_rounds, current_rounds)) //Just in case the mag spawns with more ammo than it should, or negative ammo.
+
+	feeding_ammo = feeding_ammo ? feeding_ammo : default_ammo //If we have something set, we use that instead of default ammo.
+	if(!feeder_contents) //No list defined. If it was defined, we will use that list instead.
+		feeder_contents = list() //Generate a list for the contents, if we didn't override it for a child.
+		if(magazine_type in list(MAGAZINE_TYPE_INTERNAL_CYLINDER,MAGAZINE_TYPE_SPEEDLOADER)) //Internal cylinders/speedloaders will populate their feeder_contents with a break point each slot.
+			for(var/i = 1 to current_rounds)
+				feeder_contents["[i]"] = feeding_ammo //ie: "2" = /datum/ammo/bullet
 
 	if(ammo_band_color && ammo_band_icon && !istype(loc, /obj/item/weapon/gun)) //Bandaid for until I can fix a proper bit define.
 		update_ammo_band()
@@ -143,35 +152,7 @@ They're all essentially identical when it comes to getting the job done.
 				else
 					to_chat(user, SPAN_WARNING("Try holding [src] before you attempt to restock it."))
 
-/*
-//Generic proc to transfer ammo between ammo mags. Can work for anything, mags, handfuls, etc.
-/obj/item/ammo_magazine/proc/transfer_bullet_number(obj/item/ammo_magazine/source, mob/user, transfer_amount = 1)
-	if(current_rounds == max_rounds) //Does the mag actually need reloading?
-		to_chat(user, "[src] is already full.")
-		return
-
-	if(source.caliber != caliber) //Are they the same caliber?
-		to_chat(user, "The rounds don't match up. Better not mix them up.")
-		return
-
-	var/S = min(transfer_amount, max_rounds - current_rounds)
-	source.current_rounds -= S
-	current_rounds += S
-	if(source.current_rounds <= 0 && istype(source, /obj/item/ammo_magazine/handful)) //We want to delete it if it's a handful.
-		if(user)
-			user.temp_drop_inv_item(source)
-		qdel(source) //Dangerous. Can mean future procs break if they reference the source. Have to account for this.
-	else source.update_icon()
-
-	if(!istype(src, /obj/item/ammo_magazine/internal) && !istype(src, /obj/item/ammo_magazine/shotgun) && !istype(source, /obj/item/ammo_magazine/revolver)) //if we are shotgun or revolver or whatever not using normal mag system
-		playsound(loc, pick('sound/weapons/handling/mag_refill_1.ogg', 'sound/weapons/handling/mag_refill_2.ogg', 'sound/weapons/handling/mag_refill_3.ogg'), 25, 1)
-
-	update_icon(S)
-	return S // We return the number transferred if it was successful.
-*/
-
-
-
+//The workhorse of bullet handling. Will move bullets from one magazine to another, taking into account capacity, type, and so on. `if(transfer_bullet_mount(some_magazine,user)) do_this` is an example usage.
 /obj/item/ammo_magazine/proc/transfer_bullet_number(obj/item/ammo_magazine/source, mob/user, transfer_amount = 1)
 	if(current_rounds == max_rounds) //Does the mag actually need reloading?
 		to_chat(user, SPAN_WARNING("[src] is already full."))
@@ -181,22 +162,38 @@ They're all essentially identical when it comes to getting the job done.
 		to_chat(user, SPAN_WARNING("Not the same caliber, they won't fit right."))
 		return
 
-	var/transfered_bullets = 0 //Previous checks will make sure there's at least something to transfer.
+	var/transfered_bullets = 0
+	var/i //Declaring it here since it shows up often.
+
 	while(transfer_amount--)
 		if(current_rounds == max_rounds || !source.current_rounds) break //Either our mag is full or the source is empty.
 
 		//Let's determine if our source has a break point or it will continue using the current ammo.
-		if("[source.current_rounds]" in source.feeder_contents)
-			source.feeding_ammo = source.feeder_contents["[source.current_rounds]"]
-			source.feeder_contents -= "[source.current_rounds]"
+		if(source.magazine_type in list(MAGAZINE_TYPE_INTERNAL_CYLINDER,MAGAZINE_TYPE_SPEEDLOADER)) //I don't believe internal cylinders can transfer ammo like this, but they may in the future.
+			for(i = 1 to source.max_rounds) //Loop around the cylinder trying to find a valid bullet to remove.
+				if(source.feeder_contents["[source.chamber_position]"]) //If the associated path exists.
+					source.feeding_ammo = source.feeder_contents["[source.chamber_position]"] //Looks like we found one, so we switch ammo.
+					source.feeder_contents -= "[source.chamber_position]" //Remove it from the list.
+					ROTATE_CYLINDER_BACK(source)
+					break
+				ROTATE_CYLINDER_BACK(source) //Go back one anyway.
+		//Normal magazine handling.
+		else if(source.feeder_contents["[source.current_rounds]"]) //We try to direct lookup the break point.
+			source.feeding_ammo = source.feeder_contents["[source.current_rounds]"] //Looks like we found one, so we switch ammo.
+			source.feeder_contents -= "[source.current_rounds]" //Remove it from the list.
 
-		if(current_rounds) //Has some rounds, we may need to determine break points.
-			if(feeding_ammo != source.feeding_ammo) //Looks like we found one.
-				feeder_contents["[current_rounds]"] = feeding_ammo //Make the break point on what we currently have it set to.
-				feeding_ammo = source.feeding_ammo //Set it to the source.
+		if(magazine_type in list(MAGAZINE_TYPE_INTERNAL_CYLINDER,MAGAZINE_TYPE_SPEEDLOADER))
+			for(i = 1 to max_rounds)
+				if(!feeder_contents["[chamber_position]"]) //No bullet.
+					feeding_ammo = source.feeding_ammo
+					feeder_contents["[chamber_position]"] = feeding_ammo
+					ROTATE_CYLINDER(src) //Move up one for next pass, if there is one.
+					break
+				ROTATE_CYLINDER(src) //Otherwise keep rotating.
 
-		else //If the magazine is completely empty, we don't set break points for our mag.
-			feeding_ammo = source.feeding_ammo
+		else if(feeding_ammo != source.feeding_ammo) //Looks like we found one.
+			feeder_contents["[current_rounds]"] = feeding_ammo //Make the break point on what we currently have it set to.
+			feeding_ammo = source.feeding_ammo //Set it to the source.
 
 		source.current_rounds--
 		current_rounds++
@@ -208,7 +205,7 @@ They're all essentially identical when it comes to getting the job done.
 		qdel(source) //Dangerous. Can mean future procs break if they reference the source. Have to account for this.
 	else source.update_icon()
 
-	if(magazine_type != MAGAZINE_TYPE_INTERNAL) //If we are not reloading into an internal mag.
+	if( !( magazine_type in list(MAGAZINE_TYPE_INTERNAL,MAGAZINE_TYPE_INTERNAL_CYLINDER) )) //If we are not reloading into an internal mag.
 		playsound(loc, pick('sound/weapons/handling/mag_refill_1.ogg', 'sound/weapons/handling/mag_refill_2.ogg', 'sound/weapons/handling/mag_refill_3.ogg'), 25, 1)
 
 	update_icon(transfered_bullets)
@@ -218,13 +215,10 @@ They're all essentially identical when it comes to getting the job done.
 //Returns a number of rounds until a break point, where feeder_ammo switches.
 /obj/item/ammo_magazine/proc/rounds_until_switch(amount_to_check = 1)
 	var/rounds_before_switch = 0
-	var/round_count = current_rounds
-	while(amount_to_check--)
-		if(!round_count || ("[round_count--]" in feeder_contents))
-			break
-		else rounds_before_switch++
-
-	return rounds_before_switch
+	if(feeder_contents.len)//We have a break point somewhere.
+		var/next_switch = text2num(feeder_contents[feeder_contents.len])//Find the last added position, change it to a number.
+		rounds_before_switch = current_rounds - next_switch //This gets us how many rounds there are until it switches.
+	return max(rounds_before_switch, amount_to_check)
 
 /// Proc to reload the current_ammo using the items existing inherent ammo, used for Sentry Post
 /obj/item/ammo_magazine/proc/inherent_reload(mob/user)
@@ -273,7 +267,6 @@ They're all essentially identical when it comes to getting the job done.
 	magazine_type = MAGAZINE_TYPE_INTERNAL
 	vis_flags = VIS_HIDE //Hide em, if ever added.
 	var/list/chamber_contents //What is actually in the chamber. Initiated on New().
-	var/chamber_position = 1 //This tracks where either the firing pin is located or where a bullet was last inserted.
 
 //Helper proc, to allow us to see a percentage of how full the magazine is.
 /obj/item/ammo_magazine/proc/get_ammo_percent() // return % charge of cell
@@ -343,14 +336,16 @@ If it is the same and the other stack isn't full, transfer an amount (default 1)
 //This will attempt to place the ammo in the user's hand if possible. High level proc from ammo_magazine parent. Every parameter is optional. Will default to a max sized handful using whatever rounds the mag has left.
 /obj/item/ammo_magazine/proc/create_handful(mob/user, obj_name = src, transfer_amount = current_rounds, ammo_override)
 	if (current_rounds > 0)
-		transfer_amount = rounds_until_switch(transfer_amount) //will try to make handful with all available rounds by default, but we check for break points, so it's first until break.
+		if( !(magazine_type in list(MAGAZINE_TYPE_INTERNAL_CYLINDER,MAGAZINE_TYPE_SPEEDLOADER)) ) //Cylinders will send their own signal on what type and how many rounds of a handful to make.
+			transfer_amount = rounds_until_switch(transfer_amount) //will try to make handful with all available rounds by default, but we check for break points, so it's first until break.
 
 		var/obj/item/ammo_magazine/handful/new_handful = new
 		current_rounds -= new_handful.generate_handful(ammo_override ? ammo_override : default_ammo, caliber, transfer_amount) //Generate a handful
 
-		if("[current_rounds]" in feeder_contents) //Remove break point and switch ammo.
-			feeding_ammo = feeder_contents["[current_rounds]"]
-			feeder_contents -= "[current_rounds]"
+		if( !(magazine_type in list(MAGAZINE_TYPE_INTERNAL_CYLINDER,MAGAZINE_TYPE_SPEEDLOADER)) ) //Cylinders will send their own signal on what type and how many rounds of a handful to make.
+			if(feeder_contents["[current_rounds]"]) //Remove break point and switch ammo. We may not have reached a break point depending on the amount of rounds we took.
+				feeding_ammo = feeder_contents["[current_rounds]"]
+				feeder_contents -= "[current_rounds]"
 
 		update_icon(-new_handful.current_rounds) //Update the src icon.
 

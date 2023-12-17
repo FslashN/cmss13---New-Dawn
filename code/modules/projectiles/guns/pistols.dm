@@ -44,10 +44,6 @@
 
 	..()
 
-/obj/item/weapon/gun/pistol/Initialize(mapload, spawn_empty)
-	. = ..()
-	ready_in_chamber()
-
 /obj/item/weapon/gun/pistol/unique_action(mob/user)
 	cycle_chamber(user)
 

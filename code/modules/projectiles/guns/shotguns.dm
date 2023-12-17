@@ -42,10 +42,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/shotgun/Initialize(mapload, spawn_empty)
-	. = ..()
-	ready_in_chamber() //Load a round into the chamber.
-
 /obj/item/weapon/gun/shotgun/unique_action(mob/user)
 	cycle_chamber(user)
 
@@ -79,7 +75,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 			retrieve_shell(in_chamber.type, user)
 			in_chamber = null
 
-			display_ammo(user)
+			GUN_DISPLAY_ROUNDS_REMAINING
 			return //Exit out early, we don't evaluate the next if().
 
 	if(current_mag.current_rounds) //It has some rounds. We'll fall back to this.
@@ -89,7 +85,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 			current_mag.feeder_contents -= current_rounds_string
 		retrieve_shell(current_mag.feeding_ammo, user)
 
-	display_ammo(user)
+	GUN_DISPLAY_ROUNDS_REMAINING
 
 /obj/item/weapon/gun/shotgun/proc/retrieve_shell(selection, mob/user)
 	if(user) //Want to put into hand first.
@@ -522,11 +518,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	if(flags_item & WIELDED) unwield(user)
 	cycle_chamber(user)
 
-/obj/item/weapon/gun/shotgun/double/check_additional_able_to_fire(mob/user)
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-		to_chat(user, SPAN_WARNING("Close the chamber first to fire!"))
-		return FALSE
-
 /obj/item/weapon/gun/shotgun/double/unload(mob/user)
 	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		..()
@@ -601,9 +592,9 @@ This is better than "empty" as a text string has value. null is easier to accoun
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                CANE / HIDDEN SHOTGUN?              ]=========hhhhhhhhhhhhhhhhhhhhhhh
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
-// COULDN'T THINK OF ANOTHER WAY SORRY!!!! SOMEONE ADD A GUN COMPONENT!!
+// COULDN'T THINK OF ANOTHER WAY SORRY!!!! SOMEONE ADD A GUN COMPONENT!! <---- Original comment.
 //I'm not really sure what to make of this. The text referred to this as a cane revolver, yet it didn't load or behave like a revolver.
-//I have decided to change the text since I don't care enough to completely rework this item right now.
+//I have decided to change the text for now.
 
 /obj/item/weapon/gun/shotgun/double/cane
 	name = "fancy cane"
@@ -620,7 +611,6 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	force = 15 // hollow. also too hollow to support one's weight like normal canes
 	attack_speed = 1.5 SECONDS
 	current_mag = /obj/item/ammo_magazine/internal/shotgun/double/cane
-	fire_sound = list('sound/weapons/gun_silenced_oldshot1.ogg', 'sound/weapons/gun_silenced_oldshot2.ogg') // Uses the old sounds because they're more 'James Bond'-y
 	break_sound = 'sound/weapons/handling/pkd_open_chamber.ogg'
 	seal_sound = 'sound/weapons/handling/pkd_close_chamber.ogg'
 	projectile_casing = PROJECTILE_CASING_BULLET
@@ -640,6 +630,9 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/shotgun/double/cane/initialize_gun_lists()
+
+	if(!fire_sound)
+		fire_sound = list('sound/weapons/gun_silenced_oldshot1.ogg', 'sound/weapons/gun_silenced_oldshot2.ogg') // Uses the old sounds because they're more 'James Bond'-y
 
 	if(!attachable_allowed)
 		attachable_allowed = list() //Reset this.
@@ -664,18 +657,9 @@ This is better than "empty" as a text string has value. null is easier to accoun
 	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN) // close the chamber
 		cycle_chamber(user, TRUE)
 
-	update_desc()
 	update_icon()
 
 	playsound(user, 'sound/weapons/handling/safety_toggle.ogg', 25, 1)
-
-/obj/item/weapon/gun/shotgun/double/cane/proc/update_desc()
-	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
-		name = initial(name)
-		desc = initial(desc)
-	else
-		name = "cane gun"
-		desc = initial(desc) + " Apparently, because it's also a gun. Who'da thunk it?" //It's not a revolver... Changed this.
 
 /obj/item/weapon/gun/shotgun/double/cane/cycle_chamber(mob/user, override)
 	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON && !override)
@@ -685,12 +669,13 @@ This is better than "empty" as a text string has value. null is easier to accoun
 
 /obj/item/weapon/gun/shotgun/double/cane/update_icon()
 	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
+		name = initial(name)
+		desc = initial(desc)
 		icon_state = initial(icon_state)
-
-	else if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-		icon_state = initial(icon_state) + "_gun_open"
 	else
-		icon_state = initial(icon_state) + "_gun"
+		name = "cane gun"
+		desc = initial(desc) + " Apparently, because it's also a gun. Who'da thunk it?" //Was "revolver" instead of gun, but I'm not sure how that makes sense.
+		icon_state = initial(icon_state) + (flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "_gun_open" : "_gun")
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                 MOU53 BREAK ACTION                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -1072,7 +1057,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 
 	//Chamber as needed.
 	play_chamber_cycle_sound(user, null, 25)
-	ready_in_chamber()
+	if(current_mag.current_rounds) ready_in_chamber()
 	//We cannot eject shells with this, so counting ammo here is unnecessary.
 
 //You can manually unload a shell when the lock is engaged. Ie, something is chambered.
@@ -1095,8 +1080,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 /obj/item/weapon/gun/shotgun/pump/dual_tube/Initialize(mapload, spawn_empty)
 	. = ..()
 	primary_tube = current_mag
-	secondary_tube = new current_mag.type(src, spawn_empty ? TRUE : FALSE)
-	populate_internal_magazine(secondary_tube.current_rounds) //Starts with the primary tube.
+	secondary_tube = new current_mag.type(src, spawn_empty)//Starts with the primary tube.
 
 /obj/item/weapon/gun/shotgun/pump/dual_tube/Destroy()
 	QDEL_NULL(primary_tube)
@@ -1119,7 +1103,7 @@ This is better than "empty" as a text string has value. null is easier to accoun
 
 	playsound(src, 'sound/machines/switch.ogg', 15, TRUE)
 
-	display_ammo(user)
+	GUN_DISPLAY_ROUNDS_REMAINING
 
 	return TRUE
 
@@ -1186,6 +1170,10 @@ This is better than "empty" as a text string has value. null is easier to accoun
 
 	..()
 
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                HG 37-17 PUMP SHOTGUN               ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+
 /obj/item/weapon/gun/shotgun/pump/dual_tube/cmb/m3717
 	name = "\improper M37-17 pump shotgun"
 	desc = "A military version of the iconic HG 37-12, this design can fit one extra shell in each of its dual-tube internal magazines, and fires shells with increased velocity, resulting in more damage. Issued to select USCM vessels and stations in the outer veil. A button on the side toggles the internal tubes."
@@ -1204,5 +1192,3 @@ This is better than "empty" as a text string has value. null is easier to accoun
 		starting_attachment_types = list(/obj/item/attachable/stock/hg3712/m3717)
 
 	..()
-
-//-------------------------------------------------------

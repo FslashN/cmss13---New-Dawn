@@ -148,6 +148,7 @@
 	default_ammo = /datum/ammo/bullet/revolver
 	max_rounds = 6
 	gun_type = /obj/item/weapon/gun/revolver
+	magazine_type = MAGAZINE_TYPE_INTERNAL_CYLINDER
 
 //-------------------------------------------------------
 //M44 MAGNUM REVOLVER //Not actually cannon, but close enough.

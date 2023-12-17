@@ -37,10 +37,6 @@
 
 	..()
 
-/obj/item/weapon/gun/smg/Initialize(mapload, spawn_empty)
-	. = ..()
-	ready_in_chamber()
-
 /obj/item/weapon/gun/smg/unique_action(mob/user)
 	cycle_chamber(user)
 
@@ -732,5 +728,5 @@
 	. = ..()
 
 	if(.)
-		click_empty(user)
+		GUN_CLICK_EMPTY(user)
 	return FALSE

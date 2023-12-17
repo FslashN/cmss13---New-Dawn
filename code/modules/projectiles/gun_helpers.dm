@@ -7,10 +7,10 @@
 //--------------------------------------------------------------------------------------------------------
 
 /obj/item/weapon/gun/clicked(mob/user, list/mods)
-	if (mods["alt"])
+	if(mods["alt"])
 		if(!CAN_PICKUP(user, src))
 			return ..()
-		toggle_gun_safety()
+		alt_click_action()
 		return TRUE
 	return (..())
 
@@ -32,6 +32,9 @@
 		return
 	else
 		..()
+
+/obj/item/weapon/gun/proc/alt_click_action(mob/user)
+	toggle_gun_safety()
 
 /*
 Note: pickup and dropped on weapons must have both the ..() to update zoom AND twohanded,
@@ -61,7 +64,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		if(flags_gun_features & GUN_AMMO_COUNTER) //Display ammo already checks for this, but this only runs when the weapon is equipped, not per shot.
 			create_ammo_counter()
 			vis_contents += ammo_counter
-			display_ammo(user, TRUE)
+			GUN_DISPLAY_ROUNDS_REMAINING
 
 	else if(flags_gun_features & GUN_AMMO_COUNTER)
 		create_ammo_counter()

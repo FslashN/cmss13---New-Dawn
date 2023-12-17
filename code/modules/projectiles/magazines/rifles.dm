@@ -435,7 +435,7 @@
 	icon_state = "hunting"
 	default_ammo = /datum/ammo/bullet/sniper/crude
 	max_rounds = 10
-	gun_type = /obj/item/weapon/gun/boltaction
+	gun_type = /obj/item/weapon/gun/rifle/boltaction
 	w_class = SIZE_SMALL
 
 /obj/item/ammo_magazine/rifle/boltaction/vulture
@@ -447,7 +447,7 @@
 	handful_state = "vulture_bullet"
 	default_ammo = /datum/ammo/bullet/sniper/anti_materiel/vulture
 	max_rounds = 4
-	gun_type = /obj/item/weapon/gun/boltaction/vulture
+	gun_type = /obj/item/weapon/gun/rifle/boltaction/vulture
 	w_class = SIZE_MEDIUM // maybe small? This shit's >4 inches long mind you
 
 //=ROYAL MARINES=\\

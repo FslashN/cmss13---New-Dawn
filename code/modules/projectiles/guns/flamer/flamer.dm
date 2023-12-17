@@ -119,7 +119,7 @@
 		if(active_attachable.flags_attach_features & ATTACH_PROJECTILE)
 			return
 		if((active_attachable.current_rounds <= 0) && !(active_attachable.flags_attach_features & ATTACH_IGNORE_EMPTY))
-			click_empty(user) //If it's empty, let them know.
+			GUN_CLICK_EMPTY(user) //If it's empty, let them know.
 			to_chat(user, SPAN_WARNING("[active_attachable] is empty!"))
 			to_chat(user, SPAN_NOTICE("You disable [active_attachable]."))
 			active_attachable.activate_attachment(src, null, TRUE)
@@ -136,7 +136,7 @@
 		return NONE
 
 	if(current_mag.current_rounds <= 0)
-		click_empty(user)
+		GUN_CLICK_EMPTY(user)
 	else
 		user.track_shot(initial(name))
 		unleash_flame(target, user)
@@ -334,7 +334,7 @@
 /obj/item/weapon/gun/flamer/M240T/Fire(atom/target, mob/living/user, params, reflex = 0, dual_wield)
 	if (!link_fuelpack(user) && !current_mag)
 		to_chat(user, SPAN_WARNING("You must equip the specialized Broiler-T back harness or load in a fuel tank to use this incinerator unit!"))
-		click_empty(user)
+		GUN_CLICK_EMPTY(user)
 		return
 	if (fuelpack)
 		// Check we're actually firing the right fuel tank

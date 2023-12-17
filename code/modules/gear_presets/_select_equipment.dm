@@ -849,7 +849,7 @@ GLOBAL_LIST_INIT(rebel_rifles, list(
 	var/random_weapon = rand(0,3)
 	switch(random_weapon)
 		if(0)
-			new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/boltaction(new_human), WEAR_L_HAND)
+			new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/rifle/boltaction(new_human), WEAR_L_HAND)
 			new_human.equip_to_slot_or_del(new /obj/item/storage/belt/marine/boltaction(new_human), WEAR_WAIST)
 		if(1)
 			new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/smg/uzi(new_human), WEAR_L_HAND)

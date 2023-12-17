@@ -420,9 +420,9 @@
 	desc = "spawns a surv rifle and some ammo"
 	icon_state = "loot_rifle"
 	guns = list(
-		/obj/item/weapon/gun/boltaction = /obj/item/ammo_magazine/rifle/boltaction,
-		/obj/item/weapon/gun/boltaction = /obj/item/ammo_magazine/rifle/boltaction,
-		/obj/item/weapon/gun/boltaction = /obj/item/ammo_magazine/rifle/boltaction,
+		/obj/item/weapon/gun/rifle/boltaction = /obj/item/ammo_magazine/rifle/boltaction,
+		/obj/item/weapon/gun/rifle/boltaction = /obj/item/ammo_magazine/rifle/boltaction,
+		/obj/item/weapon/gun/rifle/boltaction = /obj/item/ammo_magazine/rifle/boltaction,
 		/obj/item/weapon/gun/rifle/m16 = /obj/item/ammo_magazine/rifle/m16,
 		/obj/item/weapon/gun/rifle/m16 = /obj/item/ammo_magazine/rifle/m16,
 		/obj/item/weapon/gun/rifle/m16 = /obj/item/ammo_magazine/rifle/m16,

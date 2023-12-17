@@ -30,7 +30,7 @@
 	return list(
 		list("PRIMARY FIREARMS", 0, null, null, null),
 		list("ABR-40 Hunting Rifle", 30, /obj/item/weapon/gun/rifle/l42a/abr40, null, VENDOR_ITEM_REGULAR),
-		list("Basira-Armstrong Bolt-Action", 15, /obj/item/weapon/gun/boltaction, null, VENDOR_ITEM_REGULAR),
+		list("Basira-Armstrong Bolt-Action", 15, /obj/item/weapon/gun/rifle/boltaction, null, VENDOR_ITEM_REGULAR),
 		list("Double Barrel Shotgun", 30, /obj/item/weapon/gun/shotgun/double, null, VENDOR_ITEM_REGULAR),
 		list("HG 37-12 Pump Shotgun", 30, /obj/item/weapon/gun/shotgun/double/sawn, null, VENDOR_ITEM_REGULAR),
 		list("M16 Rifle", 30, /obj/item/weapon/gun/rifle/m16, null, VENDOR_ITEM_REGULAR),
@@ -98,7 +98,7 @@
 	return list(
 		list("PRIMARY FIREARMS", -1, null, null),
 		list("ABR-40 Hunting Rifle", 30, /obj/item/weapon/gun/rifle/l42a/abr40, null, VENDOR_ITEM_REGULAR),
-		list("Basira-Armstrong Bolt-Action", 15, /obj/item/weapon/gun/boltaction, null, VENDOR_ITEM_REGULAR),
+		list("Basira-Armstrong Bolt-Action", 15, /obj/item/weapon/gun/rifle/boltaction, null, VENDOR_ITEM_REGULAR),
 		list("Double Barrel Shotgun", 20, /obj/item/weapon/gun/shotgun/double, VENDOR_ITEM_REGULAR),
 		list("HG 37-12 Pump Shotgun", 20, /obj/item/weapon/gun/shotgun/double/sawn, VENDOR_ITEM_REGULAR),
 		list("M16 Rifle", 20, /obj/item/weapon/gun/rifle/m16, VENDOR_ITEM_REGULAR),

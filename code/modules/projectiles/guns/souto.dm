@@ -32,7 +32,7 @@
 	if(!soutopack)
 		if(!link_soutopack(user))
 			to_chat(user, "You must equip the specialized Backpack Souto Vending Machine to use the Souto Slinger Supremo!")
-			click_empty(user)
+			GUN_CLICK_EMPTY(user)
 			unlink_soutopack()
 			return NONE
 	if(soutopack)
@@ -60,7 +60,7 @@
 		return FALSE
 
 	if(!istype(H.back, /obj/item/storage/backpack/souto))
-		click_empty(H)
+		GUN_CLICK_EMPTY(H)
 		return FALSE
 
 /obj/item/weapon/gun/souto/recalculate_user_attributes(mob/living/user)

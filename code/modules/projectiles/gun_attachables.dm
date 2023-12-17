@@ -1353,10 +1353,10 @@ Defined in conflicts.dm of the #defines folder.
 
 /// Returns how many deciseconds until the gun is able to fire again
 /obj/item/attachable/vulture_scope/proc/get_time_to_fire()
-	if(!istype(loc, /obj/item/weapon/gun/boltaction/vulture))
+	if(!istype(loc, /obj/item/weapon/gun/rifle/boltaction/vulture))
 		return 0
 
-	var/obj/item/weapon/gun/boltaction/vulture/rifle = loc
+	var/obj/item/weapon/gun/rifle/boltaction/vulture/rifle = loc
 	if(!rifle.last_fired)
 		return 0
 

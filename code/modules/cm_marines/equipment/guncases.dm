@@ -315,7 +315,7 @@
 	icon_state = "guncase_blue"
 	storage_slots = 7
 	can_hold = list(
-		/obj/item/weapon/gun/boltaction/vulture,
+		/obj/item/weapon/gun/rifle/boltaction/vulture,
 		/obj/item/ammo_magazine/rifle/boltaction/vulture,
 		/obj/item/device/vulture_spotter_tripod,
 		/obj/item/device/vulture_spotter_scope,
@@ -330,7 +330,7 @@
 		icon_state = "guncase_blue_e"
 
 /obj/item/storage/box/guncase/vulture/fill_preset_inventory()
-	var/obj/item/weapon/gun/boltaction/vulture/rifle = new(src)
+	var/obj/item/weapon/gun/rifle/boltaction/vulture/rifle = new(src)
 	new /obj/item/ammo_magazine/rifle/boltaction/vulture(src)
 	new /obj/item/device/vulture_spotter_tripod(src)
 	new /obj/item/device/vulture_spotter_scope(src, WEAKREF(rifle))
@@ -342,7 +342,7 @@
 	storage_slots = 5
 
 /obj/item/storage/box/guncase/vulture/skillless/fill_preset_inventory()
-	var/obj/item/weapon/gun/boltaction/vulture/skillless/rifle = new(src)
+	var/obj/item/weapon/gun/rifle/boltaction/vulture/skillless/rifle = new(src)
 	new /obj/item/ammo_magazine/rifle/boltaction/vulture(src)
 	new /obj/item/device/vulture_spotter_tripod(src)
 	new /obj/item/device/vulture_spotter_scope/skillless(src, WEAKREF(rifle))

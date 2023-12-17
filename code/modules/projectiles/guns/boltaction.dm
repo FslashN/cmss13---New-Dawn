@@ -3,10 +3,9 @@
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 // Bolt Action Rifle Code, credit to Alardun and Optimisticdude. This is for bolt action rifles which use external magazines, such as the AWM International, rather than internally fed rifles such as the Mosin-Nagant.
 // For internally fed bolt actions, it'd be more advised to use pump shotgun code, or obj/item/weapon/gun/shotgun/pump, to create that type of variant of bolt action rifle.
+// Trimmed, rewritten, etc. Now a proper child of rifle.
 
-// Revised. Probably should be a child of rifle. Maybe merge it next pass.
-
-/obj/item/weapon/gun/boltaction
+/obj/item/weapon/gun/rifle/boltaction
 	name = "\improper Basira-Armstrong bolt-action hunting rifle"
 	desc = "Named after its eccentric designers, the Basira-Armstrong is a cheap but reliable civilian bolt-action rifle frequently found in the outer colonies. Despite its legally-mandated limited magazine capacity, its light weight and legendary accuracy makes it popular among hunters and competitive shooters."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
@@ -16,41 +15,28 @@
 	var/close_bolt_sound ='sound/weapons/handling/gun_boltaction_close.ogg'
 	icon_state = "boltaction"
 	item_state = "hunting"
-	flags_equip_slot = SLOT_BACK
-	w_class = SIZE_LARGE
-	force = 5
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_WIELDED_FIRING_ONLY
 	flags_gun_receiver = GUN_CHAMBERED_CYCLE|GUN_MANUAL_CYCLE|GUN_CHAMBER_CAN_OPEN
-	gun_category = GUN_CATEGORY_RIFLE
-	aim_slowdown = SLOWDOWN_ADS_RIFLE
-	wield_delay = WIELD_DELAY_NORMAL
 	current_mag = /obj/item/ammo_magazine/rifle/boltaction
 	projectile_casing = PROJECTILE_CASING_CARTRIDGE
-
-	aim_slowdown = SLOWDOWN_ADS_RIFLE
-	wield_delay = WIELD_DELAY_NORMAL
 	civilian_usable_override = TRUE
-
-	var/bolt_is_open = FALSE
-	var/used_casings = 0 //Since there is no internal mag, we track the gun itself. I don't like using a variable for this, but eh...
 	var/has_openbolt_icon = TRUE /// If this gun should change icon states when the bolt is open
 
 	//=========// GUN STATS //==========//
-	burst_amount = BURST_AMOUNT_TIER_1
 	fire_delay = FIRE_DELAY_TIER_4
+	burst_amount = BURST_AMOUNT_TIER_1
 	cycle_chamber_delay = FIRE_DELAY_TIER_5
+	burst_delay = FIRE_DELAY_TIER_5
 
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
-	scatter_unwielded = SCATTER_AMOUNT_TIER_2
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_8
 	recoil = RECOIL_AMOUNT_TIER_4
-	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/boltaction/initialize_gun_lists()
+/obj/item/weapon/gun/rifle/boltaction/initialize_gun_lists()
 	if(!attachable_allowed)
 		attachable_allowed = list(
 			/obj/item/attachable/bayonet,
@@ -70,57 +56,41 @@
 
 	..()
 
-/obj/item/weapon/gun/boltaction/Initialize(mapload, spawn_empty)
-	. = ..()
-	ready_in_chamber()
 
-/obj/item/weapon/gun/boltaction/unique_action(mob/user)
-	cycle_chamber(user)
-
-/obj/item/weapon/gun/boltaction/update_icon() // needed for bolt action sprites
+/obj/item/weapon/gun/rifle/boltaction/update_icon() // needed for bolt action sprites
 	..()
-	icon_state = (bolt_is_open && has_openbolt_icon) ? icon_state + "_o" : icon_state
+	icon_state = ( (flags_gun_receiver & GUN_CHAMBER_IS_OPEN) && has_openbolt_icon) ? icon_state + "_o" : icon_state
 
-/obj/item/weapon/gun/boltaction/cycle_chamber(mob/user)
+/obj/item/weapon/gun/rifle/boltaction/cycle_chamber(mob/user)
 	if(cycle_chamber_cooldown > world.time)
 		return
 
-	bolt_is_open = !bolt_is_open
 	cycle_chamber_cooldown = world.time + cycle_chamber_delay
+	flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
 
-	if(bolt_is_open)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		to_chat(user, SPAN_DANGER("You open the bolt of [src]!"))
-		play_chamber_cycle_sound(user, close_bolt_sound, 65)
-
-		//If we have fire a bullet previously, it's still in the bolt chamber and needs to be ejected.
-		if(used_casings)
-			used_casings--
-			make_casing(projectile_casing)
-		else if(in_chamber)
+		play_chamber_cycle_sound(user, open_bolt_sound, 15)
+		//We'e going to have nothing, a bullet loaded, or an empty casing to unload.
+		if(in_chamber)
 			eject_handful_to_turf(user)
 			in_chamber = null
+		else if(flags_gun_receiver & GUN_CHAMBER_EMPTY_CASING) //This should be mutually exclusive with in_chamber.
+			make_casing(projectile_casing)
+
 	else
 		to_chat(user, SPAN_DANGER("You close the bolt of [src]!"))
-		play_chamber_cycle_sound(user, open_bolt_sound, 15)
-		ready_in_chamber()
+		play_chamber_cycle_sound(user, close_bolt_sound, 65)
+		if(current_mag?.current_rounds) ready_in_chamber()
 
-	display_ammo(user)
+	GUN_DISPLAY_ROUNDS_REMAINING
 	update_icon()
-
-/obj/item/weapon/gun/boltaction/check_additional_able_to_fire(mob/user)
-	if(bolt_is_open)
-		to_chat(user, SPAN_WARNING("The bolt is still open, you can't fire [src]."))
-		return FALSE
-
-/obj/item/weapon/gun/boltaction/reload_into_chamber(mob/user) //This keeps all attachment and mag functionality.
-	. = ..()
-	if(!active_attachable) used_casings++ //Sadly have to check for this again in case an attachable was used.
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[             VULTURE ANTI-MATERIAL RIFLE            ]=========hhhhhhhhhhhhhhhhhhhhhhh
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
-/obj/item/weapon/gun/boltaction/vulture
+/obj/item/weapon/gun/rifle/boltaction/vulture
 	name = "\improper M707 'Vulture' anti-materiel rifle"
 	desc = "The M707 is a crude but highly powerful rifle, designed for disabling lightly armored vehicles and hitting targets inside buildings. Its unwieldy scope and caliber necessitates a spotter to be fully effective, suffering severe scope drift without one."
 	desc_lore = {"
@@ -150,7 +120,7 @@
 	current_mag = /obj/item/ammo_magazine/rifle/boltaction/vulture
 	civilian_usable_override = FALSE
 	has_openbolt_icon = FALSE
-	cycle_chamber_delay = 1 SECONDS
+
 	/// How far out people can tell the direction of the shot
 	projectile_type = /obj/projectile/vulture
 	var/fire_message_range = 25
@@ -159,6 +129,7 @@
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_VULTURE
+	cycle_chamber_delay = 1 SECONDS
 
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_7
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
@@ -171,10 +142,10 @@
 	damage_falloff_mult = DAMAGE_FALLOFF_OFF
 	//=========// GUN STATS //==========//
 
-/obj/item/weapon/gun/boltaction/vulture/skillless
+/obj/item/weapon/gun/rifle/boltaction/vulture/skillless
 	bypass_trait = TRUE
 
-/obj/item/weapon/gun/boltaction/vulture/initialize_gun_lists()
+/obj/item/weapon/gun/rifle/boltaction/vulture/initialize_gun_lists()
 
 	if(!starting_attachment_types)
 		starting_attachment_types = list(
@@ -200,19 +171,19 @@
 
 	..()
 
-/obj/item/weapon/gun/boltaction/vulture/update_icon()
+/obj/item/weapon/gun/rifle/boltaction/vulture/update_icon()
 	. = ..()
-	if(bolt_is_open)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		overlays += "vulture_bolt_open" //Does it not remove it?
 
-/obj/item/weapon/gun/boltaction/vulture/recalculate_user_attributes(mob/living/user)
+/obj/item/weapon/gun/rifle/boltaction/vulture/recalculate_user_attributes(mob/living/user)
 	if(!bypass_trait && !HAS_TRAIT(user, TRAIT_VULTURE_USER))
 		unable_to_fire_message = "You don't know how to use this!"
 		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
 
 	..()
 
-/obj/item/weapon/gun/boltaction/vulture/Fire(atom/target, mob/living/user, params, reflex, dual_wield)
+/obj/item/weapon/gun/rifle/boltaction/vulture/Fire(atom/target, mob/living/user, params, reflex, dual_wield)
 	var/obj/item/attachable/vulture_scope/scope = attachments[ATTACHMENT_SLOT_RAIL]
 	if(istype(scope) && scope.scoping)
 		var/turf/viewed_turf = scope.get_viewed_turf()
@@ -240,7 +211,7 @@
 	return .
 
 /// Someone tried to fire this without using a bipod, so we break their arm along with sending them flying backwards
-/obj/item/weapon/gun/boltaction/vulture/proc/fired_without_bipod(mob/living/user)
+/obj/item/weapon/gun/rifle/boltaction/vulture/proc/fired_without_bipod(mob/living/user)
 	SEND_SIGNAL(src, COMSIG_GUN_VULTURE_FIRED_ONEHAND)
 	to_chat(user, SPAN_HIGHDANGER("You get flung backwards as you fire [src], breaking your firing arm in the process!"))
 	user.apply_effect(0.7, WEAKEN)
@@ -263,7 +234,7 @@
 	shake_camera(user, 7, 6) // Around 2x worse than getting hit with a heavy round
 
 /// The code that takes care of breaking a person's firing arm
-/obj/item/weapon/gun/boltaction/vulture/proc/break_arm(mob/living/carbon/human/user, arm = LEFT)
+/obj/item/weapon/gun/rifle/boltaction/vulture/proc/break_arm(mob/living/carbon/human/user, arm = LEFT)
 	var/obj/limb/arm/found_limb
 	var/obj/limb/hand/found_hand
 	if(arm == LEFT)

@@ -19,7 +19,6 @@
 	var/thud_sound = 'sound/effects/thud.ogg'
 	var/trick_delay = 2.5 SECONDS //Yeah, 4 seconds is too long.
 	var/recent_trick //So they're not spamming tricks.
-	var/list/cylinder_click = list('sound/weapons/gun_empty.ogg')
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES|GUN_ACCEPTS_HANDFUL|GUN_ACCEPTS_SPEEDLOADER
 	gun_category = GUN_CATEGORY_HANDGUN
@@ -46,8 +45,7 @@
 	//=========// GUN STATS //==========//
 
 /*
-The chamber counts up (to simulate clockwise rotation), resetting when it reaches the max;
-this behavior is the same for right side up and upside down cylinders (counter clockwise rotation).
+The chamber counts up (to simulate clockwise rotation), resetting when it reaches the max; this behavior is the same for right side up and upside down cylinders (counter clockwise rotation).
 
 	  1		  4
 	2	6	3	5
@@ -62,19 +60,20 @@ Alternative setup that would count down instead (this was originally used). Chan
   	  4		  1
 
 The chamber rotates before each bullet is fired, so the first firing position is usually 2.
+
+GUN_ROTATE_CYLINDER is a macro that calls for one space cylinder rotation (1-2). GUN_ROTATE_CYLINDER_BACK is the same but in the opposite direction (2-1).
 */
-#define ROTATE_CYLINDER current_mag.chamber_position = (current_mag.chamber_position == current_mag.max_rounds) ? 1 : ++current_mag.chamber_position
-#define ROTATE_CYLINDER_BACK current_mag.chamber_position = (current_mag.chamber_position == 1) ? current_mag.max_rounds : --current_mag.chamber_position
-
-/obj/item/weapon/gun/revolver/Initialize(mapload, spawn_empty = FALSE, custom_list_override = FALSE)
-	. = ..()
-
-	if(!spawn_empty && !custom_list_override) //If it's empty or has a custom feeder contents list, we will attempt to populate it fully.
-		for(var/i = 1 to min(current_mag.current_rounds, current_mag.max_rounds)) //We want to make sure to populate the cylinder.
-			current_mag.feeder_contents += current_mag.default_ammo //Defaults to whatever the gun uses for default.
 
 /obj/item/weapon/gun/revolver/get_additional_gun_examine_text(mob/user)
 	. = ..() + ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "The cylinder is open with [current_mag.current_rounds] round\s loaded." : "The cylinder is closed." )
+
+/obj/item/weapon/gun/revolver/unique_action(mob/user)
+	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN && current_mag.current_rounds)
+		sort_cylinder_ammo(user)
+		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
+	else
+		cycle_chamber(user)
+		update_icon()
 
 /obj/item/weapon/gun/revolver/cycle_chamber(mob/user)
 	if(flags_gun_toggles & GUN_BURST_FIRING)
@@ -89,24 +88,10 @@ The chamber rotates before each bullet is fired, so the first firing position is
 
 	flags_gun_receiver ^= GUN_HAMMER_IS_COCKED //Cock/decock the hammer.
 	if(flags_gun_receiver & GUN_HAMMER_IS_COCKED && !(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)) //Only rotates if the cylinder is closed and the hammer was pulled back.
-		ROTATE_CYLINDER
-
-//Generally never need to use this. If the gun is working properly, it will null on the go and when emptied out.
-/obj/item/weapon/gun/revolver/proc/empty_cylinder()
-	var/L[current_mag.max_rounds] //We just make a new, empty list.
-	current_mag.feeder_contents = L
+		GUN_ROTATE_CYLINDER
 
 //The cylinder is always emptied out before a reload takes place.
-/obj/item/weapon/gun/revolver/replace_magazine(mob/user, ammunition_reference) //Bullets are added forward, starting with the index.
-	//We want to make sure the gun can load any ammo into any slot, if the cylinder is spun or not. But we don't necessarily know which slots are already filled.
-	var/slots_to_check = current_mag.max_rounds
-	for(chamber_index, slots_to_check, slots_to_check--) //While we still have slots to check, decrease slots. Chamber index also acts as a counter.
-		if(current_mag.feeder_contents[i]) //
-			ROTATE_CYLINDER //We move on to wherever this takes us instead of changing chamber_index in the proc argument, allowing us to loop around.
-		else
-			current_mag.feeder_contents[chamber_index] = ammunition_reference
-			break //Found an empty one, get out.
-
+/obj/item/weapon/gun/revolver/replace_magazine(mob/user, ammunition_reference)
 	playsound(user, hand_reload_sound, 25, 1)
 	return TRUE
 
@@ -115,94 +100,64 @@ The chamber rotates before each bullet is fired, so the first firing position is
 
 	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
 		playsound(src, chamber_close_sound, 25, 1)
+
+		if(current_mag.current_rounds && current_mag.current_rounds != current_mag.max_rounds && user_skill_level > SKILL_FIREARMS_CIVILIAN) //Civs won't know to do this ahead of time.
+			for(var/i = 1 to current_mag.max_rounds) //We're trying to find the next position with some ammo, so that if the gun is not full, it can fire the most rounds in sequence.
+			//When hand reloading, it spins to the next position, which may be empty. So spin back, we're shooting a blank for the first round. Have to locate something we can fire, then spin back.
+				if(current_mag.feeder_contents["[current_mag.chamber_position]"]) //Find the first position that has rounds.
+					ROTATE_CYLINDER_BACK(current_mag)
+					break
+				ROTATE_CYLINDER(current_mag)
 	else
 		if(make_casing(projectile_casing) || reloading_override) //If we have some spent rounds in the chamber or we're reloading manually,
-			sort_cylinder_ammo(user) //This first before the cylinder is dumped.
+			sort_cylinder_ammo(user) //First sort before the cylinder is dumped.
 			to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
 
 		flags_gun_toggles &= ~GUN_PLAYING_RUS_ROULETTE //Resets the RR variable.
 		playsound(src, unload_sound, 25, 1)
 
 	flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
-
 	update_icon()
 
 /*
 We want the ammo with the most rounds first, so it gets placed in hand if possible. We don't care to sort the entire list,
-and there generally will be only two possible ammo types if not fewer. If mixed handfuls are introduced, this proc will not be needed.
+and there generally will be only two possible ammo types if not fewer. If mixed handfuls are introduced, this proc will not be necessary.
 */
 /obj/item/weapon/gun/revolver/proc/sort_cylinder_ammo(mob/user)
-	if(current_mag)
-		var/ammo_available[0] //we need a list of all the different ammo in the cylinder.
-		var/leading_ammo[0] //And a second list for the ammo that will be the most numerous. Or whatever it may be if tied.
-		var/ammo_path //Our generic path tracker.
-		var/lead_counter = 0 //What we use to measure against.
+	var/ammo_available[0] //we need a list of all the different ammo in the cylinder.
+	var/leading_ammo //This is the ammo with the most rounds.
+	var/ammo_path //Our generic path tracker.
 
-		//This will give us an associated list of the ammo and how many "rounds" each ammo had.
-		for(var/i = 1 to current_mag.max_rounds)
-			ammo_path = current_mag.feeder_contents[i]
-			if(ammo_path) //Is it null or not?
-				current_mag.feeder_contents[i] = null //Null it out as we won't need it.
-				if(ammo_path in ammo_available) //Is it already in the list?
-					ammo_available[ammo_path]++ //Move up the number.
-				else //If it's not, add it to make the association.
-					ammo_available[ammo_path] = 1
+	//This will give us an associated list of the ammo and how many "rounds" each ammo had.
+	for(var/i = 1 to current_mag.max_rounds)
+		ammo_path = current_mag.feeder_contents["[i]"]
+		if(ammo_path) //Is it null or not?
+			current_mag.feeder_contents -= "[i]" //Remove it.
+			if(ammo_path in ammo_available) //Is it already in the list?
+				ammo_available[ammo_path]++ //Move up the number.
+			else //If it's not, add it to make the association.
+				ammo_available[ammo_path] = 1
 
-				if(ammo_available[ammo_path] > lead_counter && !(ammo_path in leading_ammo) ) //Found a candidate. If there's even one ammo type, this will fire.
-					lead_counter++ //Move it up. This is what the next number has to be greater than.
-					leading_ammo.len = 0 //Empty list
-					leading_ammo += ammo_path
+			if(ammo_available[ammo_path] > ammo_available[leading_ammo])
+				leading_ammo = ammo_path
 
-		//Now we should have two lists. We make sure that our main one is in the first position.
-		if(ammo_available.len) //We have some ammo.
-			ammo_available = leading_ammo | ammo_available //We simply make a new list with both elements. L in the first position, so it gets added first.
-			for(var/i in ammo_available)
-				current_mag.create_handful(user, null, ammo_available[i], i)
-
-/obj/item/weapon/gun/revolver/check_additional_able_to_fire(mob/user)
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-		to_chat(user, SPAN_WARNING("Close the cylinder!"))
-		playsound(user, pick(cylinder_click), 25, 1, 5)
-		return FALSE
-	return TRUE
-
-/obj/item/weapon/gun/revolver/load_into_chamber()
-	if(!active_attachable) //No active attachable,
-		if(!(flags_gun_receiver & GUN_MANUAL_CYCLE))//revolver isn't single action.
-			ROTATE_CYLINDER //Rotate once; this is default double action behavior. Pull the trigger, rotate cylinder and fire the bullet (if there is one).
-		else if(!(flags_gun_receiver & GUN_HAMMER_IS_COCKED)) //If the gun is a manual cycle, ie single action.
-			return FALSE //If the hammer isn't cocked, can't fire.
-	. = ..()
-
-/obj/item/weapon/gun/revolver/ready_in_chamber()
-	if(current_mag.current_rounds)
-		if(current_mag.feeder_contents[current_mag.chamber_position]) //If it's not null.
-			in_chamber = GLOB.ammo_list[current_mag.feeder_contents[current_mag.chamber_position]]
-			current_mag.current_rounds-- //Subtract the round from the mag.
-			return in_chamber
-	else if(!(flags_gun_receiver & GUN_CHAMBER_IS_OPEN))
-		unload(null)
-
-/obj/item/weapon/gun/revolver/reload_into_chamber(mob/user)
-	if(!active_attachable)
-		current_mag.feeder_contents[current_mag.chamber_position] = null //We shot the bullet.
-		flags_gun_receiver &= ~GUN_HAMMER_IS_COCKED //No longer cocked, if it was previously.
-	. = ..()
-
+	if(ammo_available.len) //We have some ammo.
+		ammo_available = list(leading_ammo) | ammo_available //We simply make a new list with both elements. Leading ammo in the first position, so it gets added first.
+		for(var/i in ammo_available)
+			current_mag.create_handful(user, null, ammo_available[i], i)
 
 // FLUFF
-/obj/item/weapon/gun/revolver/unique_action(mob/user)
-	cycle_chamber(user)
-	/*
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-		make_casing(projectile_casing)
-		sort_cylinder_ammo(user)
-		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
-	else
-		spin_cylinder(user)
-		*/
+/obj/item/weapon/gun/revolver/alt_click_action(mob/user)
+	if(flags_gun_toggles & GUN_BURST_FIRING) return
 
-/obj/item/weapon/gun/revolver/proc/spin_cylinder(mob/user)
+	if(usr.is_mob_incapacitated() || !usr.loc || !isturf(usr.loc))
+		to_chat(usr, "Not right now.")
+		return
+
+	if(!locate(src) in list(user.get_active_hand(), user.get_inactive_hand()))
+		to_chat(usr, "Cannot locate the revolver.")
+		return TRUE
+
 	current_mag.chamber_position = rand(1,current_mag.max_rounds)
 	to_chat(user, SPAN_NOTICE("You spin the cylinder."))
 	playsound(user, 'sound/weapons/gun_revolver_spun.ogg', 25, 1)
@@ -298,9 +253,6 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 		user.visible_message(SPAN_INFO("<b>[user]</b> fumbles with [src] like a huge idiot!"), null, null, 3)
 		to_chat(user, SPAN_WARNING("You fumble with [src] like an idiot... Uncool."))
 		return FALSE
-
-#undef ROTATE_CYLINDER
-#undef ROTATE_CYLINDER_BACK
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                  M44 COMBAT REVOLVER               ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -731,7 +683,10 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	current_mag = /obj/item/ammo_magazine/internal/revolver/mateba/explosive
 	color = "#FF0000"
 	fire_sound = null
-	fire_sound = list('sound/voice/alien_queen_xmas.ogg', 'sound/voice/alien_queen_xmas_2.ogg')
+
+/obj/item/weapon/gun/revolver/mateba/general/santa/initialize_gun_lists()
+	if(fire_sound)
+		fire_sound = list('sound/voice/alien_queen_xmas.ogg', 'sound/voice/alien_queen_xmas_2.ogg')
 
 /obj/item/weapon/gun/revolver/mateba/general/santa/initialize_gun_lists()
 
@@ -798,9 +753,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	icon_state = "spearhead"
 	item_state = "spearhead"
 	fire_sound = null
-	fire_sound = list('sound/weapons/gun_cmb_1.ogg', 'sound/weapons/gun_cmb_2.ogg')
 	fire_rattle = 'sound/weapons/gun_cmb_rattle.ogg'
-	cylinder_click = list('sound/weapons/handling/gun_cmb_click1.ogg', 'sound/weapons/handling/gun_cmb_click2.ogg')
 	force = 12
 	current_mag = /obj/item/ammo_magazine/internal/revolver/cmb/hollowpoint
 
@@ -817,6 +770,12 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/cmb/initialize_gun_lists()
+
+	if(!fire_sound)
+		fire_sound = list('sound/weapons/gun_cmb_1.ogg', 'sound/weapons/gun_cmb_2.ogg')
+
+	if(!click_empty_sound)
+		click_empty_sound = list('sound/weapons/handling/gun_cmb_click1.ogg', 'sound/weapons/handling/gun_cmb_click2.ogg')
 
 	if(!attachable_allowed)
 		attachable_allowed = list(
@@ -836,13 +795,6 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
 
 	..()
-
-/obj/item/weapon/gun/revolver/cmb/click_empty(mob/user)
-	if(user)
-		to_chat(user, SPAN_WARNING("<b>*click*</b>"))
-		playsound(user, pick('sound/weapons/handling/gun_cmb_click1.ogg', 'sound/weapons/handling/gun_cmb_click2.ogg'), 25, 1, 5) //5 tile range
-	else
-		playsound(src, pick('sound/weapons/handling/gun_cmb_click1.ogg', 'sound/weapons/handling/gun_cmb_click2.ogg'), 25, 1, 5)
 
 /obj/item/weapon/gun/revolver/cmb/Fire(atom/target, mob/living/user, params, reflex = 0, dual_wield)
 	playsound('sound/weapons/gun_cmb_bass.ogg') // badass shooting bass

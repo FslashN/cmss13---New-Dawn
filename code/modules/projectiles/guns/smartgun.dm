@@ -120,27 +120,21 @@
 	//Distance shoudn't matter since the battery isn't worn as a backpack anymore.
 	if(battery) . += "A small gauge on [battery] reads: Power: [battery.power_cell.charge] / [battery.power_cell.maxcharge]."
 
-/obj/item/weapon/gun/smartgun/clicked(mob/user, list/mods)
-	if(mods["alt"])
-		if(!CAN_PICKUP(user, src))
-			return ..()
-		if(!locate(src) in list(user.get_active_hand(), user.get_inactive_hand()))
-			return TRUE
-		if(user.get_active_hand() && user.get_inactive_hand())
-			to_chat(user, SPAN_WARNING("You can't do that with your hands full!"))
-			return TRUE
-		if(!cover_open)
-			playsound(src.loc, 'sound/handling/smartgun_open.ogg', 50, TRUE, 3)
-			to_chat(user, SPAN_NOTICE("You open \the [src]'s feed cover, allowing the drum to be removed."))
-			cover_open = TRUE
-		else
-			playsound(src.loc, 'sound/handling/smartgun_close.ogg', 50, TRUE, 3)
-			to_chat(user, SPAN_NOTICE("You close \the [src]'s feed cover."))
-			cover_open = FALSE
-		update_icon()
+/obj/item/weapon/gun/smartgun/alt_click_action(mob/user)
+	if(!locate(src) in list(user.get_active_hand(), user.get_inactive_hand()))
 		return TRUE
+	if(user.get_active_hand() && user.get_inactive_hand())
+		to_chat(user, SPAN_WARNING("You can't do that with your hands full!"))
+		return TRUE
+	if(!cover_open)
+		playsound(src.loc, 'sound/handling/smartgun_open.ogg', 50, TRUE, 3)
+		to_chat(user, SPAN_NOTICE("You open \the [src]'s feed cover, allowing the drum to be removed."))
+		cover_open = TRUE
 	else
-		return ..()
+		playsound(src.loc, 'sound/handling/smartgun_close.ogg', 50, TRUE, 3)
+		to_chat(user, SPAN_NOTICE("You close \the [src]'s feed cover."))
+		cover_open = FALSE
+	update_icon()
 
 /obj/item/weapon/gun/smartgun/attackby(obj/item/attacking_object, mob/user)
 	if(istype(attacking_object, /obj/item/smartgun_battery))

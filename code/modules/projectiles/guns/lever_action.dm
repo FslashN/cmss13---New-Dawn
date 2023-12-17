@@ -393,6 +393,7 @@ their unique feature is that a direct hit will buff your damage and firerate
 	hit_buff_reset_cooldown = 2 SECONDS //how much time after a direct hit until streaks reset
 	var/floating_penetration = FLOATING_PENETRATION_TIER_0 //holder var
 	var/floating_penetration_upper_limit = FLOATING_PENETRATION_TIER_4
+	var/direct_hit_sound = 'sound/weapons/gun_xm88_directhit_low.ogg'
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_2
