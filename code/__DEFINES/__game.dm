@@ -552,3 +552,9 @@ block( \
 #define PERF_TOGGLE_SHUTTLES (1<<3)
 /// Disables loading Techwebs and additional Z-Levels
 #define PERF_TOGGLE_TECHWEBS (1<<4)
+
+///UI Actions, for actions.dm in datums.
+#define UI_ACTIONS_HIDDEN (1<<0) //Primary to show and hide xeno buttons.
+#define UI_ACTIONS_UNIQUE (1<<1) //Unique actions are one per, so if another is added, it's ignored. If it was previously hidden, it gets unhidden.
+#define UI_ACTIONS_ITEM_CUSTOM (1<<2) //If the action is an item action, this will prevent the item's icon from appearing on the button as well as retaining the name you set rather than "Use [something]"
+#define UI_ACTIONS_ITEM_GROUP (1<<3) //If there is more than one instance of the item, the others will not be shown. For behavior of groups rather than individual items. ie revolver tricks.

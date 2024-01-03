@@ -696,7 +696,7 @@
 	implant.on_implanted(new_human)
 
 	//body
-	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/pkp, WEAR_J_STORE)
+	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/machinegun/pkp, WEAR_J_STORE)
 	new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/pkp, WEAR_IN_JACKET)
 	new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/pkp, WEAR_IN_JACKET)
 	new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/pkp, WEAR_IN_JACKET)

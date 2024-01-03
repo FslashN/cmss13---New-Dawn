@@ -1,20 +1,19 @@
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                   GENERIC REVOLVER                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
-//Revolvers generally don't (and should not) have ammo counters, but the functionality works. Revolvers by and large don't have safeties.
+//Revolvers generally don't (and should not) have ammo counters, but the functionality works. Revolvers don't have safeties, and code wise alt_click is replaced with spinning the cylinder.
 
 //Generic parent object.
 /obj/item/weapon/gun/revolver
 	flags_equip_slot = SLOT_WAIST
 	w_class = SIZE_MEDIUM
 
-	matter = list("metal" = 2000)
 	fire_sound = 'sound/weapons/gun_44mag_v3.ogg'
 	reload_sound = 'sound/weapons/gun_44mag_speed_loader.wav'
-	cocked_sound = 'sound/weapons/gun_revolver_cocked.ogg'
+	chamber_cycle_sound = 'sound/weapons/gun_revolver_cocked.ogg'
 	unload_sound = 'sound/weapons/gun_44mag_open_chamber.wav'
-	var/chamber_close_sound = 'sound/weapons/gun_44mag_close_chamber.wav'
-	var/hand_reload_sound = 'sound/weapons/gun_revolver_load3.ogg'
+	hand_reload_sound = 'sound/weapons/gun_revolver_load3.ogg'
+	chamber_close_sound = 'sound/weapons/gun_44mag_close_chamber.wav'
 	var/spin_sound = 'sound/effects/spin.ogg'
 	var/thud_sound = 'sound/effects/thud.ogg'
 	var/trick_delay = 2.5 SECONDS //Yeah, 4 seconds is too long.
@@ -22,7 +21,6 @@
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ONE_HAND_WIELDED|GUN_NO_SAFETY_SWITCH
 	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES|GUN_ACCEPTS_HANDFUL|GUN_ACCEPTS_SPEEDLOADER
 	gun_category = GUN_CATEGORY_HANDGUN
-	wield_delay = WIELD_DELAY_VERY_FAST //If you modify your revolver to be two-handed, it will still be fast to aim
 	movement_onehanded_acc_penalty_mult = 3
 	has_empty_icon = FALSE
 	has_open_icon = TRUE
@@ -30,109 +28,71 @@
 	projectile_casing = PROJECTILE_CASING_BULLET
 
 	//=========// GUN STATS //==========//
+	malfunction_chance_base = GUN_MALFUNCTION_CHANCE_ZERO
 	cycle_chamber_delay = FIRE_DELAY_TIER_8 //Almost no cocking delay.
 
 	fire_delay = FIRE_DELAY_TIER_5
+	burst_amount = BURST_AMOUNT_TIER_1
+	burst_delay = FIRE_DELAY_TIER_5
 
 	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_3
 	scatter = SCATTER_AMOUNT_TIER_8
+	burst_scatter_mult = SCATTER_AMOUNT_TIER_7
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4
+
 	damage_mult = BULLET_DAMAGE_MULT_BASE
+	damage_falloff_mult = DAMAGE_FALLOFF_TIER_10
+	damage_buildup_mult = DAMAGE_BUILDUP_TIER_1
+	velocity_add = BASE_VELOCITY_BONUS
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_3
 	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_3
+
+	effective_range_min = EFFECTIVE_RANGE_OFF
+	effective_range_max = EFFECTIVE_RANGE_OFF
+
+	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_BASE
+	fa_max_scatter = FULL_AUTO_SCATTER_MAX_BASE
+
+	recoil_buildup_limit = RECOIL_AMOUNT_TIER_1 / RECOIL_BUILDUP_VIEWPUNCH_MULTIPLIER
+
+	aim_slowdown = SLOWDOWN_ADS_NONE
+	wield_delay = WIELD_DELAY_VERY_FAST //If you modify your revolver to be two-handed, it will still be fast to aim
 	//=========// GUN STATS //==========//
+
+/obj/item/weapon/gun/revolver/initialize_gun_lists()
+	INHERITLIST(matter, list("metal" = 2000))
+	INHERITORADDLIST(actions_types, list(/datum/action/item_action/revolver_trick))
+
+	..()
 
 /*
 The chamber counts up (to simulate clockwise rotation), resetting when it reaches the max; this behavior is the same for right side up and upside down cylinders (counter clockwise rotation).
+The chamber rotates before each bullet is fired, so the first firing position is usually 2. The actual position is determined by feeder_index of the internal mag.
+GUN_ROTATE_CYLINDER is a macro that calls for one space cylinder rotation (1-2). GUN_ROTATE_CYLINDER_BACK is the same but in the opposite direction (2-1). ROTATE_CYLINDER(magazine, number to rotate) calls for it directly.
+Negative values resulte in rotations back. You can also use ROTATE_CYLINDER_BACK(magazine, number to rotate). Pass a single integer for 'number to rotate', as it can break if you pass a compound proc argument.
+alt-clicking the gun now plays Russian Roulette.
 
 	  1		  4
 	2	6	3	5
 	3	5	2	6
 	  4		  1
-
-Alternative setup that would count down instead (this was originally used). Changed in favor of loading bullets sequentially.
-
-  	  1		  4
-	6	2	5	3
-	5	3	6	2
-  	  4		  1
-
-The chamber rotates before each bullet is fired, so the first firing position is usually 2.
-
-GUN_ROTATE_CYLINDER is a macro that calls for one space cylinder rotation (1-2). GUN_ROTATE_CYLINDER_BACK is the same but in the opposite direction (2-1).
 */
 
-/obj/item/weapon/gun/revolver/get_additional_gun_examine_text(mob/user)
-	. = ..() + ( flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "The cylinder is open with [current_mag.current_rounds] round\s loaded." : "The cylinder is closed." )
-
-/obj/item/weapon/gun/revolver/unique_action(mob/user)
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN && current_mag.current_rounds)
-		sort_cylinder_ammo(user)
-		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
-	else
-		cycle_chamber(user)
-		update_icon()
-
-/obj/item/weapon/gun/revolver/cycle_chamber(mob/user)
-	if(flags_gun_toggles & GUN_BURST_FIRING)
-		return
-
-	if(cycle_chamber_cooldown > world.time)
-		return
-
-	cycle_chamber_cooldown = world.time + cycle_chamber_delay
-
-	play_chamber_cycle_sound(user, cocked_sound)
-
-	flags_gun_receiver ^= GUN_HAMMER_IS_COCKED //Cock/decock the hammer.
-	if(flags_gun_receiver & GUN_HAMMER_IS_COCKED && !(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)) //Only rotates if the cylinder is closed and the hammer was pulled back.
-		GUN_ROTATE_CYLINDER
-
-//The cylinder is always emptied out before a reload takes place.
-/obj/item/weapon/gun/revolver/replace_magazine(mob/user, ammunition_reference)
-	playsound(user, hand_reload_sound, 25, 1)
-	return TRUE
-
-/obj/item/weapon/gun/revolver/unload(mob/user, reloading_override = FALSE)
-	if(flags_gun_toggles & GUN_BURST_FIRING) return
-
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-		playsound(src, chamber_close_sound, 25, 1)
-
-		if(current_mag.current_rounds && current_mag.current_rounds != current_mag.max_rounds && user_skill_level > SKILL_FIREARMS_CIVILIAN) //Civs won't know to do this ahead of time.
-			for(var/i = 1 to current_mag.max_rounds) //We're trying to find the next position with some ammo, so that if the gun is not full, it can fire the most rounds in sequence.
-			//When hand reloading, it spins to the next position, which may be empty. So spin back, we're shooting a blank for the first round. Have to locate something we can fire, then spin back.
-				if(current_mag.feeder_contents["[current_mag.chamber_position]"]) //Find the first position that has rounds.
-					ROTATE_CYLINDER_BACK(current_mag)
-					break
-				ROTATE_CYLINDER(current_mag)
-	else
-		if(make_casing(projectile_casing) || reloading_override) //If we have some spent rounds in the chamber or we're reloading manually,
-			sort_cylinder_ammo(user) //First sort before the cylinder is dumped.
-			to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
-
-		flags_gun_toggles &= ~GUN_PLAYING_RUS_ROULETTE //Resets the RR variable.
-		playsound(src, unload_sound, 25, 1)
-
-	flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
-	update_icon()
-
-/*
-We want the ammo with the most rounds first, so it gets placed in hand if possible. We don't care to sort the entire list,
-and there generally will be only two possible ammo types if not fewer. If mixed handfuls are introduced, this proc will not be necessary.
-*/
-/obj/item/weapon/gun/revolver/proc/sort_cylinder_ammo(mob/user)
+//We want the ammo with the most rounds first, so it gets placed in hand if possible. We don't care to sort the entire list,
+//and there generally will be only two possible ammo types if not fewer. If mixed handfuls are introduced, this proc will not be necessary.
+/obj/item/weapon/gun/proc/sort_cylinder_ammo(mob/user)
 	var/ammo_available[0] //we need a list of all the different ammo in the cylinder.
 	var/leading_ammo //This is the ammo with the most rounds.
 	var/ammo_path //Our generic path tracker.
 
 	//This will give us an associated list of the ammo and how many "rounds" each ammo had.
 	for(var/i = 1 to current_mag.max_rounds)
-		ammo_path = current_mag.feeder_contents["[i]"]
+		ammo_path = current_mag.feeder_contents[i]
 		if(ammo_path) //Is it null or not?
-			current_mag.feeder_contents -= "[i]" //Remove it.
+			current_mag.feeder_contents[i] = null
+			current_mag.current_rounds--
 			if(ammo_path in ammo_available) //Is it already in the list?
 				ammo_available[ammo_path]++ //Move up the number.
 			else //If it's not, add it to make the association.
@@ -142,33 +102,40 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 				leading_ammo = ammo_path
 
 	if(ammo_available.len) //We have some ammo.
+		world << "[current_mag.feeder_contents[1]] is the first slot. [current_mag.feeder_contents[leading_ammo]] is the number"
 		ammo_available = list(leading_ammo) | ammo_available //We simply make a new list with both elements. Leading ammo in the first position, so it gets added first.
 		for(var/i in ammo_available)
 			current_mag.create_handful(user, null, ammo_available[i], i)
 
-// FLUFF
-/obj/item/weapon/gun/revolver/alt_click_action(mob/user)
-	if(flags_gun_toggles & GUN_BURST_FIRING) return
+//|********************\============================================================/********************|
+//\____________________/                                           	                \____________________/
+//							 	>>>>>>>>>>	   FLUFF PROCS   	<<<<<<<<<
+//
+//|********************|____________________________________________________________|********************|
+//\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
+//--------------------------------------------------------------------------------------------------------
 
-	if(usr.is_mob_incapacitated() || !usr.loc || !isturf(usr.loc))
-		to_chat(usr, "Not right now.")
+/datum/action/item_action/revolver_trick
+	name = "Perform Revolver Trick"
+	button_icon_state = "revolver_trick"
+	flags_ui_actions = UI_ACTIONS_ITEM_GROUP|UI_ACTIONS_ITEM_CUSTOM
+
+/datum/action/item_action/revolver_trick/action_activate()
+	if(!ishuman(owner))
 		return
 
-	if(!locate(src) in list(user.get_active_hand(), user.get_inactive_hand()))
-		to_chat(usr, "Cannot locate the revolver.")
-		return TRUE
+	var/mob/living/carbon/human/H = owner
+	var/obj/item/weapon/gun/revolver/G = H.get_active_hand()
+	if(G.flags_gun_toggles & GUN_BURST_FIRING || !(G.flags_gun_receiver & GUN_CHAMBER_ROTATES) || H.is_mob_incapacitated()) return//If it's a cylinder action, that's good enough for me. Check mob last as it's the most expensive to check.
 
-	current_mag.chamber_position = rand(1,current_mag.max_rounds)
-	to_chat(user, SPAN_NOTICE("You spin the cylinder."))
-	playsound(user, 'sound/weapons/gun_revolver_spun.ogg', 25, 1)
-	flags_gun_toggles |= GUN_PLAYING_RUS_ROULETTE //Sets to play RR. Resets when the gun is emptied.
+	G.revolver_trick(owner)
 
 /obj/item/weapon/gun/revolver/proc/revolver_basic_spin(mob/living/carbon/human/user, direction = 1, obj/item/weapon/gun/revolver/double)
 	set waitfor = 0
 	playsound(user, spin_sound, 25, 1)
 	if(double)
 		user.visible_message("[user] deftly flicks and spins [src] and [double]!", SPAN_NOTICE("You flick and spin [src] and [double]!"),  null, 3)
-		animation_wrist_flick(double, 1)
+		animation_wrist_flick(double, pick(direction, -direction))
 	else
 		user.visible_message("[user] deftly flicks and spins [src]!",SPAN_NOTICE("You flick and spin [src]!"),  null, 3)
 
@@ -212,47 +179,67 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 			user.update_inv_l_hand(0)
 			user.update_inv_r_hand()
 
+#define REVOLVER_TRICK_BASIC_SPIN "basic spin"
+#define REVOLVER_TRICK_DOUBLE_SPIN "double spin"
+#define REVOLVER_TRICK_THROW_CATCH "throw catch"
+#define REVOLVER_TRICK_DOUBLE_CATCH "double throw"
+
 /obj/item/weapon/gun/revolver/proc/revolver_trick(mob/living/carbon/human/user)
 	if(world.time < (recent_trick + trick_delay) ) return //Don't spam it.
 	if(!istype(user)) return //Not human.
-	var/chance = -5
-	chance = user.health < 6 ? 0 : user.health - 5
+	recent_trick = world.time //Turn on the delay for the next trick.
+/*
+Reworked this a bit. With higher skill level you get fancier tricks as well as better percentage to pull them off.
+Base is 10%. Health accounts for 50% of it, unless it's less than 10, where it's zero.
+If the character is unskilled, they get a -10 to 20% debuff. If they are normally skilled, +15 to 20% instead. If they are extra skilled, +40 to 45%.
+With full health and full skill, a character will not fail a trick. At 1 skill, it's something like 75 to 80% chance of success.
+*/
+	var/chance = 10 + ( clamp(user.health, 0, 100) * 0.5 )
+
+	var/trick = REVOLVER_TRICK_BASIC_SPIN//What trick we've chosen to do.
+	switch(user_skill_level)
+		if(SKILL_FIREARMS_CIVILIAN)
+			chance -= rand(10,20)
+		if(SKILL_FIREARMS_TRAINED)
+			chance += rand(15,20)
+			trick = pick(100; REVOLVER_TRICK_BASIC_SPIN, 75; REVOLVER_TRICK_DOUBLE_SPIN, 50; REVOLVER_TRICK_THROW_CATCH)
+		if(SKILL_FIREARMS_EXPERT)
+			chance += rand(40,45)
+			trick = pick(50; REVOLVER_TRICK_BASIC_SPIN, 75; REVOLVER_TRICK_THROW_CATCH, 175; REVOLVER_TRICK_DOUBLE_SPIN, 150; REVOLVER_TRICK_DOUBLE_CATCH)
 
 	//Pain is largely ignored, since it deals its own effects on the mob. We're just concerned with health.
 	//And this proc will only deal with humans for now.
 
-	recent_trick = world.time //Turn on the delay for the next trick.
 	var/obj/item/weapon/gun/revolver/double = user.get_inactive_hand()
-	if(prob(chance)) //I love this proc so much.
-		switch(rand(1,8))
-			if(1)
-				revolver_basic_spin(user, -1)
-			if(2)
-				revolver_basic_spin(user, 1)
-			if(3)
+	if(prob(chance))
+		switch(trick)
+			if(REVOLVER_TRICK_BASIC_SPIN)
+				revolver_basic_spin(user, pick(-1,1))
+
+			if(REVOLVER_TRICK_DOUBLE_SPIN)
+				revolver_basic_spin(user, pick(-1,1), (istype(double) ? double : null))
+
+			if(REVOLVER_TRICK_THROW_CATCH)
 				revolver_throw_catch(user)
-			if(4)
-				revolver_basic_spin(user, 1)
-			if(5)
-				revolver_basic_spin(user, 1)
-			if(6)
-				var/arguments[] = istype(double) ? list(user, 1, double) : list(user, -1)
-				revolver_basic_spin(arglist(arguments))
-			if(7)
-				var/arguments[] = istype(double) ? list(user, -1, double) : list(user, 1)
-				revolver_basic_spin(arglist(arguments))
-			if(8)
+
+			if(REVOLVER_TRICK_DOUBLE_CATCH)
 				if(istype(double))
 					spawn(0)
 						double.revolver_throw_catch(user)
 					revolver_throw_catch(user)
 				else
 					revolver_throw_catch(user)
+
 		return TRUE
 	else
 		user.visible_message(SPAN_INFO("<b>[user]</b> fumbles with [src] like a huge idiot!"), null, null, 3)
 		to_chat(user, SPAN_WARNING("You fumble with [src] like an idiot... Uncool."))
 		return FALSE
+
+#undef REVOLVER_TRICK_BASIC_SPIN
+#undef REVOLVER_TRICK_DOUBLE_SPIN
+#undef REVOLVER_TRICK_THROW_CATCH
+#undef REVOLVER_TRICK_DOUBLE_CATCH
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                  M44 COMBAT REVOLVER               ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -270,19 +257,10 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_7
-
-	accuracy_mult = BASE_ACCURACY_MULT
-	scatter = SCATTER_AMOUNT_TIER_8
-	damage_mult = BULLET_DAMAGE_MULT_BASE
-	recoil = RECOIL_AMOUNT_TIER_5
-	recoil_unwielded = RECOIL_AMOUNT_TIER_3
 	//=========// GUN STATS //==========//
 
-
 /obj/item/weapon/gun/revolver/m44/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/bayonet,
 			/obj/item/attachable/bayonet/upp,
 			/obj/item/attachable/reddot,
@@ -296,10 +274,8 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 			/obj/item/attachable/lasersight,
 			/obj/item/attachable/scope/mini,
 			/obj/item/attachable/scope/mini_iff,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 21,"rail_x" = 12, "rail_y" = 23, "under_x" = 21, "under_y" = 18, "stock_x" = 16, "stock_y" = 20)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 29, "muzzle_y" = 21,"rail_x" = 12, "rail_y" = 23, "under_x" = 21, "under_y" = 18, "stock_x" = 16, "stock_y" = 20))
 
 	..()
 
@@ -333,7 +309,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	fire_sound = "gun_pkd"
 	fire_rattle = 'sound/weapons/gun_pkd_fire01_rattle.ogg'
 	reload_sound = 'sound/weapons/handling/pkd_speed_load.ogg'
-	cocked_sound = 'sound/weapons/handling/pkd_cock.wav'
+	chamber_cycle_sound = 'sound/weapons/handling/pkd_cock.wav'
 	unload_sound = 'sound/weapons/handling/pkd_open_chamber.ogg'
 	chamber_close_sound = 'sound/weapons/handling/pkd_close_chamber.ogg'
 	hand_reload_sound = 'sound/weapons/gun_revolver_load3.ogg'
@@ -347,15 +323,8 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/m44/custom/pkd_special/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/flashlight,
-			/obj/item/attachable/lasersight,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/flashlight, /obj/item/attachable/lasersight))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18))
 
 	..()
 
@@ -366,9 +335,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	item_state = "m4a3c" //placeholder
 
 /obj/item/weapon/gun/revolver/m44/custom/pkd_special/k2049/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/lasersight,
 			/obj/item/attachable/reddot,
@@ -376,10 +343,8 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 			/obj/item/attachable/scope,
 			/obj/item/attachable/scope/mini,
 			/obj/item/attachable/scope/mini_iff,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18))
 
 	..()
 
@@ -399,21 +364,15 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/m44/custom/pkd_special/l_series/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/flashlight,
-			/obj/item/attachable/lasersight,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/flashlight, /obj/item/attachable/lasersight))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18))
 
 	..()
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[             WEBLEY MK VI SERVICE PISTOL            ]=========hhhhhhhhhhhhhhhhhhhhhhh
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//Single action now because I thought it'd be appropriate. Still takes speedloaders. /N
 
 /obj/item/weapon/gun/revolver/m44/custom/webley //Van Bandolier's Webley.
 	name = "\improper Webley Mk VI service pistol"
@@ -422,6 +381,8 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
 	icon_state = "webley"
 	item_state = "m44r"
+	flags_gun_features = GUN_ANTIQUE|GUN_ONE_HAND_WIELDED|GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
+	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES|GUN_ACCEPTS_HANDFUL|GUN_ACCEPTS_SPEEDLOADER|GUN_MANUAL_CYCLE
 
 	//=========// GUN STATS //==========//
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
@@ -429,12 +390,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/m44/custom/webley/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/bayonet,
-			/obj/item/attachable/bayonet/upp,
-		)
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/bayonet, /obj/item/attachable/bayonet/upp))
 
 	..()
 
@@ -453,7 +409,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	fire_sound = "gun_pkd" //sounds stolen from bladerunner revolvers bc they arent used and sound awesome
 	fire_rattle = 'sound/weapons/gun_pkd_fire01_rattle.ogg'
 	reload_sound = 'sound/weapons/handling/pkd_speed_load.ogg'
-	cocked_sound = 'sound/weapons/handling/pkd_cock.wav'
+	chamber_cycle_sound = 'sound/weapons/handling/pkd_cock.wav'
 	unload_sound = 'sound/weapons/handling/pkd_open_chamber.ogg'
 	chamber_close_sound = 'sound/weapons/handling/pkd_close_chamber.ogg'
 	hand_reload_sound = 'sound/weapons/gun_revolver_load3.ogg'
@@ -463,7 +419,6 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_9
 
-	accuracy_mult = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_6
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
 	recoil = RECOIL_OFF
@@ -471,9 +426,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/upp/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/reddot, // Rail
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/flashlight,
@@ -484,10 +437,8 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 			/obj/item/attachable/heavy_barrel,
 			/obj/item/attachable/extended_barrel,
 			/obj/item/attachable/lasersight, // Underbarrel
-			)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 21,"rail_x" = 14, "rail_y" = 23, "under_x" = 19, "under_y" = 17, "stock_x" = 24, "stock_y" = 19)
+			))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 28, "muzzle_y" = 21,"rail_x" = 14, "rail_y" = 23, "under_x" = 19, "under_y" = 17, "stock_x" = 24, "stock_y" = 19))
 
 	..()
 
@@ -495,15 +446,16 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	current_mag = /obj/item/ammo_magazine/internal/revolver/upp/shrapnel
 
 /obj/item/weapon/gun/revolver/upp/shrapnel/initialize_gun_lists()
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/lasersight))
 
-	if(!starting_attachment_types)
-		starting_attachment_types =list(/obj/item/attachable/lasersight)
+	..()
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[         S&W .38 MODEL 37 / TRICK REVOLVER          ]=========hhhhhhhhhhhhhhhhhhhhhhh
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //357 REVOLVER //Based on the generic S&W 357.
-//a lean mean machine, pretty inaccurate unless you play its dance. It is now single action, too! What fun.
+//a lean mean machine, pretty inaccurate unless you play its dance.
+//I didn't make this a single action because of the whole trick thing, which is already limiting. ~N
 
 /obj/item/weapon/gun/revolver/small
 	name = "\improper S&W .38 model 37 revolver"
@@ -515,7 +467,6 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	current_mag = /obj/item/ammo_magazine/internal/revolver/small
 	force = 6
 	flags_gun_features = GUN_ANTIQUE|GUN_ONE_HAND_WIELDED|GUN_CAN_POINTBLANK|GUN_NO_SAFETY_SWITCH
-	flags_gun_receiver = GUN_INTERNAL_MAG|GUN_CHAMBER_CAN_OPEN|GUN_CHAMBER_ROTATES|GUN_ACCEPTS_HANDFUL|GUN_ACCEPTS_SPEEDLOADER|GUN_MANUAL_CYCLE
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_6
@@ -529,23 +480,17 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/small/initialize_gun_lists()
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 19,"rail_x" = 12, "rail_y" = 21, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
+	INHERITLIST(attachable_offset, list("muzzle_x" = 30, "muzzle_y" = 19,"rail_x" = 12, "rail_y" = 21, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15))
 
 	..()
 
-/obj/item/weapon/gun/revolver/small/unique_action(mob/user)
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-		make_casing(projectile_casing)
-		sort_cylinder_ammo(user)
-		to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
-	else
-		if(revolver_trick(user))
-			to_chat(user, SPAN_NOTICE("Your badass trick inspires you. Your next few shots will be focused!"))
-			accuracy_mult = BASE_ACCURACY_MULT * 2
-			accuracy_mult_unwielded = BASE_ACCURACY_MULT * 2
-			addtimer(CALLBACK(src, PROC_REF(recalculate_attachment_bonuses)), 2 SECONDS)
+/obj/item/weapon/gun/revolver/small/revolver_trick(mob/user)
+	. = ..()
+	if(.)
+		to_chat(user, SPAN_NOTICE("Your badass trick inspires you. Your next few shots will be focused!"))
+		accuracy_mult = BASE_ACCURACY_MULT * 2
+		accuracy_mult_unwielded = BASE_ACCURACY_MULT * 2
+		addtimer(CALLBACK(src, PROC_REF(recalculate_attachment_bonuses)), 2 SECONDS)
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[          MATEBA AUTOREVOLVER AND VARIANTS          ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -599,9 +544,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/mateba/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/flashlight,
@@ -610,13 +553,9 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 			/obj/item/attachable/barrel/mateba,
 			/obj/item/attachable/barrel/mateba/long,
 			/obj/item/attachable/barrel/mateba/short,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 25, "muzzle_y" = 20,"rail_x" = 11, "rail_y" = 24, "under_x" = 19, "under_y" = 17, "stock_x" = 19, "stock_y" = 17, "barrel_x" = 23, "barrel_y" = 22)
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/barrel/mateba)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 25, "muzzle_y" = 20,"rail_x" = 11, "rail_y" = 24, "under_x" = 19, "under_y" = 17, "stock_x" = 19, "stock_y" = 17, "barrel_x" = 23, "barrel_y" = 22))
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/barrel/mateba))
 
 	..()
 
@@ -669,9 +608,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	)
 
 /obj/item/weapon/gun/revolver/mateba/general/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/barrel/mateba/long/dark)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/barrel/mateba/long/dark))
 
 	..()
 
@@ -680,18 +617,14 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	desc = "The Mateba used by SANTA himself. Rumoured to be loaded with explosive ammunition."
 	icon_state = "amateba"
 	item_state = "amateba"
+	fire_sound = null //Reset this into a list during initialize.
 	current_mag = /obj/item/ammo_magazine/internal/revolver/mateba/explosive
 	color = "#FF0000"
 	fire_sound = null
 
 /obj/item/weapon/gun/revolver/mateba/general/santa/initialize_gun_lists()
-	if(fire_sound)
-		fire_sound = list('sound/voice/alien_queen_xmas.ogg', 'sound/voice/alien_queen_xmas_2.ogg')
-
-/obj/item/weapon/gun/revolver/mateba/general/santa/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/barrel/mateba/long/dark, /obj/item/attachable/heavy_barrel)
+	INHERITLIST(fire_sound, list('sound/voice/alien_queen_xmas.ogg', 'sound/voice/alien_queen_xmas_2.ogg'))
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/barrel/mateba/long/dark, /obj/item/attachable/heavy_barrel))
 
 	..()
 
@@ -723,23 +656,17 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/mateba/special/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/heavy_barrel,
 			/obj/item/attachable/compensator,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 23,"rail_x" = 9, "rail_y" = 24, "under_x" = 19, "under_y" = 17, "stock_x" = 19, "stock_y" = 17, "barrel_x" = 23, "barrel_y" = 22)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 30, "muzzle_y" = 23,"rail_x" = 9, "rail_y" = 24, "under_x" = 19, "under_y" = 17, "stock_x" = 19, "stock_y" = 17, "barrel_x" = 23, "barrel_y" = 22))
+	INHERITLIST(starting_attachment_types, list()) //Barrel is included in the sprite.
 
 	..()
-
-	if(!starting_attachment_types) //Barrel is included in the sprite.
-		starting_attachment_types = list()
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[   CMB SPEARHEAD AUTOREVOLVER / MARSHALL REVOLVER   ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -753,6 +680,7 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	icon_state = "spearhead"
 	item_state = "spearhead"
 	fire_sound = null
+	click_empty_sound = null
 	fire_rattle = 'sound/weapons/gun_cmb_rattle.ogg'
 	force = 12
 	current_mag = /obj/item/ammo_magazine/internal/revolver/cmb/hollowpoint
@@ -765,20 +693,12 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 	scatter = SCATTER_AMOUNT_TIER_7
 	scatter_unwielded = SCATTER_AMOUNT_TIER_5
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_3
-	recoil = RECOIL_AMOUNT_TIER_5
-	recoil_unwielded = RECOIL_AMOUNT_TIER_3
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/revolver/cmb/initialize_gun_lists()
-
-	if(!fire_sound)
-		fire_sound = list('sound/weapons/gun_cmb_1.ogg', 'sound/weapons/gun_cmb_2.ogg')
-
-	if(!click_empty_sound)
-		click_empty_sound = list('sound/weapons/handling/gun_cmb_click1.ogg', 'sound/weapons/handling/gun_cmb_click2.ogg')
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(fire_sound, list('sound/weapons/gun_cmb_1.ogg', 'sound/weapons/gun_cmb_2.ogg'))
+	INHERITLIST(click_empty_sound, list('sound/weapons/handling/gun_cmb_click1.ogg', 'sound/weapons/handling/gun_cmb_click2.ogg'))
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/suppressor, // Muzzle
 			/obj/item/attachable/extended_barrel,
 			/obj/item/attachable/heavy_barrel,
@@ -789,10 +709,8 @@ and there generally will be only two possible ammo types if not fewer. If mixed 
 			/obj/item/attachable/scope/mini,
 			/obj/item/attachable/gyro, // Under
 			/obj/item/attachable/lasersight,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 29, "muzzle_y" = 22,"rail_x" = 11, "rail_y" = 25, "under_x" = 20, "under_y" = 18, "stock_x" = 20, "stock_y" = 18))
 
 	..()
 

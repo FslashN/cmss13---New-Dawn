@@ -6,11 +6,6 @@
 //Note that this means that snipers will have a slowdown of 3, due to the scope
 
 /obj/item/weapon/gun/rifle/sniper
-	//=========// GUN STATS //==========//
-	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
-	wield_delay = WIELD_DELAY_SLOW
-	//=========// GUN STATS //==========//
-
 	var/has_aimed_shot = TRUE
 	var/aiming_time = 1.25 SECONDS
 	var/aimed_shot_cooldown
@@ -21,6 +16,39 @@
 	var/obj/effect/ebeam/sniper_beam_type = /obj/effect/ebeam/laser
 	var/sniper_beam_icon = "laser_beam"
 	var/skill_locked = TRUE
+
+	//=========// GUN STATS //==========//
+	malfunction_chance_base = GUN_MALFUNCTION_CHANCE_ZERO
+
+	fire_delay = FIRE_DELAY_TIER_5
+	burst_amount = BURST_AMOUNT_TIER_1
+	burst_delay = FIRE_DELAY_TIER_11
+
+	accuracy_mult = BASE_ACCURACY_MULT
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_7
+	scatter = SCATTER_AMOUNT_TIER_6
+	burst_scatter_mult = SCATTER_AMOUNT_TIER_7
+	scatter_unwielded = SCATTER_AMOUNT_TIER_2
+
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	damage_falloff_mult = DAMAGE_FALLOFF_OFF //Changed this to off to be consistent with the scout rifles and the SVD. Shouldn't matter as sniper ammo itself has no falloff.
+	damage_buildup_mult = DAMAGE_BUILDUP_TIER_1
+	velocity_add = BASE_VELOCITY_BONUS
+	recoil = RECOIL_OFF
+	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_1
+
+	effective_range_min = EFFECTIVE_RANGE_OFF
+	effective_range_max = EFFECTIVE_RANGE_OFF
+
+	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_BASE
+	fa_max_scatter = FULL_AUTO_SCATTER_MAX_BASE
+
+	recoil_buildup_limit = RECOIL_AMOUNT_TIER_1 / RECOIL_BUILDUP_VIEWPUNCH_MULTIPLIER
+
+	aim_slowdown = SLOWDOWN_ADS_SPECIALIST
+	wield_delay = WIELD_DELAY_SLOW
+	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/rifle/sniper/get_additional_gun_examine_text(mob/user)
 	. = ..()
@@ -295,6 +323,7 @@
 	icon_state = "m42a"
 	item_state = "m42a"
 	fire_sound = 'sound/weapons/gun_sniper.ogg'
+	force = 12
 	current_mag = /obj/item/ammo_magazine/sniper
 	zoomdevicename = "scope"
 	flags_item = TWOHANDED|NO_CRYO_STORE
@@ -302,28 +331,19 @@
 	map_specific_decoration = TRUE
 
 	//=========// GUN STATS //==========//
-	force = 12
 	fire_delay = FIRE_DELAY_TIER_7 * 3
-	burst_amount = BURST_AMOUNT_TIER_1
 
 	accuracy_mult = BASE_ACCURACY_MULT * 3 //you HAVE to be able to hit
 	scatter = SCATTER_AMOUNT_TIER_8
-	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
 
 	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/rifle/sniper/M42A/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/barrel/sniper, /obj/item/attachable/scope/variable_zoom/hidden)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(/obj/item/attachable/bipod)
-
-	if(!attachable_offset)
-		attachable_offset = list("barrel_x" = 39, "barrel_y" = 17,"rail_x" = 12, "rail_y" = 20, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/barrel/sniper, /obj/item/attachable/scope/variable_zoom/hidden))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/bipod))
+	INHERITLIST(attachable_offset, list("barrel_x" = 39, "barrel_y" = 17,"rail_x" = 12, "rail_y" = 20, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14))
 
 	..()
 
@@ -346,6 +366,7 @@
 	icon_state = "xm43e1"
 	item_state = "xm43e1"
 	fire_sound = 'sound/weapons/sniper_heavy.ogg'
+	force = 12
 	current_mag = /obj/item/ammo_magazine/sniper/anti_materiel //Renamed from anti-tank to align with new identity/description. Other references have been changed as well. -Kaga
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
 	zoomdevicename = "scope"
@@ -354,29 +375,20 @@
 	sniper_lockon_icon = "sniper_lockon_intense"
 
 	//=========// GUN STATS //==========//
-	force = 12
 	fire_delay = FIRE_DELAY_TIER_6 * 6//Big boy damage, but it takes a lot of time to fire a shot.
 	//Kaga: Adjusted from 56 (Tier 4, 7*8) -> 30 (Tier 6, 5*6) ticks. 95 really wasn't big-boy damage anymore, although I updated it to 125 to remain consistent with the other 10x99mm caliber weapon (M42C). Now takes only twice as long as the M42A.
-	burst_amount = BURST_AMOUNT_TIER_1
 
 	accuracy_mult = BASE_ACCURACY_MULT + 2*HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_10
-	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_1
 
 	wield_delay = WIELD_DELAY_HORRIBLE //Ends up being 1.6 seconds due to scope
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/rifle/sniper/XM43E1/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/barrel/sniper/pmc, /obj/item/attachable/scope/variable_zoom/pmc)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(/obj/item/attachable/bipod)
-
-	if(!attachable_offset)
-		attachable_offset = list("barrel_x" = 32, "barrel_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/barrel/sniper/pmc, /obj/item/attachable/scope/variable_zoom/pmc))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/bipod))
+	INHERITLIST(attachable_offset, list("barrel_x" = 32, "barrel_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15))
 
 	..()
 
@@ -414,29 +426,23 @@
 	fire_sound = 'sound/weapons/sniper_heavy.ogg'
 	current_mag = /obj/item/ammo_magazine/sniper/elite
 	zoomdevicename = "scope"
+	force = 17
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_WY_RESTRICTED|GUN_SPECIALIST|GUN_WIELDED_FIRING_ONLY|GUN_AMMO_COUNTER
 	sniper_beam_type = /obj/effect/ebeam/laser/intense
 	sniper_beam_icon = "laser_beam_intense"
 	sniper_lockon_icon = "sniper_lockon_intense"
 
 	//=========// GUN STATS //==========//
-	force = 17
 	fire_delay = FIRE_DELAY_TIER_6 * 5
-	burst_amount = BURST_AMOUNT_TIER_1
 
 	accuracy_mult = BASE_ACCURACY_MULT * 3 //Was previously BAM + HAMT10, similar to the XM42B, and coming out to 1.5? Changed to be consistent with M42A. -Kaga
 	scatter = SCATTER_AMOUNT_TIER_10 //Was previously 8, changed to be consistent with the XM42B.
-	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_1
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/rifle/sniper/elite/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/barrel/sniper/pmc, /obj/item/attachable/scope/pmc)
-
-	if(!attachable_offset)
-		attachable_offset = list("barrel_x" = 32, "barrel_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/barrel/sniper/pmc, /obj/item/attachable/scope/pmc))
+	INHERITLIST(attachable_offset, list("barrel_x" = 32, "barrel_y" = 18,"rail_x" = 15, "rail_y" = 19, "under_x" = 20, "under_y" = 15, "stock_x" = 20, "stock_y" = 15))
 
 	..()
 
@@ -474,35 +480,23 @@
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_6
-	burst_amount = BURST_AMOUNT_TIER_1
 
 	accuracy_mult = BASE_ACCURACY_MULT * 3
 	scatter = SCATTER_AMOUNT_TIER_8
-	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_5
-	damage_falloff_mult = DAMAGE_FALLOFF_OFF
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/rifle/sniper/svd/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/scope/variable_zoom/hidden, /obj/item/attachable/barrel/type88)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			//Muzzle,
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/scope/variable_zoom/hidden, /obj/item/attachable/barrel/type88))
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/bayonet,
 			/obj/item/attachable/bayonet/upp_replica,
 			/obj/item/attachable/bayonet/upp,
-			//Under,
 			/obj/item/attachable/verticalgrip,
 			/obj/item/attachable/bipod,
-			//Integrated,
 			/obj/item/attachable/barrel/type88,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 13, "rail_y" = 19, "under_x" = 26, "under_y" = 14, "stock_x" = 24, "stock_y" = 13, "barrel_x" = 39, "barrel_y" = 18)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 13, "rail_y" = 19, "under_x" = 26, "under_y" = 14, "stock_x" = 24, "stock_y" = 13, "barrel_x" = 39, "barrel_y" = 18))
 
 	..()
 

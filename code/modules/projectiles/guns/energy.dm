@@ -17,30 +17,17 @@
 	in_chamber = /datum/ammo/energy
 	w_class = SIZE_LARGE
 
-	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_CAN_POINTBLANK
-	flags_gun_receiver = GUN_CHAMBER_IS_STATIC
+	flags_gun_features = GUN_CAN_POINTBLANK
+	flags_gun_receiver = GUN_CHAMBER_IS_STATIC|GUN_CHAMBER_BATTERY_FED|GUN_ENERGY_WEAPON
 	gun_category = GUN_CATEGORY_HANDGUN
 
-	var/obj/item/cell/high/cell //10000 power.
-	var/charge_cost = 350
-	var/max_shots //calculated on init, no need to manually fill out
-	var/works_in_recharger = TRUE
+	integrated_battery = /obj/item/cell/high //10000 power.
+	charge_drain = 350
 	var/has_charge_meter = FALSE//do we use the charging overlay system or just have an empty overlay
 	var/charge_icon = "+stunrevolver_empty"//define on a per gun basis, used for the meter and empty icon on non meter guns
 
-/obj/item/weapon/gun/energy/Initialize(mapload, spawn_empty)
-	. = ..()
-	cell = new /obj/item/cell/high(src)
-	update_icon()
-	max_shots = round((cell.maxcharge / charge_cost), 1)
-
-/obj/item/weapon/gun/energy/Destroy()
-	QDEL_NULL(cell)
-	. = ..()
-
 /obj/item/weapon/gun/energy/initialize_gun_lists()
-	if(!matter)
-		matter = list("metal" = 2000)
+	INHERITLIST(matter, list("metal" = 2000))
 
 	..()
 
@@ -49,57 +36,36 @@
 
 	icon_state = "[base_gun_icon]"
 
-	if(!cell)
+	if(!integrated_battery)
 		return
 
 	if(!has_charge_meter)
-		switch(cell.percent())
+		switch(integrated_battery.percent())
 			if(10 to 100)
 				overlays -= charge_icon
 			else
 				overlays += charge_icon
 		return
 	else
-		switch(cell.percent())
+		switch(integrated_battery.percent())
 			if(75 to 100)
 				overlays += charge_icon + "_100"
-			if(50 to 75)
+			if(50 to 74)
 				overlays += charge_icon + "_75"
-			if(25 to 50)
+			if(25 to 49)
 				overlays += charge_icon + "_50"
-			if(1 to 25)
+			if(1 to 24)
 				overlays += charge_icon + "_25"
 			else
 				overlays += charge_icon + "_0"
-
-/obj/item/weapon/gun/energy/emp_act(severity)
-	. = ..()
-	cell.use(round(cell.maxcharge / severity))
-	update_icon()
-
-/obj/item/weapon/gun/energy/ready_in_chamber()
-	if(cell?.charge <= charge_cost)
-		cell.charge -= charge_cost
-		return in_chamber
 
 /obj/item/weapon/gun/energy/Fire(atom/target, mob/living/user, params, reflex, dual_wield)
 	. = ..()
 	if(.)
 		var/to_firer = "You fire the [name]!"
-		if(has_charge_meter)
-			to_firer = "[round((cell.charge / charge_cost), 1)] / [max_shots] SHOTS REMAINING"
-		user.visible_message(SPAN_DANGER("[user] fires \the [src]!"),
+		user.visible_message(SPAN_DANGER("[user] fires [src]!"),
 		SPAN_DANGER("[to_firer]"), message_flags = CHAT_TYPE_WEAPON_USE)
 		return AUTOFIRE_CONTINUE
-
-/obj/item/weapon/gun/energy/get_additional_gun_examine_text(mob/user)
-	. = ..()
-	if(has_charge_meter && cell)
-		. += SPAN_NOTICE("It has [round((cell.charge / charge_cost), 1)] / [max_shots] shots left.")
-	else if(cell)
-		. += SPAN_NOTICE("It has [cell.percent()]% charge left.")
-	else
-		. += SPAN_NOTICE("It has no power cell inside.")
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                   RXF-M5 EVA PISTOL                ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -132,14 +98,9 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/energy/rxfm5_eva/initialize_gun_lists()
-	if(!attachable_allowed)
-		attachable_allowed = list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad)
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0,"rail_x" = 12, "rail_y" = 21, "under_x" = 16, "under_y" = 10, "stock_x" = 0, "stock_y" = 0)
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad))
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/scope/variable_zoom/eva, /obj/item/attachable/eva_doodad))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 0, "muzzle_y" = 0,"rail_x" = 12, "rail_y" = 21, "under_x" = 16, "under_y" = 10, "stock_x" = 0, "stock_y" = 0))
 
 	..()
 
@@ -183,7 +144,7 @@
 	muzzle_flash = "muzzle_laser"
 	gun_category = GUN_CATEGORY_SMG
 	flags_equip_slot = SLOT_WAIST
-	charge_cost = 200
+	charge_drain = 200
 	in_chamber = /datum/ammo/energy/laz_uzi
 	fire_sound = 'sound/weapons/Laser4.ogg'
 	has_charge_meter = FALSE
@@ -210,6 +171,8 @@
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 // Lots of bits for it so splitting off an area
 
+#define TASER_SKILL_REQUIREMENT SKILL_POLICE_SKILLED
+
 /obj/item/weapon/gun/energy/taser
 	name = "disabler gun"
 	desc = "An advanced stun device capable of firing balls of ionized electricity. Used for nonlethal takedowns. "
@@ -220,13 +183,12 @@
 	fire_sound = 'sound/weapons/Taser.ogg'
 	w_class = SIZE_MEDIUM
 	in_chamber = /datum/ammo/energy/taser/precise
-	charge_cost = 625 // approx 16 shots.
+	charge_drain = 625 // approx 16 shots.
 	has_charge_meter = TRUE
 	charge_icon = "+taser"
 	black_market_value = 20
+	flags_gun_features = GUN_AMMO_COUNTER|GUN_ONE_HAND_WIELDED //No pointlanking with a taser.
 	/// Determines if the taser will hit any target, or if it checks for wanted status. Default is wanted only.
-	var/mode = TASER_MODE_P
-	var/skilllock = SKILL_POLICE_SKILLED
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_7
@@ -240,49 +202,42 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/energy/taser/initialize_gun_lists()
-	if(!actions_types)
-		actions_types = list(/datum/action/item_action/taser/change_mode)
+	INHERITLIST(actions_types, list(/datum/action/item_action/taser/change_mode))
 
 	..()
 
 /obj/item/weapon/gun/energy/taser/recalculate_user_attributes(mob/living/user)
-	if(skilllock && !skillcheck(user, SKILL_POLICE, skilllock))
+	if(!skillcheck(user, SKILL_POLICE, TASER_SKILL_REQUIREMENT))
 		unable_to_fire_message = "You don't seem to know how to use [src]..."
 		return flags_gun_toggles |= GUN_UNABLE_TO_FIRE
-
 	..()
 
-/obj/item/weapon/gun/energy/taser/unique_action(mob/user)
-	change_mode(user)
-
-/obj/item/weapon/gun/energy/taser/get_additional_gun_examine_text(mob/user)
-	. = ..()
-	switch(mode)
-		if(TASER_MODE_P)
-			. += SPAN_RED("It is set to precision mode, linked to the wanted database.")
-		if(TASER_MODE_F)
-			. += SPAN_GREEN("It is set to free mode, no longer linked to the wanted database.")
-
-/obj/item/weapon/gun/energy/taser/update_icon()
-	. = ..()
-	overlays += charge_icon + "_[mode]"
-
 /// Changes between targetting wanted persons or any persons. Originally used by unique_action, made own proc to allow for use in action button too.
-/obj/item/weapon/gun/energy/taser/proc/change_mode(mob/user)
-	switch(mode)
-		if(TASER_MODE_P)
-			mode = TASER_MODE_F
-			to_chat(user, SPAN_NOTICE("[src] is now set to Free mode."))
-			in_chamber = GLOB.ammo_list[/datum/ammo/energy/taser]
-		if(TASER_MODE_F)
-			mode = TASER_MODE_P
-			to_chat(user, SPAN_NOTICE("[src] is now set to Precision mode."))
-			in_chamber = GLOB.ammo_list[/datum/ammo/energy/taser/precise]
-	var/datum/action/item_action/taser/change_mode/action = locate(/datum/action/item_action/taser/change_mode) in actions
-	action.update_icon()
+/obj/item/weapon/gun/energy/taser/unique_action(mob/user)
+	flags_gun_toggles ^= GUN_SECONDARY_MODE_ON
+
+	if(flags_gun_toggles & GUN_SECONDARY_MODE_ON)
+		to_chat(user, SPAN_NOTICE("[src] is now set to Free mode."))
+		in_chamber = GLOB.ammo_list[/datum/ammo/energy/taser]
+	else
+		to_chat(user, SPAN_NOTICE("[src] is now set to Precision mode."))
+		in_chamber = GLOB.ammo_list[/datum/ammo/energy/taser/precise]
+
+	var/datum/action/item_action/taser/change_mode/A = locate(/datum/action/item_action/taser/change_mode) in actions
+	A.update_icon()
 	update_icon()
 	playsound(loc,'sound/machines/click.ogg', 25, 1)
 
+/obj/item/weapon/gun/energy/taser/get_additional_gun_examine_text(mob/user)
+	. = ..()
+	if(flags_gun_toggles & GUN_SECONDARY_MODE_ON)
+		. += SPAN_GREEN("It is set to Free mode, no longer linked to the wanted database.")
+	else
+		. += SPAN_RED("It is set to Precision mode, linked to the wanted database.")
+
+/obj/item/weapon/gun/energy/taser/update_icon()
+	. = ..()
+	overlays += charge_icon + "_[flags_gun_toggles & GUN_SECONDARY_MODE_ON ? "free" : "precision" ]"
 
 /datum/action/item_action/taser/action_activate()
 	var/obj/item/weapon/gun/energy/taser/taser = holder_item
@@ -295,7 +250,7 @@
 /datum/action/item_action/taser/change_mode/New(target, obj/item/holder)
 	. = ..()
 	name = "Change Target Mode"
-	action_icon_state = "id_lock_locked"// As the taser mode is based on the wanted database, it can share this icon as it makes sense.
+	action_icon_state = "id_lock_locked"// As the taser mode is based on the wanted database, it can share this icon as it makes sense. //I don't think it makes sense.
 	button.name = name
 	button.overlays.Cut()
 	button.overlays += image('icons/mob/hud/actions.dmi', button, action_icon_state)
@@ -303,15 +258,13 @@
 /datum/action/item_action/taser/change_mode/action_activate()
 	. = ..()
 	var/obj/item/weapon/gun/energy/taser/taser = holder_item
-	taser.change_mode(usr)
+	taser.unique_action(usr)
 
 /// Updates the action button icon dependant on mode.
 /datum/action/item_action/taser/change_mode/proc/update_icon()
 	var/obj/item/weapon/gun/energy/taser/taser = holder_item
-	switch(taser.mode)
-		if(TASER_MODE_F)
-			action_icon_state = "id_lock_unlocked"
-		if(TASER_MODE_P)
-			action_icon_state = "id_lock_locked"
+	action_icon_state = taser.flags_gun_toggles & GUN_SECONDARY_MODE_ON ? "id_lock_unlocked" : "id_lock_locked"
 	button.overlays.Cut()
 	button.overlays += image('icons/mob/hud/actions.dmi', button, action_icon_state)
+
+#undef TASER_SKILL_REQUIREMENT

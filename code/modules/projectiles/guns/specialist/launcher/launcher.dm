@@ -2,14 +2,14 @@
 //hhhhhhhhhhhhhhhhh===========[                   GENERIC LAUNCHER                 ]=========hhhhhhhhhhhhhhhhhhhhhhh
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //HEAVY WEAPONS
+//Not including statblock for launchers as it's pretty easy to figure out what they do.
 
 /obj/item/weapon/gun/launcher
 	gun_category = GUN_CATEGORY_HEAVY
 	has_empty_icon = FALSE
-	has_open_icon = FALSE
 	///gun update_icon doesn't detect that guns with no magazine are loaded or not, and will always append _o or _e if possible.
 	var/GL_has_empty_icon = TRUE
-	///gun update_icon doesn't detect that guns with no magazine are loaded or not, and will always append _o or _e if possible.
+	///gun update_icon doesn't detect that guns with no magazine are loaded or not, and will always append _o or _e if possible. //You can
 	var/GL_has_open_icon = FALSE
 
 	///Internal storage item used as magazine. Must be initialised to work! Set parameters by variables or it will inherit standard numbers from storage.dm. Got to call it *something* and 'magazine' or w/e would be confusing.

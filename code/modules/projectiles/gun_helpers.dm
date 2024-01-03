@@ -10,7 +10,7 @@
 	if(mods["alt"])
 		if(!CAN_PICKUP(user, src))
 			return ..()
-		alt_click_action()
+		alt_click_action(user)
 		return TRUE
 	return (..())
 
@@ -34,7 +34,35 @@
 		..()
 
 /obj/item/weapon/gun/proc/alt_click_action(mob/user)
-	toggle_gun_safety()
+	if(flags_gun_receiver & GUN_CHAMBER_BELT_FED|GUN_CHAMBER_ROTATES)
+		if(flags_gun_toggles & GUN_BURST_FIRING) return
+
+		if(user.is_mob_incapacitated() || !user.loc || !isturf(user.loc))
+			to_chat(usr, "Not right now.")
+			return
+
+		if(!locate(src) in list(user.get_active_hand(), user.get_inactive_hand()))
+			to_chat(user, SPAN_WARNING("You need to hold [src] to [flags_gun_receiver & GUN_CHAMBER_BELT_FED ? "pop open the feed cover" : "spin the cylinder" ]!"))
+			return
+
+		if(flags_gun_receiver & GUN_CHAMBER_BELT_FED)
+			if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
+				playsound(src.loc, 'sound/handling/smartgun_close.ogg', 50, TRUE, 3)
+				to_chat(user, SPAN_NOTICE("You close [src]'s feed cover."))
+			else
+				playsound(src.loc, 'sound/handling/smartgun_open.ogg', 50, TRUE, 3)
+				to_chat(user, SPAN_NOTICE("You open [src]'s feed cover, allowing the drum to be removed."))
+
+			flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
+			update_icon()
+		else //Spins the cylinder.
+			var/spin = rand(2, current_mag.max_rounds + rand(1,3)) //This is a little more realistic. A minimum of two rotations, and a slightly higher max.
+			ROTATE_CYLINDER(current_mag, spin) //The macro does not play nice with compound arguments. Best to pass a single integer, otherwise things start getting wonky.
+			to_chat(user, SPAN_NOTICE("You spin the cylinder."))
+			playsound(user, 'sound/weapons/gun_revolver_spun.ogg', 25, 1)
+			flags_gun_toggles |= GUN_PLAYING_RUS_ROULETTE //Sets to play RR. Resets when the gun is emptied.
+	else
+		toggle_gun_safety()
 
 /*
 Note: pickup and dropped on weapons must have both the ..() to update zoom AND twohanded,
@@ -65,11 +93,15 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 			create_ammo_counter()
 			vis_contents += ammo_counter
 			GUN_DISPLAY_ROUNDS_REMAINING
+		if(flags_gun_features & GUN_MOTION_DETECTOR)
+			vis_contents += motion_detector
 
-	else if(flags_gun_features & GUN_AMMO_COUNTER)
-		create_ammo_counter()
-		vis_contents -= ammo_counter //We don't want to show it anywhere but the hand.
-
+	else if(flags_gun_features & (GUN_AMMO_COUNTER|GUN_MOTION_DETECTOR))
+		if(flags_gun_features & GUN_AMMO_COUNTER)
+			create_ammo_counter()
+			vis_contents -= ammo_counter //We don't want to show it anywhere but the hand.
+		if(flags_gun_features & GUN_MOTION_DETECTOR)
+			vis_contents -= motion_detector
 	else
 		set_gun_user(null)
 		force_light(on = FALSE)
@@ -89,6 +121,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 			current_stock.activate_attachment(src, user, turn_off = TRUE)
 
 	remove_ammo_counter()
+	remove_motion_detector()
 
 	unwield(user)
 	set_gun_user(null)
@@ -98,9 +131,10 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 
 	unwield(user)
 
-/obj/item/weapon/gun/on_enter_storage() //We do not want the ammo tracker showing in storage.
+/obj/item/weapon/gun/on_enter_storage() //We do not want the ammo tracker/MD showing in storage.
 	..()
 	remove_ammo_counter()
+	remove_motion_detector()
 
 /obj/item/weapon/gun/wield(mob/living/user)
 	if(!(flags_item & TWOHANDED) || flags_item & WIELDED)
@@ -469,7 +503,7 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 	clean_attachment_overlay(attachment)  //Handles vis_contents.
 
 /obj/item/weapon/gun/proc/handle_starting_attachment()
-	if(starting_attachment_types?.len)
+	if(starting_attachment_types && length(starting_attachment_types)) //length() is faster than .len
 		var/obj/item/attachable/attachment
 		var/slot
 		for(var/i = 1 to starting_attachment_types.len)
@@ -544,16 +578,10 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 			return TRUE
 
 //These two procs implicitly know that there is something to change.
-/obj/item/weapon/gun/proc/clean_attachment_overlay(obj/item/attachable/attachment)
-	attachment.pixel_x = initial(pixel_x) //We want to reset these.
-	attachment.pixel_y = initial(pixel_y)
-	if(attachment.attach_icon) //If it has an attach_icon, it may have reset its appearance. Like with foldable stocks and the like. We switch it all back.
-		var/updated_attach_icon = attachment.icon_state // This is the current attached appearance.
-		attachment.icon_state = attachment.attach_icon //Attach icon contains that UI appearance right now.
-		attachment.attach_icon = updated_attach_icon //Then we reset it to the attached appearance.
-	vis_contents -= attachment
 
 /obj/item/weapon/gun/proc/add_attachment_overlay(obj/item/attachable/attachment)
+	//We CAN add these normally, but some guns don't have offsets which leads to runtimes when adding hidden attachments as there is no reference available. So we skip this all together instead.
+	if(attachment.vis_flags & VIS_HIDE) return
 	var/slot = attachment.slot
 	attachment.pixel_x = attachable_offset["[slot]_x"] - attachment.pixel_shift_x + x_offset_by_attachment_type(attachment.type) //We want to make sure to set these up first.
 	attachment.pixel_y = attachable_offset["[slot]_y"] - attachment.pixel_shift_y + y_offset_by_attachment_type(attachment.type)
@@ -562,6 +590,16 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		attachment.icon_state = attachment.attach_icon
 		attachment.attach_icon = UI_icon
 	vis_contents += attachment //And add it to overlays. If it doesn't have an icon, it will be transparent.
+
+/obj/item/weapon/gun/proc/clean_attachment_overlay(obj/item/attachable/attachment)
+	if(attachment.vis_flags & VIS_HIDE) return //Same reason, we don't do anything visual with these.
+	attachment.pixel_x = initial(pixel_x) //We want to reset these.
+	attachment.pixel_y = initial(pixel_y)
+	if(attachment.attach_icon) //If it has an attach_icon, it may have reset its appearance. Like with foldable stocks and the like. We switch it all back.
+		var/updated_attach_icon = attachment.icon_state // This is the current attached appearance.
+		attachment.icon_state = attachment.attach_icon //Attach icon contains that UI appearance right now.
+		attachment.attach_icon = updated_attach_icon //Then we reset it to the attached appearance.
+	vis_contents -= attachment
 
 /obj/item/weapon/gun/proc/x_offset_by_attachment_type(attachment_type)
 	return 0
@@ -589,25 +627,27 @@ As sniper rifles have both and weapon mods can change them as well. ..() deals w
 		else attack_verb = list("tapped")
 
 /obj/item/weapon/gun/proc/get_active_firearm(mob/user, restrictive = TRUE)
-	if(!ishuman(usr))
+	if(!ishuman(user))
 		return
-	if(user.is_mob_incapacitated() || !isturf(usr.loc))
+
+	if(user.is_mob_incapacitated() || !isturf(user.loc))
 		to_chat(user, SPAN_WARNING("Not right now."))
 		return
 
-	var/obj/item/weapon/gun/held_item = user.get_held_item()
+	var/obj/item/weapon/gun/held_item = user.get_held_item() //Activate hand.
 
 	if(!istype(held_item)) // if active hand is not a gun
 		if(restrictive) // if restrictive we return right here
 			to_chat(user, SPAN_WARNING("You need a gun in your active hand to do that!"))
 			return
+
 		else // else check inactive hand
 			held_item = user.get_inactive_hand()
 			if(!istype(held_item)) // if inactive hand is ALSO not a gun we return
 				to_chat(user, SPAN_WARNING("You need a gun in one of your hands to do that!"))
 				return
-
-	if(held_item?.flags_gun_toggles & GUN_BURST_FIRING)
+	world << "Got to burst firing check."
+	if(held_item.flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
 	return held_item
@@ -976,7 +1016,6 @@ Perhaps add a callback?
 
 	unique_action(usr)
 
-
 /obj/item/weapon/gun/verb/toggle_gun_safety()
 	set category = "Weapons"
 	set name = "Toggle Gun Safety"
@@ -990,27 +1029,16 @@ Perhaps add a callback?
 
 	src = active_firearm
 
-	if(flags_gun_toggles & GUN_BURST_FIRING)
-		return
-
 	if(flags_gun_features & GUN_NO_SAFETY_SWITCH)
 		to_chat(usr, SPAN_WARNING("[src] does not have a safety mechanism!"))
-		return
-
-	if(!ishuman(usr))
-		return
-
-	if(usr.is_mob_incapacitated() || !usr.loc || !isturf(usr.loc))
-		to_chat(usr, "Not right now.")
 		return
 
 	flags_gun_toggles ^= GUN_TRIGGER_SAFETY_ON
 	gun_safety_handle(usr)
 
-
 /obj/item/weapon/gun/proc/gun_safety_handle(mob/user)
 	to_chat(user, SPAN_NOTICE("You toggle the safety [SPAN_BOLD(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON ? "on" : "off")]."))
-	playsound(user, 'sound/weapons/handling/safety_toggle.ogg', 25, 1)
+	playsound(user, 'sound/weapons/handling/safety_toggle.ogg', 15, TRUE, 3) //Safety triggering is fairly quiet.
 
 /obj/item/weapon/gun/verb/activate_attachment_verb()
 	set category = "Weapons"

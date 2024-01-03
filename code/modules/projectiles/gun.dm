@@ -47,15 +47,20 @@
 	//SOUNDS
 	var/fire_sound = 'sound/weapons/Gunshot.ogg' ///Will default to this if it doesn't have a unique sound. You can make this into a list() if you want the game to pick a sound at random.
 	var/firesound_volume = 60 //Volume of gunshot, adjust depending on volume of shot
-	var/fire_rattle = null
-	///Does our gun have a unique empty mag sound? If so use instead of pitch shifting.
-	var/unload_sound = 'sound/weapons/flipblade.ogg'
+	var/fire_rattle
 	///This sound is so damn annoying.
 	var/empty_sound = 'sound/weapons/smg_empty_alarm.ogg'
 	var/click_empty_sound = 'sound/weapons/gun_empty.ogg'
 	//We don't want these for guns that don't have them.
-	var/reload_sound = null
-	var/cocked_sound = null
+	var/reload_sound
+	//Reloading with a handful sound.
+	var/hand_reload_sound
+	///Does our gun have a unique empty mag sound? If so use instead of pitch shifting.
+	var/unload_sound = 'sound/weapons/flipblade.ogg'
+	//These sounds have to do with cycling/cocking the gun, opening, or closing it.
+	var/chamber_cycle_sound
+	var/chamber_open_sound
+	var/chamber_close_sound
 
 	///////////////////////FLAGS//////////////////////////////
 	//Determine most common properties about a gun. The other two flag sets deal with additional properties. Check documentation for details.
@@ -77,16 +82,25 @@
 	var/projectile_casing = PROJECTILE_CASING_CASELESS
 	/*The part of the gun where the projectile would be before it is fired. When not used it should be null. Do not use qdel() on this.
 	This is a reference to an ammo datum, not the projectile itself. The projectile is created when the gun actually fires.*/
-	var/datum/ammo/in_chamber = null
+	var/datum/ammo/in_chamber
 	/*Ammo mags may or may not be internal, though the difference is a few additional variables. If they are not internal, don't call
 	on those unique vars. This is done for quicker pathing. Just keep in mind most mags aren't internal, though some are.
 	This is also the default magazine path loaded into a projectile weapon for reverse lookups on New(). Leave this null to do your own thing.*/
-	var/obj/item/ammo_magazine/internal/current_mag = null
+	var/obj/item/ammo_magazine/internal/current_mag
 	//Some guns have hybrid feeders that may take different mags from more than 1 *different* type of gun. It's basically an override.
 	//If you have a parent and child guns, you won't need this. Most guns will not use this variable, and it's only for detachable magazines.
 	var/additional_type_magazines
-	//This is a vis_contents object that displays remaining ammo for the gun. It is created and assigned if the gun has that feature and is picked up by somebody.
-	var/obj/effect/digital_counter/ammo_counter = null
+	//This is a vis_contents object that displays remaining ammo for the gun. It is created and assigned if the gun has that feature and is picked up by somebody. Set with GUN_AMMO_COUNTER.
+	var/obj/effect/digital_counter/ammo_counter
+
+	///If it's an energy gun, it will have one of these as a path. Spawns on Initialize()
+	var/obj/item/cell/integrated_battery
+	///If it uses some kind of energy, it will also have a this to determine how much energy to consume per shot.
+	var/charge_drain = 0
+
+	///A motion scanner integrated into the gun. Set with GUN_MOTION_DETECTOR.
+	var/obj/item/device/motiondetector/motion_detector
+
 	///Shortcut for checking on skill levels in other parts of the code. Tricky because we can't FALSE check it as 0 is a possible value. Instead we have to isnull() to see if it exists.
 	var/user_skill_level
 	//Can set to TRUE or FALSE, either allowing or disallowing civs from using some firearms.
@@ -98,7 +112,11 @@
 	///This message is displayed when the gun is unable to fire, with the reason given. Offloaded from the able_to_fire() proc for quicker processing.
 	var/unable_to_fire_message
 
-	//Basic stats.'
+/*	Basic stats
+	IMPORTANT: ALL GUN DEFAULT TYPES IN INDIVIDUAL .DMS SHOULD HAVE A FULL STAT BLOCK ASSIGNED. This is to make it easier to understand just what each gun type is doing statwise and how it affects the children.
+	Children should only list changes in their statline. You can always refer to the parent to understand what is being changed. This keeps every entry organized and readable. If it's a one-of-a-kind unique gun,
+	it can just inherit the changes from the default gun type.
+*/
 	///Guns can jam, though right now it's not set up for anything other than the PPSH and uzi. Jam chance compounds for the weapon and mag used, if non-zero. This is the base chance for the gun.
 	var/malfunction_chance_base = GUN_MALFUNCTION_CHANCE_ZERO
 	//This accumulates as the gun is fired. More rounds fired = higher chance to jam.
@@ -141,7 +159,7 @@
 	var/last_fired = 0
 
 	///Self explanatory. How much does aiming (wielding the gun) slow you
-	var/aim_slowdown = 0
+	var/aim_slowdown = SLOWDOWN_ADS_NONE
 	///How long between wielding and firing in tenths of seconds
 	var/wield_delay = WIELD_DELAY_FAST
 	///Storing value for wield delay.
@@ -279,7 +297,7 @@
 		caliber = initial(A.caliber) //This gets us the default caliber name. This should be set if current_mag is a valid path.
 
 		if(!caliber) //If it's still not set somehow. Sanity check, good have in general for error checking.
-			log_debug("ERROR CODE A2: null calibre while initializing User: Weapon: <b>[src]</b> Magazine path: <b>[current_mag]</b>")
+			log_debug("ERROR CODE A2: null caliber while initializing. User: Weapon: <b>[src]</b> Magazine path: <b>[current_mag]</b>")
 			caliber = "bugged calibre"
 
 		if(spawn_empty && !(flags_gun_receiver & GUN_INTERNAL_MAG)) //Internal mags will still spawn, but they won't be filled.
@@ -295,6 +313,11 @@
 	//Essentially sets in_chamber to the ammo the gun uses, permanently. Don't need the old ammo variable.
 	else if(flags_gun_receiver & GUN_CHAMBER_IS_STATIC)
 		in_chamber = GLOB.ammo_list[in_chamber]
+	if(flags_gun_receiver & GUN_CHAMBER_BATTERY_FED) //If the receiver uses a battery it may also use bullets, like a smartgun, so we check seperately.
+		integrated_battery = new integrated_battery(src) //Spawn it in based on the path set.
+		if(istype(integrated_battery, /obj/item/smartgun_battery)) //Snowflake behavior for smartgun batteries because I don't want to rework the smartgun yet.
+			var/obj/item/smartgun_battery/S = integrated_battery
+			integrated_battery = S.power_cell
 
 	initialize_gun_lists()
 
@@ -327,23 +350,28 @@ though this is about as good as it gets outside of overriding proc behavior manu
 	setup_firemodes() //Then we actually set this up. If the gun has attachments, another proc will call this again.
 
 	if(random_attachments_possible) //If this list exists, we have random attachments.
-		if(!random_attachment_spawn_chance) //This will generate a default list if one should exist but doesn't.
-			random_attachment_spawn_chance = list(ATTACHMENT_SLOT_RAIL = 100, ATTACHMENT_SLOT_MUZZLE = 100, ATTACHMENT_SLOT_UNDER = 100, ATTACHMENT_SLOT_STOCK = 100)
-
+		//INHERITLIST is in _macros.dm. If the list doesn't exist, it makes it equal to whatever the second argument is. INHERITORADDLIST does that, but if the list exists it adds the entry instead, similar to LAZYADD, but different execution.
+		INHERITLIST(random_attachment_spawn_chance, list(ATTACHMENT_SLOT_RAIL = 100, ATTACHMENT_SLOT_MUZZLE = 100, ATTACHMENT_SLOT_UNDER = 100, ATTACHMENT_SLOT_STOCK = 100)) //This will generate a default list if one should exist but doesn't.
 		else //If the list already exists, we default whatever is not set. Hence, these should only be defined per child if the slot is not guaranteed to spawn.
-			if(!random_attachment_spawn_chance[ATTACHMENT_SLOT_RAIL])
-				random_attachment_spawn_chance[ATTACHMENT_SLOT_RAIL] = 100
+			INHERITLIST(random_attachment_spawn_chance[ATTACHMENT_SLOT_RAIL], 100)
+			INHERITLIST(random_attachment_spawn_chance[ATTACHMENT_SLOT_MUZZLE], 100)
+			INHERITLIST(random_attachment_spawn_chance[ATTACHMENT_SLOT_UNDER], 100)
+			INHERITLIST(random_attachment_spawn_chance[ATTACHMENT_SLOT_STOCK], 100)
+		//Both lists are cleared out after random attachments are initialized.
 
-			if(!random_attachment_spawn_chance[ATTACHMENT_SLOT_MUZZLE])
-				random_attachment_spawn_chance[ATTACHMENT_SLOT_MUZZLE] = 100
+	if(flags_gun_features & GUN_MOTION_DETECTOR)
+		motion_detector = new motion_detector(src)
+		INHERITORADDLIST(actions_types, list(/datum/action/item_action/gun/toggle_motion_detector))
 
-			if(!random_attachment_spawn_chance[ATTACHMENT_SLOT_UNDER])
-				random_attachment_spawn_chance[ATTACHMENT_SLOT_UNDER] = 100
+	if(flags_gun_features & GUN_IDENTITY_PROTECTED)
+		INHERITORADDLIST(actions_types, list(/datum/action/item_action/gun/toggle_id_lock))
 
-			if(!random_attachment_spawn_chance[ATTACHMENT_SLOT_STOCK])
-				random_attachment_spawn_chance[ATTACHMENT_SLOT_STOCK] = 100
+//	if(flags_gun_toggles & GUN_IFF_SYSTEM_ON) //In case it starts with it off.
+//		var/datum/action/item_action/A = locate(/datum/action/item_action/gun/toggle_lethal_mode) in actions
+//		A.action_activate(FALSE)
 
 /obj/item/weapon/gun/Destroy()
+	world << "[src] calling on [loc] location"
 	in_chamber = null
 	QDEL_NULL(current_mag)
 	target = null
@@ -358,6 +386,11 @@ though this is about as good as it gets outside of overriding proc behavior manu
 	QDEL_NULL(active_attachable)
 	GLOB.gun_list -= src
 	set_gun_user(null)
+	if(istype(integrated_battery?.loc, /obj/item/smartgun_battery)) //Snowflake processing for smartgun batteries.
+		world << "Got to the smartgun battery trigger."
+		QDEL_NULL(integrated_battery.loc)
+	else QDEL_NULL(integrated_battery)
+
 	. = ..()
 
 //This resets gun values to their initial on-compile state, so this proc is not computing multiple times for children.
@@ -368,17 +401,21 @@ though this is about as good as it gets outside of overriding proc behavior manu
 	set_burst_amount(initial(burst_amount))
 	set_burst_delay(initial(burst_delay))
 
-	accuracy_mult = initial(accuracy_mult)
+	accuracy_mult = flags_gun_toggles & GUN_ACCURACY_ASSIST_ON ? initial(accuracy_mult) + HIT_ACCURACY_MULT_TIER_2 : initial(accuracy_mult)
 	accuracy_mult_unwielded = initial(accuracy_mult_unwielded)
-	scatter = initial(scatter)
+	if(flags_gun_toggles & GUN_RECOIL_COMP_ON)
+		scatter = SCATTER_AMOUNT_TIER_10
+		recoil = RECOIL_OFF
+	else
+		scatter = initial(scatter)
+		recoil = initial(recoil)
 	burst_scatter_mult = initial(burst_scatter_mult)
-
 	scatter_unwielded = initial(scatter_unwielded)
 	damage_mult = initial(damage_mult)
 	damage_falloff_mult = initial(damage_falloff_mult)
 	damage_buildup_mult = initial(damage_buildup_mult)
 	velocity_add = initial(velocity_add)
-	recoil = initial(recoil)
+
 	recoil_unwielded = initial(recoil_unwielded)
 	movement_onehanded_acc_penalty_mult = initial(movement_onehanded_acc_penalty_mult)
 
@@ -390,6 +427,39 @@ though this is about as good as it gets outside of overriding proc behavior manu
 	fa_max_scatter = initial(fa_max_scatter)
 
 	recoil_buildup_limit = initial(recoil_buildup_limit)
+
+/*
+	malfunction_chance_base = GUN_MALFUNCTION_CHANCE_ZERO
+
+	fire_delay = FIRE_DELAY_TIER_5
+	burst_amount = BURST_AMOUNT_TIER_1
+	burst_delay = FIRE_DELAY_TIER_5
+
+	accuracy_mult = BASE_ACCURACY_MULT
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT
+	scatter = SCATTER_AMOUNT_TIER_6
+	burst_scatter_mult = SCATTER_AMOUNT_TIER_7
+	scatter_unwielded = SCATTER_AMOUNT_TIER_6
+
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	damage_falloff_mult = DAMAGE_FALLOFF_TIER_10
+	damage_buildup_mult = DAMAGE_BUILDUP_TIER_1
+	velocity_add = BASE_VELOCITY_BONUS
+	recoil = RECOIL_OFF
+	recoil_unwielded = RECOIL_OFF
+	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_1
+
+	effective_range_min = EFFECTIVE_RANGE_OFF
+	effective_range_max = EFFECTIVE_RANGE_OFF
+
+	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_BASE
+	fa_max_scatter = FULL_AUTO_SCATTER_MAX_BASE
+
+	recoil_buildup_limit = RECOIL_AMOUNT_TIER_1 / RECOIL_BUILDUP_VIEWPUNCH_MULTIPLIER
+
+	aim_slowdown = SLOWDOWN_ADS_NONE
+	wield_delay = WIELD_DELAY_FAST
+*/
 
 /// Populate traits_to_give in this proc
 /obj/item/weapon/gun/proc/set_bullet_traits()
@@ -417,11 +487,22 @@ though this is about as good as it gets outside of overriding proc behavior manu
 	if(has_empty_icon && !current_mag)
 		new_icon_state += "_e"
 
-	if(has_open_icon && (!current_mag || flags_gun_receiver & GUN_CHAMBER_IS_OPEN))
-		new_icon_state += "_o"
+	if(flags_gun_receiver & GUN_CHAMBER_BELT_FED)
+		overlays.Cut()
+		overlays += overlays += "+[base_gun_icon]_cover_[flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "open" : "closed"]"
+	else
+		if(has_open_icon && flags_gun_receiver & GUN_CHAMBER_IS_OPEN) new_icon_state += "_o"
 
 	icon_state = new_icon_state
 
+/obj/item/weapon/gun/unique_action(mob/user, smartgun_override = FALSE) //Snowflake processing for smartguns, for now.
+	if(flags_gun_toggles & GUN_BURST_FIRING) return
+	if(flags_gun_receiver & (GUN_CHAMBERED_CYCLE|GUN_CHAMBER_ROTATES) && !smartgun_override)
+		if(CHECK_MULTIPLE_BITFIELDS(flags_gun_receiver, GUN_CHAMBER_ROTATES|GUN_CHAMBER_IS_OPEN) && current_mag.current_rounds) //We trigger this here because cycling has a cooldown.
+			sort_cylinder_ammo(user)
+			to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
+		else cycle_chamber(user)
+	return TRUE
 
 //|********************\============================================================/********************|
 //\____________________/                                           	                \____________________/
@@ -450,22 +531,43 @@ though this is about as good as it gets outside of overriding proc behavior manu
 			if(flags_gun_toggles & GUN_AUTO_EJECTING_OFF) . +=  "The auto-ejector is off." //Turned off, after mode 2.
 			else if(flags_gun_toggles & GUN_AUTO_EJECTING_TO_HAND) . += "The auto-ejector is in MODE 2, ejecting to your hand." //Mode 2, after default.
 			else . += "The auto-ejector is in MODE 1, ejecting on to the ground." //Default.
+		if(flags_gun_features & GUN_IFF_SYSTEM)
+			. += "The IFF targeting system is [flags_gun_toggles & GUN_IFF_SYSTEM_ON ? SPAN_NOTICE("<B>on</b>") : SPAN_NOTICE("<B>off</b>")]."
 
 		for(var/slot in attachments)
 			var/obj/item/attachable/R = attachments[slot]
 			if(R) . += R.handle_attachment_description(user.client)
 
 		var/t
-		if( !(flags_gun_features & GUN_UNUSUAL_DESIGN) ) //Unusual designs have their own thing set via get_additional_gun_examine_text. Same for internal mags.
-			if( !(flags_gun_receiver & GUN_INTERNAL_MAG) )
-				t += "It's [current_mag ? "loaded" : "unloaded"]"
+		//Here we need to figure out if the gun uses the battery to fire only or uses the battery concurrently.
+		if(flags_gun_receiver & GUN_ENERGY_WEAPON)
+			if(integrated_battery)
+				if(flags_gun_features & GUN_AMMO_COUNTER)
+					t += SPAN_NOTICE("It has [floor(integrated_battery.charge / charge_drain)] / [floor(integrated_battery.maxcharge / charge_drain)] shots left")
+				else
+					t += "It has [integrated_battery.percent()]% charge remaining"
+			else t += "It has no power cell inside"
+		else
+			if(flags_gun_receiver & GUN_INTERNAL_MAG)
+				if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
+					if(flags_gun_receiver & GUN_CHAMBER_ROTATES) t += "The cylinder is open with [current_mag.current_rounds] round\s loaded"//Revolver style.
+					else t += "It's open with [current_mag.current_rounds? current_mag.current_rounds : "no"] shell\s loaded"
+				else
+					if(flags_gun_receiver & GUN_CHAMBER_ROTATES) t += "The cylinder is closed"
+					else t += "It's closed"
+			else if(flags_gun_receiver & GUN_CHAMBER_CAN_OPEN) t += "The bolt is [flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "open" : "closed" ]"//Boltaction.
+			else if(flags_gun_receiver & GUN_CHAMBER_BELT_FED) t += "The feed cover is [flags_gun_receiver & GUN_CHAMBER_IS_OPEN ? "open with [current_mag? "[current_mag] loaded" : "nothing loaded"]" : "closed" ]"
+			else t += "It's [current_mag ? "loaded" : "unloaded"]"
 
-		if(flags_gun_features & GUN_AMMO_COUNTER) //We want the ammo counter to be viewable if possible.
-			t += "[t? " and t" : "T"]he ammo counter readout shows [current_mag? (current_mag.current_rounds + (in_chamber? 1 : 0) ) : (in_chamber? 1 : 0) ] round\s remaining"
+			if(flags_gun_features & GUN_AMMO_COUNTER) //We want the ammo counter to be viewable if possible.
+				t += " ,and the ammo counter readout shows [current_mag? (current_mag.current_rounds + (in_chamber? 1 : 0) ) : (in_chamber? 1 : 0) ] round\s remaining"
+
+			if(flags_gun_receiver & GUN_CHAMBER_BATTERY_FED)
+				if(integrated_battery) t += ".<br>A small power gauge reads: [integrated_battery.charge] / [integrated_battery.maxcharge]"
+				else t += ".<br>There is no battery installed" //In case a gun can have the battery removed.
 
 		if(t) //If it's a string, punctuate it.
 			t += "."
-
 			. += t
 
 		//Since we're not using the parent proc, we need to account for line breaks.
@@ -492,7 +594,8 @@ though this is about as good as it gets outside of overriding proc behavior manu
 					. += "[src] must have been fired a lot because it's starting to get really dirty."
 				if(GUN_MALFUNCTION_CHANCE_VERY_HIGH to INFINITY)
 					. += "[src] looks absolutely filthy and will probably fail to function properly."
-		//. += "<a href='?src=\ref[src];list_stats=1'>\[See combat statistics]</a>" //Testing commenting this out.
+		//if(!(flags_gun_features GUN_UNUSUAL_DESIGN)) //Maybe instead I should make a whitelist of guns this does work on?
+		. += "<a href='?src=\ref[src];list_stats=1'>\[See combat statistics]</a>"
 
  /*
  Overrides as necessary per child object. Use this instead of get_examine_text()
@@ -563,8 +666,8 @@ though this is about as good as it gets outside of overriding proc behavior manu
 	if(in_chamber)
 		in_ammo = in_chamber
 	else if(current_mag && current_mag.current_rounds > 0)
-		if(istype(current_mag) && length(current_mag.chamber_contents) && current_mag.chamber_contents[current_mag.chamber_position])
-			in_ammo = GLOB.ammo_list[current_mag.chamber_contents[current_mag.chamber_position]]
+		if(istype(current_mag) && length(current_mag.chamber_contents) && current_mag.chamber_contents[current_mag.feeder_index])
+			in_ammo = GLOB.ammo_list[current_mag.chamber_contents[current_mag.feeder_index]]
 			if(!istype(in_ammo))
 				in_ammo = GLOB.ammo_list[current_mag.default_ammo]
 
@@ -673,7 +776,7 @@ though this is about as good as it gets outside of overriding proc behavior manu
 
 //|********************\============================================================/********************|
 //\____________________/                                           	                \____________________/
-//					          >>>>>>>>>>  RELOADING AND UNLOADING   <<<<<<<<<
+//					                 >>>>>>>>>>  RELOADING   <<<<<<<<<
 //
 //|********************|____________________________________________________________|********************|
 //\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
@@ -698,6 +801,10 @@ User can be passed as null. Tries to account for most reloading methods now.
 		if(MAGAZINE_TYPE_DETACHABLE) //Shouldn't need to check for open/closed, as that only matters for internal mags.
 			if(flags_gun_receiver & (GUN_ACCEPTS_SPEEDLOADER|GUN_ACCEPTS_HANDFUL)) //It won't take regular mags if it reloads with something special. Can be changed in the future to be specifically set.
 				to_chat(user, SPAN_WARNING("[src] can't reload with detachable magazines!"))
+				return
+
+			if((flags_gun_receiver & GUN_CHAMBER_BELT_FED) && !(flags_gun_receiver & GUN_CHAMBER_IS_OPEN))
+				to_chat(user, SPAN_WARNING("[src]'s feed cover is closed! You can't put a new drum in! (alt-click to open it)"))
 				return
 
 			if(current_mag)
@@ -727,14 +834,18 @@ User can be passed as null. Tries to account for most reloading methods now.
 				to_chat(user, SPAN_WARNING("[src] can't reload with handfuls of ammo!"))
 				return
 
-			if(flags_gun_receiver & GUN_CHAMBER_CAN_OPEN && !(flags_gun_receiver &  GUN_CHAMBER_IS_OPEN) ) //Is it closed?
+			if(flags_gun_receiver & GUN_CHAMBER_CAN_OPEN && !(flags_gun_receiver & GUN_CHAMBER_IS_OPEN) ) //Is it closed?
 				to_chat(user, SPAN_WARNING("You can't load anything when the [flags_gun_receiver & GUN_CHAMBER_ROTATES ? "cylinder" : "chamber"] is closed!"))
 				return
 
 			//Handfuls can get deleted, so we need to keep this on hand
-			var/ammunition_reference = magazine.feeding_ammo //Handfuls can get deleted, so we remember what it had.
-			if(current_mag.transfer_bullet_number(magazine,user,1, TRUE)) //This accounts for subtracting/adding numbers for bullets and returns the amount transferred.
-				replace_magazine(user, ammunition_reference) //Do whatever else we have going.
+			var/ammunition_reference = magazine.feeder_contents[1]//Handfuls can get deleted, so we remember what it had.
+			var/obj/item/ammo_magazine/handful/H = magazine
+			if(H.inserting_ammo)
+				if(current_mag.transfer_bullet_number(magazine,user,1)) //This accounts for subtracting/adding numbers for bullets and returns the amount transferred.
+					replace_magazine(user, ammunition_reference, hand_reload_sound, GUN_SOUND_RANGE_CQC) //Do whatever else we have going.
+			else
+				magazine.transfer_bullet_number(current_mag, user, 1)
 
 		if(MAGAZINE_TYPE_SPEEDLOADER)
 			if( !(flags_gun_receiver & GUN_ACCEPTS_SPEEDLOADER) ) //Should be something with a rotating cylinder, like a revolver;
@@ -757,7 +868,7 @@ User can be passed as null. Tries to account for most reloading methods now.
 					return
 
 			if(current_mag.transfer_bullet_number(magazine,user,magazine.current_rounds))//Make sure we're successful.
-				playsound(user, reload_sound, 25, 1) // Reloading via speedloader.
+				playsound(user, reload_sound, 25, TRUE, GUN_SOUND_RANGE_CLOSE) // Reloading via speedloader.
 				unload(user) //Unload will close the chamber and reset flags.
 
 		else //For firearms that don't reload the normal way.
@@ -767,48 +878,109 @@ User can be passed as null. Tries to account for most reloading methods now.
 	GUN_DISPLAY_ROUNDS_REMAINING
 	return TRUE
 
-//Override this proc based on what the gun needs to load for its specific needs. This just deals with generic detachable magazines.
-/obj/item/weapon/gun/proc/replace_magazine(mob/user, obj/item/ammo_magazine/magazine)
-	user.drop_inv_item_to_loc(magazine, src) //Click!
-	current_mag = magazine
-	if(!in_chamber) //Nothing chambered.
-		if(!(flags_gun_receiver & GUN_MANUAL_CYCLE) && ( !(flags_gun_receiver & GUN_CHAMBERED_CYCLE) || user_skill_level > SKILL_FIREARMS_CIVILIAN ) )
-			ready_in_chamber(user)
-			play_chamber_cycle_sound(user, null, null, 0.5 SECONDS) //Delayed sound to account for loading.
+//Only deals with replaing the mag.
+/obj/item/weapon/gun/proc/replace_magazine(mob/user, obj/item/ammo_magazine/magazine, sound_to_play = reload_sound, sound_range = GUN_SOUND_RANGE_SHORT)
+	switch(magazine.magazine_type)
+		//if(MAGAZINE_TYPE_HANDFUL)
 
-	user.visible_message(SPAN_NOTICE("[user] loads [magazine] into [src]!"),
-		SPAN_NOTICE("You load [magazine] into [src]!"), null, 3, CHAT_TYPE_COMBAT_ACTION)
+		//if(MAGAZINE_TYPE_SPEEDLOADER)
 
-	update_icon()
-	magazine.update_icon(null, src)
+		if(MAGAZINE_TYPE_DETACHABLE)
+			user.drop_inv_item_to_loc(magazine, src) //Click!
+			current_mag = magazine
+			user.visible_message(SPAN_NOTICE("[user] loads [magazine] into [src]!"),
+			SPAN_NOTICE("You load [magazine] into [src]!"), null, 3, CHAT_TYPE_COMBAT_ACTION)
+			update_icon()
+			magazine.update_icon(null, src)
 
-	if(reload_sound)
-		playsound(user, reload_sound, 25, 1, 5)
+	playsound(user, sound_to_play, 25, TRUE, sound_range) //Always play the reload sound.
+
+	//Short-circuit. Nothing chambered, if we're skilled with firearms, automatically cock the gun with a delayed sound to account for loading.
+	return !in_chamber && flags_gun_receiver & GUN_CHAMBERED_CYCLE && \
+		!(flags_gun_receiver & GUN_MANUAL_CYCLE) && user_skill_level > SKILL_FIREARMS_CIVILIAN && \
+		ready_in_chamber(user) && \
+		addtimer(CALLBACK(src, GLOBAL_PROC_REF(playsound), user, chamber_cycle_sound, 25, TRUE, GUN_SOUND_RANGE_MEDIUM), 0.5 SECONDS, TIMER_CLIENT_TIME) //More expensive to track client time, but this runs very infrequently.
+
+//|********************\============================================================/********************|
+//\____________________/                                           	                \____________________/
+//					                 >>>>>>>>>>  UNLOADING   <<<<<<<<<
+//
+//|********************|____________________________________________________________|********************|
+//\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
+//--------------------------------------------------------------------------------------------------------
 
 //Ammo datum is now stored in_chamber, so if the magazine is ejected, the current in_chamber "bullet" is still loaded with the datum.
-/obj/item/weapon/gun/proc/unload(mob/user, reload_override = 0, drop_override = 0, loc_override = 0) //Override for reloading mags after shooting, so it doesn't interrupt burst. Drop is for dropping the magazine on the ground.
-	if( !reload_override && ( (flags_gun_toggles & GUN_BURST_FIRING) || (flags_gun_features & GUN_UNUSUAL_DESIGN) ) || (flags_gun_receiver & GUN_INTERNAL_MAG) )
+/obj/item/weapon/gun/proc/unload(mob/user, reload_override = FALSE, drop_override = FALSE, loc_override = FALSE) //Override for reloading mags after shooting, so it doesn't interrupt burst. Drop is for dropping the magazine on the ground.
+	if(!reload_override && flags_gun_toggles & GUN_BURST_FIRING)
 		return
 
-	if(!current_mag || QDELETED(current_mag) || (current_mag.loc != src && !loc_override))
-		cycle_chamber(user)
-		return
+	if(flags_gun_receiver & GUN_CHAMBER_ROTATES) //All about revolvers.
+		if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
+			playsound(src, chamber_close_sound, 25, TRUE, GUN_SOUND_RANGE_SHORT)
 
-	if(drop_override || !user) //If we want to drop it on the ground or there's no user.
-		current_mag.forceMove(get_turf(src))//Drop it on the ground.
-	else
-		user.put_in_hands(current_mag)
+			if(current_mag.current_rounds && current_mag.current_rounds != current_mag.max_rounds && user_skill_level > SKILL_FIREARMS_CIVILIAN) //Civs won't know to do this ahead of time.
+				for(var/i = 1 to current_mag.max_rounds) //We're trying to find the next position with some ammo, so that if the gun is not full, it can fire the most rounds in sequence.
+				//When hand reloading, it spins to the next position, which may be empty. So spin back, we're shooting a blank for the first round. Have to locate something we can fire, then spin back.
+					if(current_mag.feeder_contents[current_mag.feeder_index]) //Find the first position that has rounds.
+						GUN_ROTATE_CYLINDER_BACK
+						break
+					GUN_ROTATE_CYLINDER
+		else
+			if(make_casing(projectile_casing) || reload_override) //If we have some spent rounds in the chamber or we're reloading manually,
+				sort_cylinder_ammo(user) //First sort before the cylinder is dumped.
+				to_chat(user, SPAN_NOTICE("You clear the cylinder of [src]."))
 
-	playsound(user, unload_sound, 25, 1, 5)
-	user.visible_message(SPAN_NOTICE("[user] unloads [current_mag] from [src]."),
-	SPAN_NOTICE("You unload [current_mag] from [src]."), null, 4, CHAT_TYPE_COMBAT_ACTION)
+			flags_gun_toggles &= ~GUN_PLAYING_RUS_ROULETTE //Resets the RR variable.
+			playsound(src, unload_sound, 25, TRUE, GUN_SOUND_RANGE_SHORT)
 
-	if(current_mag in vis_contents)
-		vis_contents -= current_mag
-		current_mag.scatter_item()
+		flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
 
-	current_mag.update_icon()
-	current_mag = null
+	else if(flags_gun_receiver & GUN_INTERNAL_MAG) //Anything not a revolver that has an internal mag.
+		//Default behavior is that it will attempt to remove whatever is in the tube first, not the chamber.
+		//Pump shotguns in particular do the opposite.
+		if(flags_gun_receiver & GUN_CHAMBER_CAN_OPEN && !(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)) //Chamber can open, but it's closed. Open it.
+			flags_gun_receiver |= GUN_CHAMBER_IS_OPEN
+			make_casing(projectile_casing)
+			playsound(user, chamber_open_sound, 20, FALSE, GUN_SOUND_RANGE_MEDIUM)
+		else
+			if(in_chamber) //Let's check the chamber first.
+				if(flags_gun_receiver & GUN_MANUAL_CYCLE || !current_mag.current_rounds) //If it's a pump or the tube is empty.
+					if(flags_gun_receiver & GUN_MANUAL_CYCLE) to_chat(user, SPAN_WARNING("You disengage [src]'s pump lock with the slide release."))
+					playsound(user, hand_reload_sound, 25, 1, GUN_SOUND_RANGE_CQC)
+					current_mag.create_handful(user, src, 1, in_chamber)
+					in_chamber = null
+					GUN_DISPLAY_ROUNDS_REMAINING
+					update_icon()
+					return //Exit out early as we only empty out in_chamber.
+			if(current_mag.current_rounds)
+				current_mag.create_handful(user, src, 1)
+				playsound(user, hand_reload_sound, 25, TRUE, GUN_SOUND_RANGE_CQC)
+			else
+				if(user) to_chat(user, SPAN_WARNING("[src] is already empty."))	//If the gun is dry, cancel out.
+	else //It's a generic mag or a belt.
+		if((flags_gun_receiver & GUN_CHAMBER_BELT_FED) && !(flags_gun_receiver & GUN_CHAMBER_IS_OPEN))
+			to_chat(user, SPAN_WARNING("[src]'s feed cover is closed! You can't take out the drum! (alt-click to open it)")) //We need a user in this case to interact with it.
+			return
+
+		if(!current_mag || QDELETED(current_mag) || (current_mag.loc != src && !loc_override))
+			current_mag = null
+			cycle_chamber(user)
+			return
+
+		if(drop_override || !user) //If we want to drop it on the ground or there's no user.
+			current_mag.forceMove(get_turf(src))//Drop it on the ground.
+		else
+			user.put_in_hands(current_mag)
+
+		playsound(user, unload_sound, 25, TRUE, GUN_SOUND_RANGE_SHORT)
+		user.visible_message(SPAN_NOTICE("[user] unloads [current_mag] from [src]."),
+		SPAN_NOTICE("You unload [current_mag] from [src]."), null, 4, CHAT_TYPE_COMBAT_ACTION)
+
+		vis_contents -= current_mag //Get it out of vis_contents if it was there previously.
+		current_mag.scatter_item() //Then scatter it.
+
+		current_mag.update_icon()
+		current_mag = null
 
 	GUN_DISPLAY_ROUNDS_REMAINING
 	update_icon()
@@ -825,42 +997,70 @@ User can be passed as null. Tries to account for most reloading methods now.
 //You can override this for unique behavior. You want to generally assign this to unique_action() if the gun category uses this proc.
 
 /obj/item/weapon/gun/proc/cycle_chamber(mob/user)
-	if(flags_gun_toggles & GUN_BURST_FIRING)
-		return
-
-	if(cycle_chamber_cooldown > world.time)
-		return
-
+	if(cycle_chamber_cooldown > world.time) return
 	cycle_chamber_cooldown = world.time + cycle_chamber_delay
 
-	var/sound_to_play = cocked_sound //In case jammed sound will replace it.
+	if(flags_gun_receiver & GUN_CHAMBER_ROTATES) //Revolver handling, which is pretty slim here. All we're doing is pulling back the hammer or pushing it back into place.
+		flags_gun_receiver ^= GUN_HAMMER_IS_COCKED //Cock/decock the hammer.
+		if(flags_gun_receiver & GUN_HAMMER_IS_COCKED && !(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)) //Only rotates if the cylinder is closed and the hammer was pulled back.
+			GUN_ROTATE_CYLINDER
+		playsound(user, chamber_cycle_sound, 25, FALSE, GUN_SOUND_RANGE_SHORT) //Shorter range on the sound.
 
-	if(flags_gun_receiver & GUN_CHAMBER_IS_JAMMED)
-		to_chat(user, SPAN_NOTICE("You begin unjamming [src]. This takes a moment, hold still!")) //I don't want this to be chance based success. Skill means you take less time.
-		if(!do_after(user, 2.5 SECONDS / (user_skill_level + 1), INTERRUPT_ALL, BUSY_ICON_FRIENDLY)) //User skill level will at the very least be null or 0, which will turn to a divider of 1.
-			to_chat(user, SPAN_WARNING("You were interrupted!"))
-			playsound(src, "gun_jam_rack", 25, FALSE)
-			return
+	else if(flags_gun_receiver & GUN_MANUAL_CYCLE) //Manual cycle firearms have a lot of their reloading done through manual cycle.
+		if(flags_gun_receiver & GUN_CHAMBER_CAN_OPEN) //Can the chamber open?
+			if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
+				playsound(user, chamber_open_sound, 20, FALSE, GUN_SOUND_RANGE_MEDIUM)
+				//Boltaction behavior. Break-action won't have anything chambered.
+				if(in_chamber) //We're going to have nothing, a bullet loaded, or an empty casing to unload.
+					eject_handful_to_turf(user)
+					in_chamber = null
+				if(flags_gun_receiver & (GUN_INTERNAL_MAG|GUN_CHAMBER_HAS_EMPTY_CASING)) make_casing(projectile_casing) //This will be mutually exclusive with in_chamber for boltaction.
+			else
+				if(flags_gun_receiver & GUN_INTERNAL_MAG) //If it's a double shotty, we only close it.
+					playsound(user, chamber_close_sound, 20, FALSE, GUN_SOUND_RANGE_MEDIUM)
+				else
+					playsound(user, chamber_close_sound, 65, FALSE, GUN_SOUND_RANGE_MEDIUM)
+					SAFE_READY_IN_CHAMBER //Boltaction will attempt to load the next path.
+		else //If not, it's a pump or a lever action.
+			//Modern shotguns normally lock after being pumped; this lock is undone by operating the slide release i.e. unloading a shell manually from the chamber.
+			if(in_chamber)
+				to_chat(user, SPAN_WARNING("<i>[src] already has a shell in the chamber and is locked! Interact with it to release the slide.<i>"))
+				return
+			make_casing(projectile_casing)
+			playsound(user, chamber_cycle_sound, 25, FALSE, GUN_SOUND_RANGE_MEDIUM)
+			if(current_mag.current_rounds) ready_in_chamber()
 
-		to_chat(user, SPAN_GREEN("You succesfully unjam \the [src]!"))
-		sound_to_play = 'sound/weapons/handling/gun_jam_rack_success.ogg'
-		balloon_alert(user, "*unjammed!*")
+	else //Regular handling of most magazines.
+		var/sound_to_play = chamber_cycle_sound //In case the jammed sound will replace it.
 
-		flags_gun_receiver &= ~GUN_CHAMBER_IS_JAMMED //Not jammed anymore.
+		if(flags_gun_receiver & GUN_CHAMBER_IS_JAMMED) //Removing a jam. Right now this only works well with the last case, a detachable magazine. Will need some adjustments for other misfires to work with other types.
+			to_chat(user, SPAN_NOTICE("You begin unjamming [src]. This takes a moment, hold still!")) //I don't want this to be chance based success. Skill means you take less time.
+			if(!do_after(user, 2.5 SECONDS / (user_skill_level + 1), INTERRUPT_ALL, BUSY_ICON_FRIENDLY)) //User skill level will at the very least be null or 0, which will turn to a divider of 1.
+				to_chat(user, SPAN_WARNING("You were interrupted!"))
+				playsound(src, "gun_jam_rack", 25, FALSE, GUN_SOUND_RANGE_CLOSE)
+				return
 
-	if(in_chamber) //I could add a check for static ammo, but it wouldn't get this proc to begin with.
-		user.visible_message(SPAN_NOTICE("[user] cocks [src], clearing a [in_chamber.name] from its chamber."),
-		SPAN_NOTICE("You cock [src], clearing a [in_chamber.name] from its chamber."), null, 4, CHAT_TYPE_COMBAT_ACTION)
-		eject_handful_to_turf(user)
-		in_chamber = null
-	else
-		user.visible_message(SPAN_NOTICE("[user] cocks [src]."),
-		SPAN_NOTICE("You cock [src]."), null, 4, CHAT_TYPE_COMBAT_ACTION)
-		if(flags_gun_receiver & GUN_CHAMBER_EMPTY_CASING) make_casing(projectile_casing) //In case it was jammed with an empty shell.
+			to_chat(user, SPAN_GREEN("You succesfully unjam [src]!"))
+			sound_to_play = 'sound/weapons/handling/gun_jam_rack_success.ogg'
+			balloon_alert(user, "*unjammed!*")
 
-	play_chamber_cycle_sound(user, sound_to_play)
-	SAFE_READY_IN_CHAMBER //It won't jam from this. That only happens when the gun is first fired.
+			flags_gun_receiver &= ~GUN_CHAMBER_IS_JAMMED //Not jammed anymore.
+
+		if(in_chamber) //I could add a check for static ammo, but it wouldn't get this proc to begin with.
+			user.visible_message(SPAN_NOTICE("[user] cocks [src], clearing a [in_chamber.name] from its chamber."),
+			SPAN_NOTICE("You cock [src], clearing a [in_chamber.name] from its chamber."), null, 4, CHAT_TYPE_COMBAT_ACTION)
+			eject_handful_to_turf(user)
+			in_chamber = null
+		else
+			user.visible_message(SPAN_NOTICE("[user] cocks [src]."),
+			SPAN_NOTICE("You cock [src]."), null, 4, CHAT_TYPE_COMBAT_ACTION)
+			if(flags_gun_receiver & GUN_CHAMBER_HAS_EMPTY_CASING) make_casing(projectile_casing) //In case it was jammed with an empty shell.
+
+		playsound(user, sound_to_play, 25, TRUE, GUN_SOUND_RANGE_MEDIUM)
+		SAFE_READY_IN_CHAMBER //It won't jam from this. That only happens when the gun is fired first.
+
 	GUN_DISPLAY_ROUNDS_REMAINING
+	update_icon()
 
 //Specifically unloads either a chambered round or a number of rounds to the current turf, combining anything already there that can be combined.
 //User can be passed as null, and defaults to the in_chamber and 1 round, for generic cycling action.
@@ -872,29 +1072,14 @@ User can be passed as null. Tries to account for most reloading methods now.
 		if(H.default_ammo == ammo_type && H.caliber == caliber && H.current_rounds < H.max_rounds) //Finds the first one and stops.
 			var/rounds_transferred = min(number_to_eject, H.max_rounds - H.current_rounds) //We could have more rounds to transfer than it can support.
 			H.current_rounds += rounds_transferred //Add the amount transferred.
+			H.feeder_contents[2] += rounds_transferred //And here as well.
 			number_to_eject -= rounds_transferred //Subtract it.
 			H.update_icon()
 			break
 
-	if(number_to_eject) //If we still have some rounds to eject.
-		while(number_to_eject) //We keep making these until we have none to make.
-			H = new(destination)
-			number_to_eject -= H.generate_handful(ammo_type, caliber, number_to_eject)
-
-//More gooder now.
-//Plays the specified racking/cocking/cycling sound.
-/obj/item/weapon/gun/proc/play_chamber_cycle_sound(mob/user, sound_to_play, volume = 25, sound_delay)
-	set waitfor = 0
-
-	sound_to_play = sound_to_play ? sound_to_play : cocked_sound // If we had an override, use it. Otherwise default to the regular cycle sound.
-	if(sound_to_play) //Only play if we have a sound.
-		if(sound_delay) //If the sound should be delayed. Default is no. Delayed behavior is for when something is loaded through a magazine and the gun is then auto-cocked.
-			addtimer(CALLBACK(src, PROC_REF(chamber_cycle_sound), user, sound_to_play, volume), sound_delay)
-		else
-			chamber_cycle_sound(user, sound_to_play, volume)
-
-/obj/item/weapon/gun/proc/chamber_cycle_sound(mob/user, sound_to_play, volume)
-	playsound(user ? user : loc, sound_to_play, volume, TRUE)
+	while(number_to_eject > 0) //We keep making these until we have none to make.
+		H = new(destination)
+		number_to_eject -= H.generate_handful(ammo_type, caliber, number_to_eject)
 
 //|********************\============================================================/********************|
 //\____________________/                                           	                \____________________/
@@ -917,8 +1102,7 @@ User can be passed as null. Tries to account for most reloading methods now.
 		return FALSE//We just put the gun up. Can't do it that fast
 
 	if(ismob(user)) //Could be an object firing the gun. They default to TRUE.
-		//This is handled by recalculate_user_attributes() when a gun is equipped to a hand.
-		if(flags_gun_toggles & GUN_UNABLE_TO_FIRE)
+		if(flags_gun_toggles & GUN_UNABLE_TO_FIRE) //This is handled by recalculate_user_attributes() when a gun is equipped to a hand.
 			to_chat(user, SPAN_WARNING(unable_to_fire_message))
 			return FALSE
 
@@ -928,7 +1112,10 @@ User can be passed as null. Tries to account for most reloading methods now.
 			return FALSE
 
 		if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-			to_chat(user, SPAN_WARNING("Close the [flags_gun_receiver & GUN_CHAMBER_ROTATES ? "cylinder" : "chamber"]!"))
+			if(flags_gun_receiver & GUN_CHAMBER_BELT_FED)
+				to_chat(user, SPAN_WARNING("You can't fire [src] with the feed cover open! (alt-click to close)"))
+			else
+				to_chat(user, SPAN_WARNING("Close the [flags_gun_receiver & GUN_CHAMBER_ROTATES ? "cylinder" : "chamber"]!"))
 			return FALSE
 
 		if(active_attachable)
@@ -936,8 +1123,11 @@ User can be passed as null. Tries to account for most reloading methods now.
 				if(!(active_attachable.flags_attach_features & ATTACH_WIELD_OVERRIDE) && !(flags_item & WIELDED))
 					to_chat(user, SPAN_WARNING("You must wield [src] to fire [active_attachable]!"))
 					return FALSE
-
 		else
+			if(flags_gun_features & GUN_ATTACHED_FIRE_ONLY && !(flags_gun_toggles & GUN_ATTACHED_TO_PARENT))
+				to_chat(user, SPAN_WARNING("You can't fire [src] unless it is attached to another firearm!"))
+				return FALSE
+
 			if(flags_gun_features & GUN_WIELDED_FIRING_ONLY && !(flags_item & WIELDED)) //If we're not holding the weapon with both hands when we should.
 				to_chat(user, SPAN_WARNING("You need a more secure grip to fire this weapon!"))
 				return FALSE
@@ -982,10 +1172,10 @@ User can be passed as null. Tries to account for most reloading methods now.
 /obj/item/weapon/gun/proc/check_additional_able_to_fire(mob/user)
 	return TRUE
 
-//Returns null if it doesn't find anything.
+//This proc checks for various receiver functions to eventually ready a bullet to enter into the chamber.
+//If something is in the chamber already, it uses that instead.
 /obj/item/weapon/gun/proc/load_into_chamber(mob/user)
-	//Let's check on the active attachable. It loads ammo on the go, so it never chambers anything
-	if(active_attachable)
+	if(active_attachable) 	//Let's check on the active attachable. It loads ammo on the go, so it never chambers anything
 		if(shots_fired >= 1) // This is what you'll want to remove if you want automatic underbarrel guns in the future
 			SEND_SIGNAL(src, COMSIG_GUN_INTERRUPT_FIRE)
 			return
@@ -1007,76 +1197,42 @@ User can be passed as null. Tries to account for most reloading methods now.
 		else
 			to_chat(user, SPAN_WARNING("[active_attachable] is empty!"))
 			to_chat(user, SPAN_NOTICE("You disable [active_attachable]."))
-			playsound(user, active_attachable.activation_sound, 15, 1)
+			playsound(user, active_attachable.activation_sound, 15, TRUE, GUN_SOUND_RANGE_CLOSE)
 			active_attachable.activate_attachment(src, null, TRUE)
 
 //====================================//  This handles all of getting in_chamber ready to go    //====================================//
-	else if(in_chamber) return in_chamber //Already set from last reload_into_chamber() or the ammo is static.
-	if( !(flags_gun_receiver & GUN_CHAMBERED_CYCLE) ) //If we want the gun to only use in_chamber to fire, we can't allow it to load here.
-		//-------------//Everything here is for cylinder guns.//---------------------//
-		if(flags_gun_receiver & GUN_CHAMBER_ROTATES) //if it's got a cylinder that rotates; all of this special handling for revolver-types.
-			if(!(flags_gun_receiver & GUN_MANUAL_CYCLE))//Revolver isn't single action.
-				GUN_ROTATE_CYLINDER //Rotate once; this is default double action behavior. Pull the trigger, rotate cylinder and fire the bullet (if there is one).
-			else if(!(flags_gun_receiver & GUN_HAMMER_IS_COCKED)) //If the gun is a manual cycle, ie single action.
-				return FALSE //If the hammer isn't cocked, can't fire.
-			if(current_mag.current_rounds) //It's going to have an internal mag.
-				return ready_in_chamber(user, current_mag.chamber_position) //We will send a revolver-specific index.
-			else if(!(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)) unload(null) //revolvers will dump their bullets if they don't have rounds remaining.
-			return FALSE //Regardless of what else happens, exit out. We can't fire.
-		//-------------//Otherwise we try to load it as normal and return the result.//---------------------//
-		return current_mag&&current_mag.current_rounds&&ready_in_chamber(user) //Short circuit chain. It will evaluate every expression until fail and return the last one evaluated.
+	if(flags_gun_receiver & GUN_CHAMBER_BATTERY_FED) //Smartgun or terrestrial energy weapons.
+		var/actual_drain = flags_gun_receiver & GUN_ENERGY_WEAPON ? charge_drain : (rand(charge_drain / 2, charge_drain) / 25)
+		if(integrated_battery?.charge >= actual_drain) integrated_battery.charge -= actual_drain
+		else
+			to_chat(user, SPAN_WARNING("[src] emits a low power warning as it is unable to fire!"))
+			//should play a sound here.
+			return FALSE
+	if(in_chamber) return in_chamber //Already set from last reload_into_chamber(), cycle_chamber(), or the ammo is static.
+	if(flags_gun_receiver & GUN_CHAMBERED_CYCLE) return FALSE//If we want the gun to only use in_chamber to fire, we can't allow it to load here.
+	//-------------//Everything here is for cylinder guns.//---------------------//
+	if(flags_gun_receiver & GUN_CHAMBER_ROTATES) //if it's got a cylinder that rotates; all of this special handling for revolver-types.
+		if(flags_gun_receiver & GUN_MANUAL_CYCLE)//Revolver is single action.
+			if(!(flags_gun_receiver & GUN_HAMMER_IS_COCKED)) return FALSE //If the hammer isn't cocked, can't fire.
+		else GUN_ROTATE_CYLINDER //Rotate once; this is default double action behavior. Pull the trigger, rotate cylinder and fire the bullet (if there is one).
+		if(current_mag.current_rounds) return ready_in_chamber(user) //It's going to have an internal mag, so we only check for current rounds. If that changes, this should check for mag.
+		return (!(flags_gun_receiver & GUN_CHAMBER_IS_OPEN))&&unload(user)  //Revolvers will dump their bullets if they don't have rounds remaining. This will return FALSE/null, as we can't fire the gun.
+	//-------------//Otherwise we try to load it as normal and return the result.//---------------------//
+	return current_mag&&current_mag.current_rounds&&ready_in_chamber(user) //Short circuit chain. It will evaluate every expression until fail and return the last one evaluated.
 
 //This proc ONLY handles readying in_chamber. Make sure the mag is there, etc in linking procs. This is called on directly when spawning in firearms, etc, through a safe spawn macro: SAFE_READY_IN_CHAMBER
-/obj/item/weapon/gun/proc/ready_in_chamber(mob/user, position_to_check = current_mag.current_rounds) //User is only for error messaging.
-	var/feeder_position_string =  "[position_to_check]" //Revolvers check through their chamber position. Other mags check using a simple bullet count.
-
-	to_chat(user, SPAN_WARNING("Loadeding a new bullet. Last cycle ammo path: [current_mag.feeding_ammo]"))
-	if(current_mag.feeder_contents[feeder_position_string]) //Does a break point exist at the current position?
-		to_chat(user, SPAN_WARNING("Detected a break point at position [position_to_check]. Rounds remaining: [current_mag.current_rounds]"))
-		current_mag.feeding_ammo = current_mag.feeder_contents[feeder_position_string] //If it does, we switch over to that ammo path.
-		current_mag.feeder_contents -= feeder_position_string //And remove it from the contents. This is fine for revolvers. We don't need the slot to actually exist.
-	else if(flags_gun_receiver & GUN_CHAMBER_ROTATES) return FALSE //Return early if it's a revolver, we can't actually fire as there is nothing in this cylinder slot.
-
-	to_chat(user, SPAN_WARNING("Loaded a new bullet. Current cycle ammo path: [current_mag.feeding_ammo]"))
-
-	current_mag.current_rounds-- //Decrement rounds.
-	in_chamber = GLOB.ammo_list[current_mag.feeding_ammo] //We default to the last ammo used for non-cylinders.
-	return in_chamber //Return the datum
-
-/*
-//Feeding method #rev2
-/obj/item/weapon/gun/proc/ready_in_chamber(mob/user, position_to_check = 1) //User is only for error messaging.
-	. = current_mag.feeding_contents[position_to_check] //Having the element to retrieve always be in position 1 is actually quite handy. We don't even need to know the length of the list.
-	to_chat(user, SPAN_WARNING("Loading a new bullet. Ammo path is: [.]"))
+/obj/item/weapon/gun/proc/ready_in_chamber(mob/user) //User is only for error messaging.
+	. = current_mag.feeder_contents[current_mag.feeder_index] //Having the element to retrieve always be in position 1 is actually quite handy. We don't even need to know the length of the list.
 
 	if(flags_gun_receiver & GUN_CHAMBER_ROTATES)
 		if(!.) return //Do we have something to return? If not we exit out early. Specific to revolvers.
-		current_mag.feeding_contents[position_to_check] = null //If we did, null it out as the bullet is used.
+		current_mag.feeder_contents[current_mag.feeder_index] = null //If we did, null it out as the bullet is used.
 	else
-		if(--current_mag.feeding_contents[2] <= 0) //If it's dry on this ammo type.
-			current_mag.feeding_contents.Cut(1, 3) //Remove both.
+		if(--current_mag.feeder_contents[2] <= 0) //If it's dry on this ammo type.
+			current_mag.feeder_contents.Cut(1, 3) //Remove both.
 
-	current_rounds-- //Since this no longer tracks any specific position.
 	//to_chat(user, SPAN_WARNING(current_rounds ? "Ammo path is: [current_mag.feeding_contents[1]], with [current_mag.feeding_contents[2]] rounds remaining." : "Out of ammo to feed."))
-	in_chamber = GLOB.ammo_list[.]
-	return in_chamber
-
-/obj/item/weapon/gun/proc/ready_in_chamber(mob/user) //User is only for error messaging.
-	. = current_mag.feeding_contents[1]
-	if(--current_mag.feeding_contents[2] <= 0) //If it's dry on this ammo type.
-		current_mag.feeding_contents.Cut(1, 3) //Remove both.
-	current_rounds--
-	in_chamber = GLOB.ammo_list[.]
-	return in_chamber
-
-/obj/item/weapon/gun/proc/revolver/ready_in_chamber(mob/user)
-	. = current_mag.feeding_contents[chamber_position]
-	if(!.) return //Do we have something to return? If not we exit out early. Specific to revolvers.
-	current_mag.feeding_contents[chamber_position] = null //If we did, null it out as the bullet is used.
-	current_rounds--
-	in_chamber = GLOB.ammo_list[.]
-	return in_chamber
-*/
+	return current_mag.current_rounds-- && (in_chamber = GLOB.ammo_list[.]) //Since this no longer tracks any specific position.
 
 //|********************\============================================================/********************|
 //\____________________/                                           	                \____________________/
@@ -1089,7 +1245,7 @@ User can be passed as null. Tries to account for most reloading methods now.
 /obj/item/weapon/gun/proc/Fire(atom/target, mob/living/user, params, reflex = FALSE, dual_wield)
 	set waitfor = FALSE
 
-	if(!able_to_fire(user) || !target || !get_turf(user) || !get_turf(target))
+	if(!target || !get_turf(user) || !get_turf(target) || !able_to_fire(user))
 		return NONE
 
 	/*
@@ -1452,7 +1608,7 @@ User can be passed as null. Tries to account for most reloading methods now.
 					BP.original = attacked_mob //original == the original target of the projectile. If the target is downed and this isn't set, the projectile will try to fly over it. Of course, it isn't going anywhere, but it's the principle of the thing. Very embarrassing.
 					if(!BP.handle_mob(attacked_mob) && attacked_mob.body_position == LYING_DOWN) //This is the 'handle impact' proc for a flying projectile, including hit RNG, on_hit_mob and bullet_act. If it misses, it doesn't go anywhere. We'll pretend it slams into the ground or punches a hole in the ceiling, because trying to make it bypass the xeno or shoot from the tile beyond it is probably more spaghet than my life is worth.
 						if(BP.ammo.sound_bounce)
-							playsound(attacked_mob.loc, BP.ammo.sound_bounce, 35, 1)
+							playsound(attacked_mob.loc, BP.ammo.sound_bounce, 35, TRUE)
 						attacked_mob.visible_message(SPAN_AVOIDHARM("[BP] slams into [get_turf(attacked_mob)]!"), //Managing to miss an immobile target flat on the ground deserves some recognition, don't you think?
 							SPAN_AVOIDHARM("[BP] narrowly misses you!"), null, 4, CHAT_TYPE_TAKING_HIT)
 				else
@@ -1465,7 +1621,7 @@ User can be passed as null. Tries to account for most reloading methods now.
 			projectile_to_fire.original = attacked_mob
 			if(!projectile_to_fire.handle_mob(attacked_mob) && attacked_mob.body_position == LYING_DOWN)
 				if(projectile_to_fire.ammo.sound_bounce)
-					playsound(attacked_mob.loc, projectile_to_fire.ammo.sound_bounce, 35, 1)
+					playsound(attacked_mob.loc, projectile_to_fire.ammo.sound_bounce, 35, TRUE)
 				attacked_mob.visible_message(SPAN_AVOIDHARM("[projectile_to_fire] slams into [get_turf(attacked_mob)]!"),
 					SPAN_AVOIDHARM("[projectile_to_fire] narrowly misses you!"), null, 4, CHAT_TYPE_TAKING_HIT)
 		else
@@ -1549,12 +1705,12 @@ User can be passed as null. Tries to account for most reloading methods now.
 					if(current_mag?.current_rounds && ready_in_chamber(user)) //If we don't find a bullet we'll try the casing method.
 						simulate_gun_jam = MALFUNCTION_CASING
 					else if(projectile_casing)
-						flags_gun_receiver |= GUN_CHAMBER_EMPTY_CASING
+						flags_gun_receiver |= GUN_CHAMBER_HAS_EMPTY_CASING
 						simulate_gun_jam = MALFUNCTION_CASING
 
 				if(MALFUNCTION_CASING)
 					if(projectile_casing) //Casings are easy to deal with.
-						flags_gun_receiver |= GUN_CHAMBER_EMPTY_CASING
+						flags_gun_receiver |= GUN_CHAMBER_HAS_EMPTY_CASING
 						simulate_gun_jam = MALFUNCTION_CASING
 					else if(current_mag?.current_rounds && ready_in_chamber(user))
 						simulate_gun_jam = MALFUNCTION_CASING
@@ -1565,17 +1721,20 @@ User can be passed as null. Tries to account for most reloading methods now.
 					make_casing(projectile_casing)
 				flags_gun_toggles &= ~GUN_BURST_FIRING
 				flags_gun_receiver |= GUN_CHAMBER_IS_JAMMED
-				playsound(src, 'sound/weapons/handling/gun_jam_initial_click.ogg', 25, FALSE)
+				playsound(src, 'sound/weapons/handling/gun_jam_initial_click.ogg', 25, FALSE, GUN_SOUND_RANGE_CLOSE)
 				user.visible_message(SPAN_DANGER("[src] makes a noticeable clicking noise!"), SPAN_HIGHDANGER("\The [src] suddenly malfunctions and refuses to fire! Use Unique-Action to unjam it!"))
 				balloon_alert(user, "*jammed*")
 
+				//Since energy weapons can't jam, I'm not going to bother with the related checks here.
 				GUN_DISPLAY_ROUNDS_REMAINING
 				return FALSE //End the proc early. If there's an auto ejector or whatever, it won't work with a malfunction.
 
-		if(!(flags_gun_receiver & (GUN_MANUAL_CYCLE|GUN_CHAMBER_ROTATES))) //Manually cycled guns will do this part when they cycle the chamber. Revolvers keep their casings util gun is opened.
+		if(flags_gun_receiver & (GUN_MANUAL_CYCLE|GUN_CHAMBER_ROTATES)) //Manually cycled guns will do this part when they cycle the chamber. Revolvers keep their casings util gun is opened.
+			flags_gun_receiver |= GUN_CHAMBER_HAS_EMPTY_CASING //Set this to notify the gun that it has some casings to make if it's manual cycle, like a bolt action without an internal mag.
+			flags_gun_receiver &= ~GUN_HAMMER_IS_COCKED //No longer cocked, if it was previously.
+		else
 			make_casing(projectile_casing)
-
-			if(current_mag)//If there is no mag, we can't reload or do anyting with the mag itself.
+			if(current_mag)//If there is no mag, we can't reload or do anything with the mag itself.
 				if((!current_mag.current_rounds || !ready_in_chamber(user)) && flags_gun_features & GUN_AUTO_EJECTOR && !(flags_gun_toggles & GUN_AUTO_EJECTING_OFF)) //Will only auto-eject if there is no ammo remaining at all.
 					if(flags_gun_toggles & GUN_AUTO_EJECTING_TO_HAND) //We've established that we need to eject the mag, now we check where.
 						unwield(user)
@@ -1583,13 +1742,17 @@ User can be passed as null. Tries to account for most reloading methods now.
 						unload(user, TRUE)
 					else
 						unload(user, TRUE, TRUE) //If not the hand, we auto-eject to ground.
-					playsound(src, empty_sound, 20, 1) //The sound will only play if something is ejected, not when the auto-ejector is off. Also made it a little less loud.
+					playsound(src, empty_sound, 20, TRUE, GUN_SOUND_RANGE_MEDIUM) //The sound will only play if something is ejected, not when the auto-ejector is off. Also made it a little less loud.
 			. = in_chamber
-		else
-			flags_gun_receiver |= GUN_CHAMBER_EMPTY_CASING //Set this to notify the gun that it has some casings to make if it's manual cycle, like a bolt action without an internal mag.
-			flags_gun_receiver &= ~GUN_HAMMER_IS_COCKED //No longer cocked, if it was previously.
 
-		GUN_DISPLAY_ROUNDS_REMAINING
+		if(flags_gun_features & GUN_AMMO_COUNTER)
+			var/rounds_to_display
+			if(flags_gun_receiver & GUN_ENERGY_WEAPON)
+				rounds_to_display = integrated_battery ? floor(integrated_battery.charge / charge_drain) : 0
+			else //Won't be entirely correct for spike launcher, but I don't want to add a check here for one gun. Probably need to devise a workaround
+				rounds_to_display = (current_mag ? current_mag.current_rounds : 0) + (in_chamber ? 1 : 0)
+			GUN_DISPLAY_ROUNDS(rounds_to_display)
+
 		//Returns an ammo datum or TRUE. Ammo datum can be null for burts/autofire/etc.
 
 #undef MALFUNCTION_BULLET
@@ -1597,7 +1760,7 @@ User can be passed as null. Tries to account for most reloading methods now.
 
 //|********************\============================================================/********************|
 //\____________________/                                           	                \____________________/
-//							>>>>>>>>>>	       AMMO COUNTER       	<<<<<<<<<
+//							>>>>>>>>>>	   AMMO COUNTER AND CASINGS   	<<<<<<<<<
 //
 //|********************|____________________________________________________________|********************|
 //\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
@@ -1616,11 +1779,11 @@ Removed the chat message as it was superfluous with functional counters and also
 	icon_state = "counter"
 	mouse_opacity = 0 //Can still click on the hud.
 	pixel_y = 3
-	layer = ABOVE_HUD_LAYER + 0.01 //Wonky. Certain hud elements are drawn on ABOVE_HUD_LAYER instead of HUD_LAYER, leading to some layering issues. Properly reworking hud is preferred.
+	layer = ABOVE_HUD_LAYER + 0.02 //Wonky. Certain hud elements are drawn on ABOVE_HUD_LAYER instead of HUD_LAYER, leading to some layering issues. Properly reworking hud is preferred.
 	vis_flags = VIS_INHERIT_PLANE
 	appearance_flags = RESET_COLOR|RESET_ALPHA|RESET_TRANSFORM|KEEP_APART //We don't want these to be changed by the parent.
 
-	maptext_x = 10 //These offsets work to center the text on the counter. It will be pixel perfect if everything is set up correctly.
+	maptext_x = 7 //These offsets work to center the text on the counter. It will be pixel perfect if everything is set up correctly.
 	maptext_y = 24
 
 //The ammo counter is not held in contents. Doesn't really need to be, it's referenced twice already.
@@ -1640,22 +1803,13 @@ Removed the chat message as it was superfluous with functional counters and also
 		ammo_counter = null //Another reference. Native garbage collection should take care of the object since it has no more references. Unless it was pooled.
 		return TRUE
 
-//|********************\============================================================/********************|
-//\____________________/                                           	                \____________________/
-//							>>>>>>>>>>	      MAKING CASINGS       	<<<<<<<<<
-//
-//|********************|____________________________________________________________|********************|
-//\____________________/012345678901234567890123456789012345678901234567890123456789\____________________/
-//--------------------------------------------------------------------------------------------------------
-
-//Since reloading and casings are closely related, placing this here, the sequel. ~N
 /obj/item/weapon/gun/proc/make_casing(casing_type) //Handle casings is set to discard them.
 	var/num_of_casings = 1 //Defaults to 1.
 	if(flags_gun_receiver & GUN_INTERNAL_MAG)
 		num_of_casings = current_mag.used_casings //Set it to whatever the internal mag is showing, could be zero.
-		current_mag.used_casings = 0 //Reset it.
+		current_mag.used_casings = 0 //Reset it as we will use them all up shortly
 
-	if(num_of_casings && casing_type) //If we have casings to make and we have a casing type.
+	if(casing_type && num_of_casings) //If we have casings to make and we have a casing type.
 		var/sound_to_play
 		switch(casing_type)
 			if(PROJECTILE_CASING_SHELL, PROJECTILE_CASING_TWOBORE) sound_to_play = 'sound/weapons/bulletcasing_shotgun_fall.ogg'
@@ -1666,13 +1820,13 @@ Removed the chat message as it was superfluous with functional counters and also
 		if(!casing) //No casing on the ground?
 			casing = new new_casing(current_turf)
 			num_of_casings--
-			playsound(current_turf, sound_to_play, rand(15,20), TRUE, 5)
+			playsound(current_turf, sound_to_play, rand(15,20), TRUE, GUN_SOUND_RANGE_CLOSE)
 		if(num_of_casings) //Still have some.
 			casing.current_casings += num_of_casings
 			casing.update_icon()
-			playsound(current_turf, sound_to_play, rand(15,20), TRUE, 5) //Played again if necessary.
+			playsound(current_turf, sound_to_play, rand(15,20), TRUE, GUN_SOUND_RANGE_CLOSE) //Played again if necessary.
 
-		flags_gun_receiver &= ~GUN_CHAMBER_EMPTY_CASING //In case it was jammed with a casing, or has this casing set manually, we empty it out.
+		flags_gun_receiver &= ~GUN_CHAMBER_HAS_EMPTY_CASING //In case it was jammed with a casing, or has this casing set manually, we empty it out.
 
 		return TRUE
 
@@ -1983,7 +2137,7 @@ Removed the chat message as it was superfluous with functional counters and also
 /obj/item/weapon/gun/proc/set_gun_user(mob/to_set)
 	if(to_set == gun_user)
 		return
-	if(gun_user)
+	if(gun_user) //The old user is no longer holding the gun.
 		UnregisterSignal(gun_user, list(COMSIG_MOB_MOUSEUP, COMSIG_MOB_MOUSEDOWN, COMSIG_MOB_MOUSEDRAG))
 
 	gun_user = to_set
@@ -2042,7 +2196,7 @@ Removed the chat message as it was superfluous with functional counters and also
 
 	if(flags_gun_receiver & GUN_CHAMBER_IS_JAMMED)//Oh no, the gun is jammed! Cannot fire while it is jammed.
 		if(world.time % 3)
-			playsound(src, 'sound/weapons/handling/gun_jam_click.ogg', 35, TRUE)
+			playsound(src, 'sound/weapons/handling/gun_jam_click.ogg', 35, TRUE, GUN_SOUND_RANGE_CLOSE)
 			to_chat(gun_user, SPAN_WARNING("Your gun is jammed! Use Unique-Action to unjam it!"))
 			balloon_alert(gun_user, "*jammed*")
 		return FALSE

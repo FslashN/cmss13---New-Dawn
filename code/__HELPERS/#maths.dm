@@ -15,6 +15,8 @@ GLOBAL_LIST_INIT(sqrtTable, list(1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4,
 						) \
 					)
 #define Ceiling(x) (-round(-x))
+#define CEILING(x, y) ( -round(-(x) / (y)) * (y) )
+
 #define Clamp(val, min_val, max_val) (max(min_val, min(val, max_val)))
 #define CLAMP01(x) (clamp(x, 0, 1))
 
@@ -26,6 +28,16 @@ GLOBAL_LIST_INIT(sqrtTable, list(1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4,
 
 #define Default(a, b) (a ? a : b)
 #define Floor(x) (round(x))
+// round() acts like floor(x, 1) by default but can't handle other values
+#define FLOOR(x, y) ( round((x) / (y)) * (y) )
+//Floors to a whole integer to account for float-point errors.
+//This works according Lummox Jr, and my own experience seems to suggest the same. Prevents rounding errors when rounding computed fractions where otherwise (with compile-time variables) you would return a greater integer.
+//ie, round(0.4 / 0.2) returns 1 instead of 2 if the variables were computed during the game. This will make sure it will properly round up in those instances.
+#define FLOOR_INTEGER(x) floor(x + 0.0001)
+
+// Real modulus that handles decimals
+#define MODULUS(x, y) ( (x) - (y) * round((x) / (y)) )
+#define MODULUS_ONE(a, b) ( (a) - floor( ((a - 1) / (b)) ) * (b) ) //Modified modulus to return base 1. Istead of 0,1,2,3,4,5, etc, everything is shifted to 1,2,3,4,5,6.
 
 //Finds nearest integer to x, above or below
 //something.5 or higher, round up, else round down
@@ -39,6 +51,11 @@ GLOBAL_LIST_INIT(sqrtTable, list(1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4,
 
 // Returns true if val is from min to max, inclusive.
 #define IsInRange(val, min, max) (min <= val && val <= max)
+
+// Returns true if val is from min to max, inclusive.
+#define ISINRANGE(val, min, max) (min <= val && val <= max)
+// Same as above, exclusive.
+#define ISINRANGE_EX(val, min, max) (min < val && val < max)
 
 #define IsInteger(x) (Floor(x) == x)
 #define IsOdd(x) (!IsEven(x))
@@ -59,11 +76,18 @@ GLOBAL_LIST_INIT(sqrtTable, list(1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4,
 // 57.2957795 = 180 / Pi
 #define ToDegrees(radians) (radians * 57.2957795)
 
+// Will filter out extra rotations and negative rotations
+// E.g: 540 becomes 180. -180 becomes 180.
+#define SIMPLIFY_DEGREES(degrees) (MODULUS((degrees), 360))
+
 // 0.0174532925 = Pi / 180
 #define ToRadians(degrees) (degrees * 0.0174532925)
 
 // min is inclusive, max is exclusive
 #define WRAP(val, min, max) clamp(( min == max ? min : (val) - (round(((val) - (min))/((max) - (min))) * ((max) - (min))) ),min,max)
+
+/// Gets the sign of x, returns -1 if negative, 0 if 0, 1 if positive
+#define SIGN(x) ( ((x) > 0) - ((x) < 0) )
 
 
 // MATH PROCS

@@ -142,7 +142,7 @@
 	skills = /datum/skills/military/survivor/forecon_marksman
 
 /datum/equipment_preset/survivor/forecon/marksman/load_gear(mob/living/carbon/human/new_human)
-	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/rifle/m4ra_custom(new_human), WEAR_L_HAND)
+	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/rifle/m4ra/custom(new_human), WEAR_L_HAND)
 	..()
 	add_forecon_weapon_pistol(new_human)
 	spawn_random_headgear(new_human)

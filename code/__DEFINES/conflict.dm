@@ -54,35 +54,41 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 */
 
 //================================
-//These are gun features set through flats_gun_features. Three categories, but they all fall under the same flags.
+//These are gun features set through flags_gun_features. Three categories, but they all fall under the same flags.
 //These are basic features of a gun.
 #define GUN_CAN_POINTBLANK (1<<0) ///Can gun the shoot point-blank? Add it if it can.
 #define GUN_NO_SAFETY_SWITCH (1<<1) ///Some guns don't have a safety switch at all. You will not be able to set GUN_TRIGGER_SAFETY_ON via interaction, but does not safety check beyond that.
 #define GUN_AMMO_COUNTER (1<<3) ///Most USCM and UPP primaries have this set. This shows an active ammo counter on the weapon when picked up.
 #define GUN_AUTO_EJECTOR (1<<4) ///This will kick it out the magazine automatically once it runs dry. Most rifles and SMGs have this set.
-#define GUN_RECOIL_BUILDUP (1<<5) /// Whether the gun has been fired by its current user (reset upon `dropped()`)
-#define GUN_IS_SILENCED (1<<6) ///Only from an attachment, add an attachment on spawn if wanted. Temporary until attachement is removed.
-#define GUN_ONE_HAND_WIELDED (1<<7) /// This removes unwielded accuracy and scatter penalties (not recoil) when set, when you're using only one hand.
-#define GUN_NO_DESCRIPTION (1<<8) /// No gun description, only base desc
+#define GUN_MOTION_DETECTOR (1<<5)///If the gun has a built-in IFF-based motion detector.
+#define GUN_IFF_SYSTEM (1<<6)
+#define GUN_RECOIL_BUILDUP (1<<7) ///
+#define GUN_IS_SILENCED (1<<8) ///Only from an attachment, add an attachment on spawn if wanted. Temporary until attachement is removed.
+#define GUN_ONE_HAND_WIELDED (1<<9) /// This removes unwielded accuracy and scatter penalties (not recoil) when set, when you're using only one hand.
+#define GUN_NO_DESCRIPTION (1<<10) /// No gun description, only base desc
 //These are various restrictions
-#define GUN_SPECIALIST (1<<10) ///Some weapons are restricted to specialists on, this checks for it for those weapons.
-#define GUN_WY_RESTRICTED (1<<11) ///Some weapons are locked to WY mercs only, this checks for it for those weapons.
-#define GUN_WIELDED_FIRING_ONLY (1<<12) ///Some firarms have to be wielded to be fired, like rocket launchers.
+#define GUN_SPECIALIST (1<<11) ///Some weapons are restricted to specialists on, this checks for it for those weapons.
+#define GUN_WY_RESTRICTED (1<<12) ///Some weapons are locked to WY mercs only, this checks for it for those weapons.
+#define GUN_WIELDED_FIRING_ONLY (1<<13) ///Some firarms have to be wielded to be fired, like rocket launchers.
+#define GUN_ATTACHED_FIRE_ONLY (1<<14) //Gun can only be fired when attached to another firearm.
+#define GUN_IDENTITY_PROTECTED (1<<15) ///Gives the appropriate action to the gun.
 //These are gun designs
+#define GUN_ATTACHMENT (1<<17) ///This gun can be attached to other guns to shoot stuff.
 #define GUN_SUPPORT_PLATFORM (1<<17) /// support weapon, bipod will grant autofire
 #define GUN_UNUSUAL_DESIGN (1<<18) ///Guns with weird designs, energy weapons, not guns, and so on. This is important for checking for reloads and unloads. Can also be categorized as a basic feature. //TODO NIX THIS
 #define GUN_ANTIQUE (1<<19) ///Some really old guns (chronologically to the world) have this set. Used to show guns that couldn't auto-eject, but has been phased out in favor of GUN_AUTO_EJECTOR being set for anything that can auto eject.
+//#define GUN_ALIEN_DESIGN ///Specifically for guns that are alien weapons.
 
 //================================
-//These are temporary gun states set through flags_gun_toggles. They can change depending on various factors.
+//These are temporary gun states set through flags_gun_toggles. They can change depending on various factors, and may deal with a lot of different things.
 #define GUN_UNABLE_TO_FIRE (1<<0) ///If the gun is unable to fire for some reason, like the being WY restricted. Offloads some checks to this bitfield. Moving the gun to an empty hand will recalc this.
-#define GUN_TRIGGER_SAFETY_ON (1<<1) ///Disable safety, so setting through flags means the gun starts with the SAFETY ON.
+#define GUN_TRIGGER_SAFETY_ON (1<<1) ///Enables safety, so setting through flags means the gun starts with the SAFETY ON and unable to fire.
 #define GUN_FLASHLIGHT_ON (1<<2) ///From an attachment, if the attached light source is on.
 #define GUN_BURST_FIRING (1<<3) ///Added when the gun is burst firing.
 #define GUN_AUTO_EJECTING_OFF (1<<4) ///If the gun has an auto ejector, it defaults to ON when spawned in. Adding this toggles it off instead. Must have GUN_AUTO_EJECTOR
 #define GUN_AUTO_EJECTING_TO_HAND (1<<5) ///If the gun will auto-eject into the hand instead. Must have GUN_AUTO_EJECTOR
 ///These defines are still part of flags_gun_toggles, but they primarily function with the smartgun. Can be used on other things.
-#define GUN_IFF_SYSTEM_ON (1<<6) ///We want this to default to ON in most circumstances.
+#define GUN_IFF_SYSTEM_ON (1<<6) ///We want this to default to ON in most circumstances, but for consistency it's listed this way.
 #define GUN_RECOIL_COMP_ON (1<<7) ///If the gun is toggled to minimize recoil.
 #define GUN_ACCURACY_ASSIST_ON (1<<8) ///If the gun is set to assist with accuracy.
 #define GUN_AUTOMATIC_AIM_ASSIST_ON (1<<9) ///If the gun will fire at targets by itself.
@@ -91,21 +97,36 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 #define GUN_ID_LOCK_ON (1<<12) ///If the gun can lock itself from use, requiring a specific ID to unlock or something.
 //////////////////////////////////
 #define GUN_PLAYING_RUS_ROULETTE (1<<13) ///For revolvers. Mostly legacy tracking, but it's better as a bitfield as it won't require istype() checking elsewhere.
+#define GUN_ATTACHED_TO_PARENT (1<<14) ///Meant for GUN_ATTACHMENT. Flipped when the gun is actually attached to something.
 
 //================================
-//These are receiver features set through flags_gun_receiver
+//These are receiver features set through flags_gun_receiver. Deals with how the gun feeds ammo, readies bullets to fire, ejects casings, and how it fires.
 #define GUN_INTERNAL_MAG (1<<0) ///The gun is fed ammunition into an internal magazine, like a shotgun or revolver.
 #define GUN_CHAMBERED_CYCLE (1<<1)///The gun has to be "cocked" to fire, usually when a magazine is loaded. Most guns do this.
 #define GUN_MANUAL_CYCLE (1<<2)///Intead of automatically loading the next bullet, the user must manually load it each shot.
-#define GUN_CHAMBER_CAN_OPEN (1<<3)///The receiver can be opened, like a double barrel or revolver.
-#define GUN_CHAMBER_IS_OPEN (1<<4)///If the above is set, this means the receiver is currently open.
-#define GUN_CHAMBER_ROTATES (1<<5)///The chamber position can move around, typically with a cylinder.
-#define GUN_CHAMBER_IS_STATIC (1<<6)///in_chamber is always "on" acting as the default ammo for the gun and ignores some of the fire cycle. It should never be nulled.
-#define GUN_ACCEPTS_SPEEDLOADER (1<<7) //The receiver is loaded with speedloaders, only really affects revolvers.
-#define GUN_ACCEPTS_HANDFUL (1<<8) //Some guns with internal mags use this loading method.
-#define GUN_CHAMBER_EMPTY_CASING (1<<9) ///If there is an empty casing in the chamber. For jams and edge case guns that don't have internal mags (bolt).
-#define GUN_CHAMBER_IS_JAMMED (1<<10) ///When a gun jams during the fire cycle, this is set. Can happen in reload_into_chamber().
-#define GUN_HAMMER_IS_COCKED (1<<11) //Specifically for revolvers but may be applied elsewhere. This is used to emulate cocking without an active in_chamber.
+#define GUN_HAMMER_IS_COCKED (1<<3) //Specifically for revolvers but may be applied elsewhere. This is used to emulate cocking without an active in_chamber.
+//#define GUN_LEVER_ACTION
+#define GUN_CHAMBER_CAN_OPEN (1<<4)///The receiver can be opened, like a double barrel or revolver.
+#define GUN_CHAMBER_IS_OPEN (1<<5)///If the above is set, this means the receiver is currently open.
+#define GUN_CHAMBER_ROTATES (1<<6)///The chamber position can move around, typically with a cylinder.
+#define GUN_CHAMBER_BELT_FED (1<<7) //For machinesguns. You have to open a hatch to change out the belt.
+#define GUN_CHAMBER_BATTERY_FED (1<<8)///Requires battery charge to operate the firing mechanism.
+#define GUN_CHAMBER_EXTERNALLY_FED (1<<9)///There is an item it links to, to actually manage ammunition and fire.
+#define GUN_CHAMBER_IS_STATIC (1<<10)///in_chamber is always "on" acting as the default ammo for the gun and ignores some of the fire cycle. It should never be nulled.
+#define GUN_CHAMBER_HAS_EMPTY_CASING (1<<11) ///If there is an empty casing in the chamber. For jams and edge case guns that don't have internal mags (bolt).
+#define GUN_CHAMBER_IS_JAMMED (1<<12) ///When a gun jams during the fire cycle, this is set. Can happen in reload_into_chamber().
+#define GUN_ACCEPTS_SPEEDLOADER (1<<13) //The receiver is loaded with speedloaders, only really affects revolvers/cylinders.
+#define GUN_ACCEPTS_HANDFUL (1<<14) //Some guns with internal mags use this loading method.
+#define GUN_ENERGY_WEAPON (1<<15)///Fires through expanding charge, though not necessarily the battery kind.
+//Unused at this time.
+//#define GUN_CHARGES_SHOT ///The gun's trigger must be held down for some time before it can be fired.
+//#define GUN_FIRES_LINEAR_BEAM ///The gun fires not an individual projectile but a linear beam, like a laser.
+
+
+
+#define USES_STREAKS (1<<0)
+#define DANGEROUS_TO_ONEHAND_LEVER (1<<1)
+#define MOVES_WHEN_LEVERING (1<<2)
 
 //Gun weapon categories, currently used for firing while dualwielding. Changed these to bitflags in case I want to mix and match. Unique from the flags above, could combine with gun designs.
 #define GUN_CATEGORY_HANDGUN (1<<0)
@@ -120,10 +141,6 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 #define PROJECTILE_CASING_SHELL "shell" //shotguns
 #define PROJECTILE_CASING_CARTRIDGE "cartridge" //rifles and larger calibers
 #define PROJECTILE_CASING_TWOBORE "twobore" //The twobore unique casing.
-
-#define USES_STREAKS (1<<0) //Keeping the define for now, the associated code is gutted.
-#define DANGEROUS_TO_ONEHAND_LEVER (1<<1)
-#define MOVES_WHEN_LEVERING (1<<2)
 
 //Gun attachable related flags.
 #define ATTACH_INTEGRATED (1<<0) ///Cannot be removed by the player.
@@ -146,6 +163,7 @@ NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. Y
 #define AMMUNITION_CANNOT_REMOVE_BULLETS (1<<4)
 /// If this magazine can transfer to other magazines of the same type by slapping one with the other
 #define AMMUNITION_SLAP_TRANSFER (1<<5)
+#define AMMUNITION_IN_VIS_CONTENTS (1<<6) //If it is contained within another magazine, specific to handfuls.
 
 //Slowdown from various armors.
 

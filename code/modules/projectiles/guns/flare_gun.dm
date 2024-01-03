@@ -22,7 +22,6 @@
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_12
 
-	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_NONE
 	recoil = RECOIL_AMOUNT_TIER_4
@@ -30,14 +29,10 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/flare/initialize_gun_lists()
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/scope/mini/flaregun)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/scope/mini/flaregun))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/scope/mini/flaregun))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 12, "rail_y" = 20, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14))
 
-	if(!attachable_allowed)
-		attachable_allowed = list(/obj/item/attachable/scope/mini/flaregun)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 12, "rail_y" = 20, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
 	..()
 
 /obj/item/weapon/gun/flare/Initialize(mapload, spawn_empty)

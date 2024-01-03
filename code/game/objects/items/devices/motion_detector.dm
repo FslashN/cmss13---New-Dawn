@@ -65,10 +65,7 @@
 	if(blood_overlay)
 		overlays += blood_overlay
 	//add ping overlay
-	if(ping_count > 8)
-		ping_overlay = "+[initial(icon_state)]_on_9"
-	else
-		ping_overlay = "+[initial(icon_state)]_on_[ping_count]"
+	ping_overlay = "+[initial(icon_state)]_on_[min(ping_count, 9)]"
 	var/image/ping_overlay_image = ping_overlay
 	if(active)
 		overlays += ping_overlay_image
@@ -184,13 +181,6 @@
 	if(ishuman(loc))
 		return loc
 
-/obj/item/device/motiondetector/sg
-
-/obj/item/device/motiondetector/sg/get_user()
-	var/atom/A = loc
-	if(ishuman(A.loc))
-		return A.loc
-
 /obj/item/device/motiondetector/proc/apply_debuff(mob/M)
 	return
 
@@ -218,7 +208,7 @@
 
 	for(var/A in ping_candidates)
 		var/mob/living/M = A //do this to skip the unnecessary istype() check; everything in ping_candidate is a mob already
-		if(M == loc) continue //device user isn't detected
+		if(M == human_user) continue //device user isn't detected
 		if(world.time > M.l_move_time + 20) continue //hasn't moved recently
 		if(isrobot(M)) continue
 		if(M.get_target_lock(iff_signal))
@@ -299,35 +289,84 @@
 	blip_type = "tracker"
 	long_range_locked = TRUE
 
+/obj/item/device/motiondetector/hacked
+	name = "hacked motion detector"
+	desc = "A device that usually picks up non-USCM signals, but this one's been hacked to detect all non-UPP movement instead. Fight fire with fire!"
+	iff_signal = FACTION_UPP
+
 /obj/item/device/motiondetector/m717/hacked/contractor
 	name = "modified M717 pocket motion detector"
 	desc = "This prototype motion detector sacrifices versatility, having only the long-range mode, for size, being so small it can even fit in pockets. This one has been modified with an after-market IFF sensor to filter out Vanguard's Arrow Incorporated signals instead of USCM ones. Fight fire with fire!"
 	iff_signal = FACTION_CONTRACTOR
 
-/obj/item/device/motiondetector/hacked
-	name = "hacked motion detector"
-	desc = "A device that usually picks up non-USCM signals, but this one's been hacked to detect all non-UPP movement instead. Fight fire with fire!"
-	iff_signal = FACTION_UPP
+/obj/item/device/motiondetector/hacked/contractor
+	name = "modified motion detector"
+	desc = "A device that usually picks up non-USCM signals, but this one's been modified with after-market IFF sensors to detect all non-Vanguard's Arrow Incorporated movement instead. Fight fire with fire!"
+	iff_signal = FACTION_CONTRACTOR
 
 /obj/item/device/motiondetector/hacked/elite_merc
 	name = "hacked motion detector"
 	desc = "A device that usually picks up non-USCM signals, but this one's been hacked to detect all non-freelancer movement instead. Fight fire with fire!"
 	iff_signal = FACTION_MERCENARY
 
-/obj/item/device/motiondetector/hacked/pmc
-	name = "corporate motion detector"
-	desc = "A device that usually picks up non-USCM signals, but this one's been reprogrammed to detect all non-PMC movement instead. Very corporate."
-	iff_signal = FACTION_PMC
-
 /obj/item/device/motiondetector/hacked/dutch
 	name = "hacked motion detector"
 	desc = "A device that usually picks up non-USCM signals, but this one's been hacked to detect all non-Dutch's Dozen movement instead. Fight fire with fire!"
 	iff_signal = FACTION_DUTCH
 
-/obj/item/device/motiondetector/hacked/contractor
-	name = "modified motion detector"
-	desc = "A device that usually picks up non-USCM signals, but this one's been modified with after-market IFF sensors to detect all non-Vanguard's Arrow Incorporated movement instead. Fight fire with fire!"
-	iff_signal = FACTION_CONTRACTOR
+/obj/item/device/motiondetector/hacked/pmc
+	name = "corporate motion detector"
+	desc = "A device that usually picks up non-USCM signals, but this one's been reprogrammed to detect all non-PMC movement instead. Very corporate."
+	iff_signal = FACTION_PMC
+
+//Pathing for integrated smartgun motion detectors.
+/obj/item/device/motiondetector/integrated
+	desc = "An internal component not meant to be interacted with directly. Please report this."
+	icon_state = "v_detector"
+	mouse_opacity = 0
+	pixel_y = 3
+	layer = ABOVE_HUD_LAYER + 0.01 //Just below the ammo counter.
+	vis_flags = VIS_INHERIT_PLANE
+	appearance_flags = RESET_COLOR|RESET_ALPHA|RESET_TRANSFORM|KEEP_APART
+
+	maptext_x = 25
+	maptext_y = 24
+
+/obj/item/device/motiondetector/integrated/process()
+	..()
+	//Should be fine each process cycle since the item is pretty rare. "Blinks" it a different color by running icon proc again a bit later. Generally in-synch with the sounds/beeps it makes.
+	addtimer(CALLBACK(src, PROC_REF(update_icon), "#88A8CB"), 0.6 SECONDS) //Add a timer to changer it back to the regular color.
+
+/obj/item/device/motiondetector/integrated/update_icon(maptext_color = "#aaffff")
+	if(active)
+		icon_state = ping_count > 0 ? initial(icon_state) + "_on_ping" : initial(icon_state) + "_on"
+		maptext = SPAN_MOTION_DETECTOR(min(ping_count, 9), maptext_color) //No more than 9 pings.
+
+/obj/item/device/motiondetector/integrated/get_user()
+	var/atom/A = loc
+	return ishuman(A.loc) && A.loc
+
+/obj/item/device/motiondetector/integrated/turn_on(mob/user)
+	active = TRUE
+	icon_state += "_on"
+	//It will take a second for it to kick on, so we put this up beforehand.
+	maptext = SPAN_MOTION_DETECTOR("0", "#88A8CB")
+	START_PROCESSING(SSobj, src)
+
+/obj/item/device/motiondetector/integrated/turn_off(mob/user)
+	active = FALSE
+	icon_state = initial(icon_state)
+	maptext = null
+	STOP_PROCESSING(SSobj, src)
+
+/obj/item/device/motiondetector/integrated/clf
+	iff_signal = FACTION_CLF
+/obj/item/device/motiondetector/integrated/pmc
+	iff_signal = FACTION_PMC
+/obj/item/device/motiondetector/integrated/twe
+	iff_signal = FACTION_TWE
+/obj/item/device/motiondetector/integrated/deathsquad
+	iff_signal = FACTION_WY_DEATHSQUAD
 
 #undef MOTION_DETECTOR_RANGE_LONG
 #undef MOTION_DETECTOR_RANGE_SHORT

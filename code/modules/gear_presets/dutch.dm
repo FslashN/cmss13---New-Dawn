@@ -73,7 +73,7 @@
 			new_human.equip_to_slot_or_del(new /obj/item/storage/pouch/magazine/large/m16/ap(new_human), WEAR_L_STORE)
 
 		if(10) // 10% for M60
-			new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/m60(new_human), WEAR_J_STORE)//these preds gonna GET SOME!!!!!!!!!!!
+			new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/machinegun/m60(new_human), WEAR_J_STORE)//these preds gonna GET SOME!!!!!!!!!!!
 			new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/m60(new_human), WEAR_IN_JACKET)
 			new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/m60(new_human), WEAR_IN_JACKET)
 			new_human.equip_to_slot_or_del(new /obj/item/storage/belt/marine/dutch/m60(new_human), WEAR_WAIST)

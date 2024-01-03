@@ -243,10 +243,8 @@
 		if(istype(i, /obj/item/weapon/gun/smartgun))
 			var/obj/item/weapon/gun/smartgun/sg = i
 			if(sg.flags_gun_toggles & GUN_MOTION_DETECTOR_ON)
-				sg.flags_gun_toggles &= ~GUN_MOTION_DETECTOR_ON
-				var/datum/action/item_action/smartgun/toggle_motion_detector/TMD = locate(/datum/action/item_action/smartgun/toggle_motion_detector) in sg.actions
-				TMD.update_icon()
-				sg.motion_detector()
+				var/datum/action/item_action/gun/A = locate(/datum/action/item_action/gun/toggle_motion_detector) in sg.actions
+				A.action_activate(FALSE) //hides the activation message
 
 /mob/living/carbon/human/proc/disable_headsets()
 	//Disable all radios to reduce radio spam for dead people

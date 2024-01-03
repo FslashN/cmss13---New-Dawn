@@ -11,7 +11,7 @@
 	black_market_value = 35
 	var/obj/item/charging = null
 	var/percent_charge_complete = 0
-	var/list/allowed_devices = list(/obj/item/weapon/baton, /obj/item/cell, /obj/item/weapon/gun/energy, /obj/item/device/defibrillator, /obj/item/tool/portadialysis, /obj/item/clothing/suit/auto_cpr, /obj/item/smartgun_battery, /obj/item/device/helmet_visor/night_vision)
+	var/list/allowed_devices = list(/obj/item/weapon/baton, /obj/item/cell, /obj/item/weapon/gun, /obj/item/device/defibrillator, /obj/item/tool/portadialysis, /obj/item/clothing/suit/auto_cpr, /obj/item/smartgun_battery, /obj/item/device/helmet_visor/night_vision)
 
 	var/charge_amount = 1000
 
@@ -77,15 +77,15 @@
 		update_use_power(USE_POWER_IDLE)
 		percent_charge_complete = 0
 		update_icon()
-	//This is an awful check. Holy cow.
+	//This is an awful check. Holy cow. //Bad check is bad.
 	else
-		if(istype(charging, /obj/item/weapon/gun/energy))
-			var/obj/item/weapon/gun/energy/E = charging
-			if(!E.works_in_recharger)
-				return;
-			if(!E.cell.fully_charged())
-				E.cell.give(charge_amount)
-				percent_charge_complete = E.cell.percent()
+		if(istype(charging, /obj/item/weapon/gun))
+			var/obj/item/weapon/gun/G = charging
+			if(!(G.flags_gun_receiver & GUN_CHAMBER_BATTERY_FED) || G.w_class >  SIZE_LARGE) //Battery charged only and not the smartgun.
+				return
+			if(!G.integrated_battery.fully_charged())
+				G.integrated_battery.give(charge_amount)
+				percent_charge_complete = G.integrated_battery.percent()
 				update_use_power(USE_POWER_ACTIVE)
 				update_icon()
 			else

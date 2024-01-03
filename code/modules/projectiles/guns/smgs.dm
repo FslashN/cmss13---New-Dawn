@@ -6,7 +6,7 @@
 /obj/item/weapon/gun/smg
 	reload_sound = 'sound/weapons/handling/smg_reload.ogg'
 	unload_sound = 'sound/weapons/handling/smg_unload.ogg'
-	cocked_sound = 'sound/weapons/gun_cocked2.ogg'
+	chamber_cycle_sound = 'sound/weapons/gun_cocked2.ogg'
 	fire_sound = 'sound/weapons/gun_m39.ogg'
 	force = 5
 	w_class = SIZE_LARGE
@@ -17,28 +17,48 @@
 	start_automatic = TRUE
 
 	//=========// GUN STATS //==========//
+	malfunction_chance_base = GUN_MALFUNCTION_CHANCE_ZERO
+
+	fire_delay = FIRE_DELAY_TIER_SMG
+	burst_amount = BURST_AMOUNT_TIER_3
+	burst_delay = FIRE_DELAY_TIER_SMG
+
+	accuracy_mult = BASE_ACCURACY_MULT
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT
+	scatter = SCATTER_AMOUNT_TIER_6
+	burst_scatter_mult = SCATTER_AMOUNT_TIER_7
+	scatter_unwielded = SCATTER_AMOUNT_TIER_6
+
+	damage_mult = BULLET_DAMAGE_MULT_BASE
+	damage_falloff_mult = DAMAGE_FALLOFF_TIER_10
+	damage_buildup_mult = DAMAGE_BUILDUP_TIER_1
+	velocity_add = BASE_VELOCITY_BONUS
+	recoil = RECOIL_OFF
+	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_2
+
+	effective_range_min = EFFECTIVE_RANGE_OFF
+	effective_range_max = EFFECTIVE_RANGE_OFF
+
+	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_BASE
 	fa_max_scatter = SCATTER_AMOUNT_TIER_5
+
+	recoil_buildup_limit = RECOIL_AMOUNT_TIER_1 / RECOIL_BUILDUP_VIEWPUNCH_MULTIPLIER
 
 	aim_slowdown = SLOWDOWN_ADS_QUICK
 	wield_delay = WIELD_DELAY_VERY_FAST
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/suppressor,
 			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/magnetic_harness,
-		)
+		))
 
 	..()
-
-/obj/item/weapon/gun/smg/unique_action(mob/user)
-	cycle_chamber(user)
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                        M39                         ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -58,27 +78,16 @@
 	pixel_width_offset = -2
 
 	//=========// GUN STATS //==========//
-	fire_delay = FIRE_DELAY_TIER_SMG
-	burst_delay = FIRE_DELAY_TIER_SMG
-	burst_amount = BURST_AMOUNT_TIER_3
-
-	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_5
 	scatter = SCATTER_AMOUNT_TIER_4
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_4
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4
-	damage_mult = BULLET_DAMAGE_MULT_BASE
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 	fa_max_scatter = SCATTER_AMOUNT_TIER_M39
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/m39/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/stock/smg/collapsible)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/stock/smg/collapsible))
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/suppressor,
 			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
@@ -99,10 +108,8 @@
 			/obj/item/attachable/magnetic_harness,
 			/obj/item/attachable/gyro,
 			/obj/item/attachable/stock/smg/collapsible/brace,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 20,"rail_x" = 14, "rail_y" = 22, "under_x" = 21, "under_y" = 16, "stock_x" = 24, "stock_y" = 15)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 30, "muzzle_y" = 20,"rail_x" = 14, "rail_y" = 22, "under_x" = 21, "under_y" = 16, "stock_x" = 24, "stock_y" = 15))
 
 	..()
 
@@ -138,31 +145,11 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/m39/elite/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/stock/smg/collapsible)
-
-	if(!random_attachments_possible[ATTACHMENT_SLOT_RAIL])
-		random_attachments_possible[ATTACHMENT_SLOT_RAIL] = list(
-			/obj/item/attachable/reddot,
-			/obj/item/attachable/reflex,
-			/obj/item/attachable/flashlight,
-			/obj/item/attachable/magnetic_harness
-		)
-
-	if(!random_attachments_possible[ATTACHMENT_SLOT_MUZZLE])
-		random_attachments_possible[ATTACHMENT_SLOT_MUZZLE] = list(
-			/obj/item/attachable/suppressor,
-			/obj/item/attachable/bayonet,
-			/obj/item/attachable/extended_barrel
-		)
-
-	if(!random_attachments_possible[ATTACHMENT_SLOT_UNDER])
-		random_attachments_possible[ATTACHMENT_SLOT_UNDER] = list(
-			/obj/item/attachable/angledgrip,
-			/obj/item/attachable/lasersight,
-			/obj/item/attachable/flashlight/grip
-		)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/stock/smg/collapsible))
+	LAZYINITLIST(random_attachments_possible)
+	INHERITLIST(random_attachments_possible[ATTACHMENT_SLOT_RAIL], list(/obj/item/attachable/reddot, /obj/item/attachable/reflex, /obj/item/attachable/flashlight, /obj/item/attachable/magnetic_harness))
+	INHERITLIST(random_attachments_possible[ATTACHMENT_SLOT_MUZZLE], list(/obj/item/attachable/suppressor, /obj/item/attachable/bayonet, /obj/item/attachable/extended_barrel))
+	INHERITLIST(random_attachments_possible[ATTACHMENT_SLOT_UNDER], list(/obj/item/attachable/angledgrip, /obj/item/attachable/lasersight, /obj/item/attachable/flashlight/grip))
 
 	..()
 
@@ -171,9 +158,7 @@
 	random_attachment_chance = 0 //So they actually get their starting attachments. Starting attachments are handled after randoms, only if randoms don't spawn in the slot.
 
 /obj/item/weapon/gun/smg/m39/elite/whiteout/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/stock/smg, /obj/item/attachable/suppressor, /obj/item/attachable/angledgrip, /obj/item/attachable/magnetic_harness)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/stock/smg, /obj/item/attachable/suppressor, /obj/item/attachable/angledgrip, /obj/item/attachable/magnetic_harness))
 
 	..()
 
@@ -195,8 +180,6 @@
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_11
-	burst_delay = FIRE_DELAY_TIER_SMG
-	burst_amount = BURST_AMOUNT_TIER_3
 
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_4
@@ -204,33 +187,28 @@
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_8
 	scatter_unwielded = SCATTER_AMOUNT_TIER_5
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/mp5/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/suppressor, // Barrel
+	INHERITLIST(attachable_allowed, list(
+			/obj/item/attachable/suppressor,
 			/obj/item/attachable/bayonet,
 			/obj/item/attachable/bayonet/upp,
 			/obj/item/attachable/bayonet/co2,
 			/obj/item/attachable/extended_barrel,
 			/obj/item/attachable/heavy_barrel,
 			/obj/item/attachable/compensator,
-			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/magnetic_harness,
 			/obj/item/attachable/scope/mini,
-			/obj/item/attachable/lasersight, // Under
+			/obj/item/attachable/lasersight,
 			/obj/item/attachable/gyro,
 			/obj/item/attachable/bipod,
 			/obj/item/attachable/burstfire_assembly
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 30, "muzzle_y" = 17,"rail_x" = 12, "rail_y" = 19, "under_x" = 23, "under_y" = 15, "stock_x" = 28, "stock_y" = 17)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 30, "muzzle_y" = 17,"rail_x" = 12, "rail_y" = 19, "under_x" = 23, "under_y" = 15, "stock_x" = 28, "stock_y" = 17))
 
 	..()
 
@@ -251,45 +229,37 @@
 	pixel_width_offset = -2
 
 	//=========// GUN STATS //==========//
-	fire_delay = FIRE_DELAY_TIER_SMG
-	burst_delay = FIRE_DELAY_TIER_SMG
 	burst_amount = BURST_AMOUNT_TIER_2
 
-	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_2
 	scatter = SCATTER_AMOUNT_TIER_4 + (SCATTER_AMOUNT_TIER_10 * 0.5)
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_8 + (SCATTER_AMOUNT_TIER_10 * 0.5)
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4 + SCATTER_AMOUNT_TIER_10
-	damage_mult = BULLET_DAMAGE_MULT_BASE
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 
 	aim_slowdown = SLOWDOWN_ADS_NONE
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/mp27/initialize_gun_lists()
 
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/suppressor, // Barrel
+	INHERITLIST(attachable_allowed, list(
+			/obj/item/attachable/suppressor,
 			/obj/item/attachable/bayonet,
 			/obj/item/attachable/bayonet/upp,
 			/obj/item/attachable/bayonet/co2,
 			/obj/item/attachable/extended_barrel,
 			/obj/item/attachable/heavy_barrel,
 			/obj/item/attachable/compensator,
-			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/magnetic_harness,
 			/obj/item/attachable/scope/mini,
-			/obj/item/attachable/lasersight, // Under
+			/obj/item/attachable/lasersight,
 			/obj/item/attachable/gyro,
 			/obj/item/attachable/bipod,
 			/obj/item/attachable/burstfire_assembly,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 12, "rail_y" = 20, "under_x" = 23, "under_y" = 16, "stock_x" = 28, "stock_y" = 17)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 19,"rail_x" = 12, "rail_y" = 20, "under_x" = 23, "under_y" = 16, "stock_x" = 28, "stock_y" = 17))
 
 	..()
 
@@ -309,26 +279,17 @@
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_ANTIQUE|GUN_NO_SAFETY_SWITCH //Prototype copy, so no safety.
 
 	//=========// GUN STATS //==========//
-	fire_delay = FIRE_DELAY_TIER_SMG
-	burst_delay = FIRE_DELAY_TIER_SMG
-	burst_amount = BURST_AMOUNT_TIER_3
-
-	accuracy_mult = BASE_ACCURACY_MULT
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_5
 	scatter = SCATTER_AMOUNT_TIER_4
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_4
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4
-	damage_mult = BULLET_DAMAGE_MULT_BASE
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 
 	fa_max_scatter = SCATTER_AMOUNT_TIER_9
 	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_TIER_PPSH // Seems a bit funny, but it works pretty well in the end
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/ppsh/initialize_gun_lists()
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 17,"rail_x" = 15, "rail_y" = 19, "under_x" = 26, "under_y" = 15, "stock_x" = 26, "stock_y" = 15)
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 17,"rail_x" = 15, "rail_y" = 19, "under_x" = 26, "under_y" = 15, "stock_x" = 26, "stock_y" = 15))
 
 	..()
 
@@ -374,23 +335,15 @@
 	pixel_width_offset = -1
 
 	//=========// GUN STATS //==========//
-	fire_delay = FIRE_DELAY_TIER_SMG
-	burst_delay = FIRE_DELAY_TIER_SMG
-	burst_amount = BURST_AMOUNT_TIER_3
-
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_5
-	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_4
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/pps43/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/suppressor,
 			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
@@ -400,10 +353,8 @@
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/extended_barrel,
 			/obj/item/attachable/magnetic_harness,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 20,"rail_x" = 20, "rail_y" = 24, "under_x" = 25, "under_y" = 17, "stock_x" = 26, "stock_y" = 15)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 20,"rail_x" = 20, "rail_y" = 24, "under_x" = 25, "under_y" = 17, "stock_x" = 26, "stock_y" = 15))
 
 	..()
 
@@ -415,7 +366,7 @@
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/smg/bizon
-	name = "\improper Type 64 Submachinegun"
+	name = "\improper Type 64 submachinegun"
 	desc = "The standard submachinegun of the UPP, sporting an unusual 64 round helical magazine, it has a high fire-rate, but is unusually accurate. This one has a faux-wood grip, denoting it as civilian use or as an export model."
 	desc_lore = "The Type 64 finds its way into the hands of more than just UPP soldiers, it has an active life with rebel groups, corporate security forces, mercenaries, less well-armed militaries, and just about everything or everyone in between."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/upp.dmi'
@@ -426,8 +377,6 @@
 	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER //Roughly the same as the USCM
 
 	//=========// GUN STATS //==========//
-	fire_delay = FIRE_DELAY_TIER_SMG
-	burst_delay = FIRE_DELAY_TIER_SMG
 	burst_amount = BURST_AMOUNT_TIER_4
 
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
@@ -436,21 +385,18 @@
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_8
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_3
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 
 	wield_delay = WIELD_DELAY_MIN
 	aim_slowdown = SLOWDOWN_ADS_QUICK_MINUS
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/bizon/initialize_gun_lists()
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 20,"rail_x" = 18, "rail_y" = 23, "under_x" = 26, "under_y" = 15, "stock_x" = 26, "stock_y" = 15)
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 20,"rail_x" = 18, "rail_y" = 23, "under_x" = 26, "under_y" = 15, "stock_x" = 26, "stock_y" = 15))
 
 	..()
 
 /obj/item/weapon/gun/smg/bizon/upp
-	name = "\improper Type 64 Submachinegun"
+	name = "\improper Type 64 submachinegun"
 	desc = "The standard submachinegun of the UPP, sporting an unusual 64 round helical magazine, it has a high fire-rate, but is unusually accurate. This one has a black polymer grip, denoting it as in-use by the UPP military."
 	desc_lore = "The Type 64 finds its way into the hands of more than just UPP soldiers, it has an active life with rebel groups, corporate security forces, mercenaries, less well-armed militaries, and just about everything or everyone in between."
 	icon_state = "type64_u"
@@ -474,7 +420,6 @@
 
 	//=========// GUN STATS //==========//
 	fire_delay = FIRE_DELAY_TIER_12
-	accuracy_mult = BASE_ACCURACY_MULT
 	scatter = SCATTER_AMOUNT_TIER_5
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_8
 	damage_mult = BULLET_DAMAGE_MULT_BASE - BULLET_DAMAGE_MULT_TIER_2
@@ -487,23 +432,19 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/mac15/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/suppressor, // Barrel
+	INHERITLIST(attachable_allowed, list(
+			/obj/item/attachable/suppressor,
 			/obj/item/attachable/extended_barrel,
 			/obj/item/attachable/heavy_barrel,
 			/obj/item/attachable/compensator,
-			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/scope/mini,
-			/obj/item/attachable/lasersight, // Under
+			/obj/item/attachable/lasersight,
 			/obj/item/attachable/burstfire_assembly,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 20,"rail_x" = 16, "rail_y" = 22, "under_x" = 22, "under_y" = 16, "stock_x" = 22, "stock_y" = 16)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 32, "muzzle_y" = 20,"rail_x" = 16, "rail_y" = 22, "under_x" = 22, "under_y" = 16, "stock_x" = 22, "stock_y" = 16))
 
 	..()
 
@@ -534,36 +475,28 @@
 
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_2
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_2
-	scatter = SCATTER_AMOUNT_TIER_6
 	scatter_unwielded = SCATTER_AMOUNT_TIER_3
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_2
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 
 	wield_delay = WIELD_DELAY_MIN
-	aim_slowdown = SLOWDOWN_ADS_QUICK
 
 	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_TIER_5
-	fa_max_scatter = SCATTER_AMOUNT_TIER_5
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/uzi/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/suppressor, // Barrel
+	INHERITLIST(attachable_allowed, list(
+			/obj/item/attachable/suppressor,
 			/obj/item/attachable/extended_barrel,
 			/obj/item/attachable/heavy_barrel,
 			/obj/item/attachable/compensator,
-			/obj/item/attachable/reddot, // Rail
+			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/scope/mini,
-			/obj/item/attachable/lasersight, // Under
+			/obj/item/attachable/lasersight,
 			/obj/item/attachable/burstfire_assembly,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 12, "rail_y" = 22, "under_x" = 22, "under_y" = 16, "stock_x" = 22, "stock_y" = 16)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 28, "muzzle_y" = 20,"rail_x" = 12, "rail_y" = 22, "under_x" = 22, "under_y" = 16, "stock_x" = 22, "stock_y" = 16))
 
 	..()
 
@@ -584,48 +517,20 @@
 	random_attachment_chance = 65
 
 	//=========// GUN STATS //==========//
-	fire_delay = FIRE_DELAY_TIER_SMG
-	burst_delay = FIRE_DELAY_TIER_SMG
-	burst_amount = BURST_AMOUNT_TIER_3
-
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_5
-	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_4
 	scatter_unwielded = SCATTER_AMOUNT_TIER_4
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_1
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/fp9000/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/scope/mini/fp9000)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/compensator,
-			/obj/item/attachable/lasersight,
-			/obj/item/attachable/extended_barrel,
-			/obj/item/attachable/heavy_barrel,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 20, "rail_y" = 21, "under_x" = 26, "under_y" = 16, "stock_x" = 22, "stock_y" = 16)
-
-	if(!random_attachments_possible)
-		random_attachments_possible = list()
-
-	if(!random_attachments_possible[ATTACHMENT_SLOT_MUZZLE])
-		random_attachments_possible[ATTACHMENT_SLOT_MUZZLE] = list(
-			/obj/item/attachable/compensator,
-			/obj/item/attachable/extended_barrel,
-		)
-
-	if(!random_attachments_possible[ATTACHMENT_SLOT_UNDER])
-		random_attachments_possible[ATTACHMENT_SLOT_UNDER] = list(
-			/obj/item/attachable/lasersight,
-		)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/scope/mini/fp9000))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/compensator, /obj/item/attachable/lasersight, /obj/item/attachable/extended_barrel, /obj/item/attachable/heavy_barrel))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 20, "rail_y" = 21, "under_x" = 26, "under_y" = 16, "stock_x" = 22, "stock_y" = 16))
+	LAZYINITLIST(random_attachments_possible)
+	INHERITLIST(random_attachments_possible[ATTACHMENT_SLOT_MUZZLE], list(/obj/item/attachable/compensator, /obj/item/attachable/extended_barrel))
+	INHERITLIST(random_attachments_possible[ATTACHMENT_SLOT_UNDER], list(/obj/item/attachable/lasersight))
 
 	..()
 
@@ -638,26 +543,16 @@
 	random_attachment_chance = 100
 
 	//=========// GUN STATS //==========//
-	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
-	scatter = SCATTER_AMOUNT_TIER_9
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_7
+	scatter = SCATTER_AMOUNT_TIER_9
+	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_4
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/fp9000/pmc/initialize_gun_lists()
-
-	if(!random_attachments_possible)
-		random_attachments_possible = list()
-
-	if(!random_attachments_possible[ATTACHMENT_SLOT_RAIL]) //This will replace the mini-scope.
-		random_attachments_possible[ATTACHMENT_SLOT_RAIL] = list(
-			/obj/item/attachable/reddot,
-			/obj/item/attachable/reflex,
-			/obj/item/attachable/flashlight,
-			/obj/item/attachable/magnetic_harness,
-		)
+	LAZYINITLIST(random_attachments_possible)
+	INHERITLIST(random_attachments_possible[ATTACHMENT_SLOT_RAIL], list(/obj/item/attachable/reddot, /obj/item/attachable/reflex, /obj/item/attachable/flashlight, /obj/item/attachable/magnetic_harness)) //This will replace the mini-scope.
 
 	..()
-
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[                       NAILGUN                      ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -674,11 +569,11 @@
 	projectile_casing = PROJECTILE_CASING_CASELESS
 	reload_sound = 'sound/weapons/handling/smg_reload.ogg'
 	unload_sound = 'sound/weapons/handling/smg_unload.ogg'
-	cocked_sound = 'sound/weapons/gun_cocked2.ogg'
+	chamber_cycle_sound = 'sound/weapons/gun_cocked2.ogg'
 	fire_sound = 'sound/weapons/nailgun_fire.ogg'
 	force = 5
 	w_class = SIZE_MEDIUM
-	flags_gun_features = GUN_CAN_POINTBLANK|GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH //Why wasn't wasn't an unusual design originally? I do believe nail guns have tip safety, so realistically, you shouldn't be able to fire them at people in the first place.
+	flags_gun_features = GUN_CAN_POINTBLANK|GUN_UNUSUAL_DESIGN|GUN_NO_SAFETY_SWITCH //Why wasn't wasn't an unusual design originally?
 	flags_gun_receiver = null
 	civilian_usable_override = TRUE
 	start_automatic = FALSE
@@ -692,18 +587,10 @@
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_4
 	scatter = SCATTER_AMOUNT_TIER_7
 	scatter_unwielded = SCATTER_AMOUNT_TIER_5
-	damage_mult = BULLET_DAMAGE_MULT_BASE
-	recoil_unwielded = RECOIL_AMOUNT_TIER_5
-	movement_onehanded_acc_penalty_mult = 4
-
-	aim_slowdown = SLOWDOWN_ADS_QUICK
-	wield_delay = WIELD_DELAY_VERY_FAST
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/smg/nailgun/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list()
+	INHERITLIST(attachable_allowed, list()) //We not want it to accept any attachments.
 
 	..()
 
@@ -714,9 +601,6 @@
 /obj/item/weapon/gun/unload(mob/user, reload_override = TRUE)
 	. = ..()
 
-/obj/item/weapon/gun/smg/nailgun/unique_action(mob/user)
-	return //Cannot cycle it.
-
 /obj/item/weapon/gun/smg/nailgun/compact
 	name = "compact nailgun"
 	desc = "A carpentry tool, used to drive nails into tough surfaces. Cannot fire nails offensively due to a lack of a gas seal around the nail, meaning it cannot build up the pressure to fire."
@@ -724,6 +608,7 @@
 	item_state = "nailgun"
 	w_class = SIZE_SMALL
 
+//I do believe nail guns have tip safety, so realistically, you shouldn't be able to fire them at people in the first place.
 /obj/item/weapon/gun/smg/nailgun/compact/able_to_fire(mob/living/user)
 	. = ..()
 

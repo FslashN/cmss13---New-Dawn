@@ -315,7 +315,7 @@
 	UPP.attach_accessory(new_human, W)
 	new_human.equip_to_slot_or_del(UPP, WEAR_BODY)
 	new_human.equip_to_slot_or_del(new /obj/item/clothing/suit/storage/marine/faction/UPP/jacket/ivan, WEAR_JACKET)
-	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/m60, WEAR_J_STORE)
+	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/machinegun/m60, WEAR_J_STORE)
 	//webbing
 	new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/m60, WEAR_IN_ACCESSORY)
 	new_human.equip_to_slot_or_del(new /obj/item/ammo_magazine/m60, WEAR_IN_ACCESSORY)

@@ -29,7 +29,7 @@
 	default_ammo = /datum/ammo/bullet/m60
 	max_rounds = 100
 	reload_delay = 8
-	gun_type = /obj/item/weapon/gun/m60
+	gun_type = /obj/item/weapon/gun/machinegun/m60
 
 /obj/item/ammo_magazine/pkp
 	name = "\improper QYJ-72 ammo box (7.62x54mmR)"
@@ -42,7 +42,7 @@
 	default_ammo = /datum/ammo/bullet/pkp
 	max_rounds = 250
 	reload_delay = 12
-	gun_type = /obj/item/weapon/gun/pkp
+	gun_type = /obj/item/weapon/gun/machinegun/pkp
 
 //rocket launchers
 
@@ -69,3 +69,11 @@
 	max_rounds = 5
 	default_ammo = /datum/ammo/bullet/sniper/railgun
 	gun_type = /obj/item/weapon/gun/rifle/techweb_railgun
+
+//-------------------------------------------------------
+//Flare gun
+/obj/item/ammo_magazine/internal/flare
+	name = "flare gun internal magazine"
+	caliber = "FL"
+	max_rounds = 1
+	default_ammo = /datum/ammo/flare

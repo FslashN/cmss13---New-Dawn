@@ -779,10 +779,12 @@ cases. Override_icon_state should be a list.*/
 //This proc is executed when someone clicks the on-screen UI button. To make the UI button show, set the 'icon_action_button' to the icon_state of the image of the button in actions.dmi
 //The default action is attack_self().
 //Checks before we get to here are: mob is alive, mob is not restrained, paralyzed, asleep, resting, laying, item is on the mob.
+
+///The above comment on checks may not be correct. This triggers from /datum/action/item_action/action_activate() in actions.dm, where it will need to check for those conditions in a child proc.
+//Checking if(src in usr) is also kind of sketchy. Not sure this is at all necessary. Something to check on later. /N
 /obj/item/proc/ui_action_click()
 	if(src in usr)
 		attack_self(usr)
-
 
 /obj/item/proc/IsShield()
 	return FALSE

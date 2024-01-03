@@ -8,7 +8,7 @@
 	throw_range = 10
 	force = 5
 	fire_sound = 'sound/weapons/armbomb.ogg'
-	cocked_sound = 'sound/weapons/gun_m92_cocked.ogg'
+	chamber_cycle_sound = 'sound/weapons/gun_m92_cocked.ogg'
 	reload_sound = 'sound/weapons/gun_shotgun_open2.ogg' //Played when inserting nade.
 	unload_sound = 'sound/weapons/gun_revolver_unload.ogg'
 	has_cylinder = TRUE //This weapon won't work otherwise.
@@ -33,12 +33,8 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/launcher/grenade/initialize_gun_lists()
-
-	if(!disallowed_grenade_types)
-		disallowed_grenade_types = list(/obj/item/explosive/grenade/spawnergrenade, /obj/item/explosive/grenade/alien, /obj/item/explosive/grenade/incendiary/molotov, /obj/item/explosive/grenade/flashbang)
-
-	if(!valid_munitions)
-		valid_munitions = list(/obj/item/explosive/grenade)
+	INHERITLIST(disallowed_grenade_types, list(/obj/item/explosive/grenade/spawnergrenade, /obj/item/explosive/grenade/alien, /obj/item/explosive/grenade/incendiary/molotov, /obj/item/explosive/grenade/flashbang))
+	INHERITLIST(valid_munitions, list(/obj/item/explosive/grenade))
 
 	..()
 
@@ -66,10 +62,10 @@
 	var/GL_sprite = base_gun_icon
 	if(GL_has_empty_icon && cylinder && !length(cylinder.contents))
 		GL_sprite += "_e"
-		playsound(loc, cocked_sound, 25, 1)
+		playsound(loc, chamber_cycle_sound, 25, 1)
 	if(GL_has_open_icon && open_chamber)
 		GL_sprite += "_o"
-		playsound(loc, cocked_sound, 25, 1)
+		playsound(loc, chamber_cycle_sound, 25, 1)
 	icon_state = GL_sprite
 
 
@@ -267,18 +263,10 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/launcher/grenade/m92/initialize_gun_lists()
-
-	if(!matter)
-		matter = list("metal" = 6000)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(/obj/item/attachable/magnetic_harness)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 14, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
-
-	if(!actions_types)
-		actions_types = list(/datum/action/item_action/toggle_firing_level)
+	INHERITLIST(matter, list("metal" = 6000))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/magnetic_harness))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 14, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14))
+	INHERITORADDLIST(actions_types, list(/datum/action/item_action/toggle_firing_level))
 
 	..()
 
@@ -305,12 +293,8 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/launcher/grenade/m81/initialize_gun_lists()
-
-	if(!matter)
-		matter = list("metal" = 7000)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 14, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+	INHERITLIST(matter, list("metal" = 7000))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 14, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14))
 
 	..()
 
@@ -332,9 +316,7 @@
 	preload = /obj/item/explosive/grenade/custom/teargas
 
 /obj/item/weapon/gun/launcher/grenade/m81/riot/initialize_gun_lists()
-
-	if(!valid_munitions)
-		valid_munitions = list(/obj/item/explosive/grenade/custom/teargas)
+	INHERITLIST(valid_munitions, list(/obj/item/explosive/grenade/custom/teargas))
 
 	..()
 
@@ -349,7 +331,7 @@
 	icon_state = "m79"
 	item_state = "m79"
 	fire_sound = 'sound/weapons/handling/m79_shoot.ogg'
-	cocked_sound = 'sound/weapons/handling/m79_break_open.ogg'
+	chamber_cycle_sound = 'sound/weapons/handling/m79_break_open.ogg'
 	reload_sound = 'sound/weapons/handling/m79_reload.ogg'
 	unload_sound = 'sound/weapons/handling/m79_unload.ogg'
 	flags_equip_slot = SLOT_BACK
@@ -357,24 +339,16 @@
 	is_lobbing = TRUE
 
 /obj/item/weapon/gun/launcher/grenade/m81/m79/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/stock/m79)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/stock/m79))
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/magnetic_harness,
 			/obj/item/attachable/flashlight,
 			/obj/item/attachable/reddot,
 			/obj/item/attachable/reflex,
 			/obj/item/attachable/stock/m79,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 9, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 14, "stock_y" = 14)
-
-	if(!actions_types)
-		actions_types = list(/datum/action/item_action/toggle_firing_level)
+		))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 9, "rail_y" = 22, "under_x" = 19, "under_y" = 14, "stock_x" = 14, "stock_y" = 14))
+	INHERITORADDLIST(actions_types, list(/datum/action/item_action/toggle_firing_level))
 
 	..()
 

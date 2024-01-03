@@ -14,6 +14,7 @@
 	unload_sound = 'sound/weapons/handling/flamer_unload.ogg'
 	reload_sound = 'sound/weapons/handling/flamer_reload.ogg'
 	current_mag = /obj/item/ammo_magazine/flamer_tank
+	force = 15
 	flags_gun_features = GUN_UNUSUAL_DESIGN|GUN_WIELDED_FIRING_ONLY
 	flags_gun_toggles = GUN_TRIGGER_SAFETY_ON
 	gun_category = GUN_CATEGORY_HEAVY
@@ -21,24 +22,14 @@
 	var/max_range = 9 //9 tiles, 7 is screen range, controlled by the type of napalm in the canister. We max at 9 since diagonal bullshit.
 
 	//=========// GUN STATS //==========//
-	force = 15
 	fire_delay = FIRE_DELAY_TIER_5 * 5
 
 	aim_slowdown = SLOWDOWN_ADS_INCINERATOR
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/flamer/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list( //give it some flexibility.
-			/obj/item/attachable/flashlight,
-			/obj/item/attachable/magnetic_harness,
-			/obj/item/attachable/attached_gun/extinguisher,
-			/obj/item/attachable/attached_gun/flamer_nozzle
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0, "rail_x" = 11, "rail_y" = 20, "under_x" = 21, "under_y" = 14, "stock_x" = 0, "stock_y" = 0)
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/flashlight, /obj/item/attachable/magnetic_harness, /obj/item/attachable/attached_gun/extinguisher, /obj/item/attachable/attached_gun/flamer_nozzle))  //give it some flexibility.
+	INHERITLIST(attachable_offset, list("muzzle_x" = 0, "muzzle_y" = 0, "rail_x" = 11, "rail_y" = 20, "under_x" = 21, "under_y" = 14, "stock_x" = 0, "stock_y" = 0))
 
 	..()
 
@@ -129,7 +120,7 @@
 		return NONE
 
 	if(flags_gun_toggles & GUN_TRIGGER_SAFETY_ON)
-		to_chat(user, SPAN_WARNING("\The [src] isn't lit!"))
+		to_chat(user, SPAN_WARNING("[src] isn't lit!"))
 		return NONE
 
 	if(!current_mag)
@@ -248,16 +239,8 @@
 	flags_gun_features = GUN_WY_RESTRICTED|GUN_WIELDED_FIRING_ONLY
 
 /obj/item/weapon/gun/flamer/deathsquad/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/attached_gun/extinguisher/pyro, /obj/item/attachable/magnetic_harness)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/flashlight,
-			/obj/item/attachable/magnetic_harness,
-			/obj/item/attachable/attached_gun/extinguisher,
-		)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/attached_gun/extinguisher/pyro, /obj/item/attachable/magnetic_harness))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/flashlight, /obj/item/attachable/magnetic_harness, /obj/item/attachable/attached_gun/extinguisher))
 
 	..()
 
@@ -266,6 +249,10 @@
 
 /obj/item/weapon/gun/flamer/deathsquad/standard
 	current_mag = /obj/item/ammo_magazine/flamer_tank
+
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
+//hhhhhhhhhhhhhhhhh===========[                M240-T SPEC INCINERATOR  	       ]=========hhhhhhhhhhhhhhhhhhhhhhh
+//VVVVVVVVVVVVVVVVVHHHHHHHHHH=[____________________________________________________]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 
 /obj/item/weapon/gun/flamer/M240T
 	name = "\improper M240-T incinerator unit"
@@ -278,19 +265,9 @@
 	var/obj/item/storage/large_holster/fuelpack/fuelpack
 
 /obj/item/weapon/gun/flamer/M240T/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/attached_gun/extinguisher/pyro)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/flashlight,
-			/obj/item/attachable/magnetic_harness,
-			/obj/item/attachable/attached_gun/extinguisher,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 0, "muzzle_y" = 0, "rail_x" = 13, "rail_y" = 20, "under_x" = 21, "under_y" = 14, "stock_x" = 0, "stock_y" = 0)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/attached_gun/extinguisher/pyro))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/flashlight, /obj/item/attachable/magnetic_harness, /obj/item/attachable/attached_gun/extinguisher))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 0, "muzzle_y" = 0, "rail_x" = 13, "rail_y" = 20, "under_x" = 21, "under_y" = 14, "stock_x" = 0, "stock_y" = 0))
 
 	..()
 

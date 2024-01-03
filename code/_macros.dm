@@ -30,6 +30,10 @@
 
 //Picks from the list, with some safeties, and returns the "default" arg if it fails
 #define DEFAULTPICK(L, default) ((istype(L, /list) && L:len) ? pick(L) : default)
+//Initializes a list if a child object has not already initialized it. Can be used for associations.
+#define INHERITLIST(L, I)  if(!L) L = I
+//Same as above, otherwise just add to it. Different execution from LAZYADD. Should not be used for associations.
+#define INHERITORADDLIST(L, I) INHERITLIST(L, I) ; else L += I
 // Ensures L is initailized after this point
 #define LAZYINITLIST(L) if (!L) L = list()
 // Sets a L back to null iff it is empty

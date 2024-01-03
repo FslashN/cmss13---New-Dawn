@@ -61,7 +61,7 @@
 	for (var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if (!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if (xeno_action.ability_primacy == XENO_PRIMARY_ACTION_1)
 			handle_xeno_macro_datum(src, xeno_action)
@@ -77,7 +77,7 @@
 	for (var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if (!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if (xeno_action.ability_primacy == XENO_PRIMARY_ACTION_2)
 			handle_xeno_macro_datum(src, xeno_action)
@@ -93,7 +93,7 @@
 	for (var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if (!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if (xeno_action.ability_primacy == XENO_PRIMARY_ACTION_3)
 			handle_xeno_macro_datum(src, xeno_action)
@@ -109,7 +109,7 @@
 	for (var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if (!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if (xeno_action.ability_primacy == XENO_PRIMARY_ACTION_4)
 			handle_xeno_macro_datum(src, xeno_action)
@@ -125,7 +125,7 @@
 	for (var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if (!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if (xeno_action.ability_primacy == XENO_PRIMARY_ACTION_5)
 			handle_xeno_macro_datum(src, xeno_action)
@@ -141,7 +141,7 @@
 	for(var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if(!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if(xeno_action.ability_primacy == XENO_CORROSIVE_ACID)
 			handle_xeno_macro_datum(src, xeno_action)
@@ -157,7 +157,7 @@
 	for (var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if (!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if (xeno_action.ability_primacy == XENO_TECH_SECRETE_RESIN)
 			handle_xeno_macro_datum(src, xeno_action)
@@ -173,7 +173,7 @@
 	for(var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if(!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if(xeno_action.ability_primacy == XENO_SCREECH)
 			handle_xeno_macro_datum(src, xeno_action)
@@ -186,7 +186,7 @@
 	for(var/datum/action/xeno_action/xeno_action in xeno.actions)
 		if(!istype(xeno_action))
 			continue
-		if(xeno_action.hidden)
+		if(xeno_action.flags_ui_actions & UI_ACTIONS_HIDDEN)
 			continue
 		if(xeno_action.ability_primacy == XENO_TAIL_STAB)
 			handle_xeno_macro_datum(src, xeno_action)

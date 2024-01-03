@@ -1,8 +1,5 @@
 #define FIRE_DELAY_GROUP_SHOTGUN "fdg_shtgn"
 
-#define TASER_MODE_P "precision"
-#define TASER_MODE_F "free"
-
 // Common
 #define AMMO_BAND_COLOR_AP "#1F951F"
 #define AMMO_BAND_COLOR_HIGH_VELOCITY "#8998A3"
@@ -64,7 +61,7 @@
 #define ATTACHMENT_SLOT_STOCK "stock" //What you brace the firearm with.
 #define	ATTACHMENT_SLOT_RAIL "rail" //On top of the gun, like a scope.
 #define	ATTACHMENT_SLOT_UNDER "under" //Under the barrel, like a flashlight.
-#define ATTACHMENT_SLOT_BARREL "barrel" //Integrated barrels mostly. A lot of the old itengrated barrels need to be converted to this, including the gun _x and _y offsets.
+#define ATTACHMENT_SLOT_BARREL "barrel" //Integrated barrels mostly. Was previously using the special slot.
 #define ATTACHMENT_SLOT_SPECIAL "special" //Anything that doesn't fit into another general category. Unused right now.
 //Other attachments hardpoints can be entered here.
 
@@ -89,26 +86,38 @@
 #define GUN_MALFUNCTION_CHANCE_MED_HIGH 7.5 //Poor, very poor.
 #define GUN_MALFUNCTION_CHANCE_VERY_HIGH 10 //Unacceptable. The firearm could be damaged or something.
 
+//I got tired of configuring gun sound range by pure numbers without having some reference. So here it is, so they can be adjusted faster.
+#define GUN_SOUND_RANGE_CQC 3 //Very close range for things that are hard to hear, like hand reloads.
+#define GUN_SOUND_RANGE_CLOSE 4 //Slightly closer range for sounds that aren't very loud but still can be audible from nearby. Like casings hitting the ground.
+#define GUN_SOUND_RANGE_SHORT 5 //Still pretty close, but more for sounds that should be audible in visible range.
+#define GUN_SOUND_RANGE_MEDIUM 7 //About the range you'd expect from a standard audible sound. Per code, it was about 6.25 before (.25 * 25). Pumping shotguns, racking, etc.
+#define GUN_SOUND_RANGE_LONG 11 //The longest range you will probably find. Currently unused.
+
 //Small selection of macros to optimize on proc calls a sliver.
 //Cylinder operation. See revolvers.dm for explanation.
-#define ROTATE_CYLINDER(magazine) magazine.chamber_position = (magazine.chamber_position == magazine.max_rounds) ? 1 : ++magazine.chamber_position
-#define ROTATE_CYLINDER_BACK(magazine) magazine.chamber_position = (magazine.chamber_position == 1) ? magazine.max_rounds : --magazine.chamber_position
-#define GUN_ROTATE_CYLINDER ROTATE_CYLINDER(current_mag)
-#define GUN_ROTATE_CYLINDER_BACK ROTATE_CYLINDER_BACK(current_mag)
+#define ROTATE_CYLINDER(magazine, rotations) magazine.feeder_index = MODULUS_ONE((magazine.feeder_index + (rotations)), magazine.max_rounds)
+#define ROTATE_CYLINDER_BACK(magazine, rotations) ROTATE_CYLINDER(magazine, -(rotations))
+#define GUN_ROTATE_CYLINDER ROTATE_CYLINDER(current_mag, 1)
+#define GUN_ROTATE_CYLINDER_BACK ROTATE_CYLINDER_BACK(current_mag, -1)
 //Clicks the gun when it's empty.
-#define GUN_CLICK_EMPTY(user) 	\
+#define GUN_CLICK_EMPTY(user) \
 	if(user) { \
 		to_chat(user, SPAN_WARNING("<b>*click*</b>")); \
 		playsound(user, pick(click_empty_sound), 25, 1, 5) }; \
 	else playsound(src, pick(click_empty_sound), 25, 1, 5);
-//See the Ammo Counter section for details.
-#define GUN_DISPLAY_ROUNDS(rounds_override) \
- { \
-	var/total_ammo_remaining = min( rounds_override ? rounds_override  :  (current_mag ? current_mag.current_rounds : 0) + (in_chamber ? 1 : 0) , 999) ; \
-	( ammo_counter.maptext = {"<span style= 'font-size:6px;font-family:DigitalCounter;color: red'>[ (total_ammo_remaining < 10) ? "00" : ( (total_ammo_remaining < 100) ? "0" : null)][total_ammo_remaining]</span>"} ) ; \
-}
-//Unused for the moment. Potentially there to track attach ammo.
-#define GUN_DISPLAY_ROUNDS_SPECIFIED(rounds_override) GUN_DISPLAY_ROUNDS(rounds_override)
+
+//See the Ammo Counter section in Gun.dm for details. Style is in fontsheet.dm.
+#define GUN_DISPLAY_ROUNDS(rounds_provided)  \
+	var/total_ammo_remaining = min(rounds_provided , 999); \
+	total_ammo_remaining = "[ (total_ammo_remaining < 10) ? "00" : ( (total_ammo_remaining < 100) ? "0" : null)][total_ammo_remaining]"; \
+	ammo_counter.maptext =  SPAN_AMMO_COUNTER(total_ammo_remaining) ;
+
 //Default way to view rounds.
-#define GUN_DISPLAY_ROUNDS_REMAINING if(flags_gun_features & GUN_AMMO_COUNTER) GUN_DISPLAY_ROUNDS(null)
+#define GUN_DISPLAY_ROUNDS_REMAINING \
+	if(flags_gun_features & GUN_AMMO_COUNTER) { \
+		var/rounds_to_display = ((current_mag ? current_mag.current_rounds : 0) + (in_chamber ? 1 : 0)); \
+		GUN_DISPLAY_ROUNDS(rounds_to_display); \
+		}
+
 #define SAFE_READY_IN_CHAMBER if(current_mag?.current_rounds) ready_in_chamber()
+#define MAGAZINE_CLEAN_FIRST_POSITION(magazine) if(magazine.feeder_contents[2] <= 0) magazine.feeder_contents.Cut(1, 3) //Cut out source ammo if needed.

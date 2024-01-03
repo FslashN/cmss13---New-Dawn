@@ -672,7 +672,7 @@
 			return
 		caller.put_in_active_hand(caster)
 		caster_deployed = TRUE
-		to_chat(caller, SPAN_NOTICE("You activate your plasma caster. It is in [caster.mode] mode."))
+		to_chat(caller, SPAN_NOTICE("You activate your plasma caster. It is in [caster.flags_gun_toggles & GUN_SECONDARY_MODE_ON ? "lethal" : "stun"] mode."))
 		playsound(src, 'sound/weapons/pred_plasmacaster_on.ogg', 15, TRUE)
 
 	return TRUE

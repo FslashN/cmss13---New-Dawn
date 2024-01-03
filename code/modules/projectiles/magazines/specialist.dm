@@ -68,7 +68,7 @@
 	icon_state = "a19"
 	default_ammo = /datum/ammo/bullet/rifle/m4ra
 	max_rounds = 18
-	gun_type = /obj/item/weapon/gun/rifle/m4ra_custom
+	gun_type = /obj/item/weapon/gun/rifle/m4ra/custom
 	ammo_band_icon = "+a19_band"
 	ammo_band_icon_empty = "+a19_band_e"
 
@@ -77,7 +77,7 @@
 	desc = "A magazine of A19 HV incendiary rounds for use in the M4RA battle rifle. The M4RA battle rifle is the only gun that can chamber these rounds."
 	default_ammo = /datum/ammo/bullet/rifle/m4ra/incendiary
 	max_rounds = 18
-	gun_type = /obj/item/weapon/gun/rifle/m4ra_custom
+	gun_type = /obj/item/weapon/gun/rifle/m4ra/custom
 	ammo_band_color = AMMO_BAND_COLOR_INCENDIARY
 
 /obj/item/ammo_magazine/rifle/m4ra/custom/impact
@@ -85,7 +85,7 @@
 	desc = "A magazine of A19 HV high impact rounds for use in the M4RA battle rifle. The M4RA battle rifle is the only gun that can chamber these rounds."
 	default_ammo = /datum/ammo/bullet/rifle/m4ra/impact
 	max_rounds = 18
-	gun_type = /obj/item/weapon/gun/rifle/m4ra_custom
+	gun_type = /obj/item/weapon/gun/rifle/m4ra/custom
 	ammo_band_color = AMMO_BAND_COLOR_HIGH_IMPACT
 
 //-------------------------------------------------------
@@ -113,13 +113,6 @@
 	icon_state = "m56_drum"
 	default_ammo = /datum/ammo/bullet/smartgun/holo_target
 	gun_type = /obj/item/weapon/gun/smartgun/rmc
-//-------------------------------------------------------
-//Flare gun. Close enough?
-/obj/item/ammo_magazine/internal/flare
-	name = "flare gun internal magazine"
-	caliber = "FL"
-	max_rounds = 1
-	default_ammo = /datum/ammo/flare
 
 //-------------------------------------------------------
 //M5 RPG

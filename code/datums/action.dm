@@ -1,3 +1,10 @@
+/*
+found in __game.dm, actually for real this time. Funny enough, the flags weren't being utilized at all. I converted the variables into flags and added some functionality. /N
+#define UI_ACTIONS_HIDDEN (1<<0) //Primary to show and hide xeno buttons.
+#define UI_ACTIONS_UNIQUE (1<<1) //Unique actions are one per, so if another is added, it's ignored. If it was previously hidden, it gets unhidden.
+#define UI_ACTIONS_ITEM_CUSTOM (1<<2) //If the action is an item action, this will prevent the item's icon from appearing on the button as well as retaining the name you set rather than "Use [something]"
+#define UI_ACTIONS_ITEM_GROUP (1<<3) //If there is more than one instance of the item, the others will not be shown. For behavior of groups rather than individual items. ie revolver tricks.
+*/
 
 /datum/action
 	var/name = "Generic Action"
@@ -9,28 +16,26 @@
 	var/mob/owner
 	var/cooldown = 0 // By default an action has no cooldown
 	var/cost = 0 // By default an action has no cost -> will be utilized by skill actions/xeno actions
-	var/action_flags = 0 // Check out __game.dm for flags
+	var/flags_ui_actions = UI_ACTIONS_UNIQUE
 	/// Whether the action is hidden from its owner
 	/// Useful for when you want to preserve action state while preventing
 	/// a mob from using said action
-	var/hidden = FALSE
-	var/unique = TRUE
 	/// A signal on the mob that will cause the action to activate
 	var/listen_signal
 
 /datum/action/New(Target, override_icon_state)
 	target = Target
 	button = new
-	if(target && isatom(target))
-		var/image/IMG = image(target.icon, button, target.icon_state)
-		IMG.pixel_x = 0
-		IMG.pixel_y = 0
-		button.overlays += IMG
 	button.source_action = src
 	button.name = name
-	if(button_icon_state)
-		button.icon_state = button_icon_state
-	button.overlays += image(icon_file, button, override_icon_state || action_icon_state)
+	if(button_icon_state) button.icon_state = button_icon_state
+	if(!(flags_ui_actions & UI_ACTIONS_ITEM_CUSTOM)) //We do not want overlays if we're doing our own thing. This will be added on top of the button for items otherwise.
+		if(target && isatom(target))
+			var/image/IMG = image(target.icon, button, target.icon_state)
+			IMG.pixel_x = 0
+			IMG.pixel_y = 0
+			button.overlays += IMG
+		button.overlays += image(icon_file, button, override_icon_state || action_icon_state)
 
 /datum/action/Destroy()
 	if(owner)
@@ -52,7 +57,7 @@
 		INVOKE_ASYNC(src, PROC_REF(action_activate))
 
 /datum/action/proc/can_use_action()
-	if(hidden)
+	if(flags_ui_actions & UI_ACTIONS_HIDDEN)
 		return FALSE
 
 	if(owner)
@@ -70,11 +75,12 @@
  * Can pass additional initialization args
  */
 /proc/give_action(mob/L, action_path, ...)
+	var/datum/action/A
 	for(var/a in L.actions)
-		var/datum/action/A = a
-		if(A.unique && A.type == action_path)
-			if(A.hidden)
-				A.hidden = FALSE
+		A = a
+		if(A.flags_ui_actions & UI_ACTIONS_UNIQUE && A.type == action_path)
+			if(A.flags_ui_actions & UI_ACTIONS_HIDDEN)
+				A.flags_ui_actions &= ~UI_ACTIONS_HIDDEN
 				L.update_action_buttons()
 			return A
 
@@ -107,8 +113,9 @@
 	update_action_buttons()
 
 /proc/remove_action(mob/L, action_path)
+	var/datum/action/A
 	for(var/a in L.actions)
-		var/datum/action/A = a
+		A = a
 		if(A.type == action_path)
 			A.remove_from(L)
 			return A
@@ -134,28 +141,28 @@
 	for(var/a in L.actions)
 		var/datum/action/A = a
 		if(A.type == action_path)
-			A.hidden = TRUE
+			A.flags_ui_actions |= UI_ACTIONS_HIDDEN
 			L.update_action_buttons()
 			return A
 
 /datum/action/proc/hide_from(mob/L)
 	SHOULD_CALL_PARENT(TRUE)
 	SEND_SIGNAL(src, COMSIG_ACTION_HIDDEN, L)
-	hidden = TRUE
+	flags_ui_actions |= UI_ACTIONS_HIDDEN
 	L.update_action_buttons()
 
 /proc/unhide_action(mob/L, action_path)
 	for(var/a in L.actions)
 		var/datum/action/A = a
 		if(A.type == action_path)
-			A.hidden = FALSE
+			A.flags_ui_actions &= ~UI_ACTIONS_HIDDEN
 			L.update_action_buttons()
 			return A
 
 /datum/action/proc/unhide_from(mob/L)
 	SHOULD_CALL_PARENT(TRUE)
 	SEND_SIGNAL(src, COMSIG_ACTION_UNHIDDEN, L)
-	hidden = FALSE
+	flags_ui_actions &= ~UI_ACTIONS_HIDDEN
 	L.update_action_buttons()
 
 
@@ -163,7 +170,7 @@
 	name = "Use item"
 	var/obj/item/holder_item //the item that has this action in its list of actions. Is not necessarily the target
 								//e.g. gun attachment action: target = attachment, holder = gun.
-	unique = FALSE
+	flags_ui_actions = NO_FLAGS
 
 /datum/action/item_action/New(Target, obj/item/holder)
 	..()
@@ -171,8 +178,9 @@
 		holder = target
 	holder_item = holder
 	LAZYADD(holder_item.actions, src)
-	name = "Use [target]"
-	button.name = name
+	if(!(flags_ui_actions & UI_ACTIONS_ITEM_CUSTOM)) //If we're not setting the item overlay, we don't want this behavior.
+		name = "Use [target]"
+		button.name = name
 
 	update_button_icon()
 
@@ -193,6 +201,7 @@
 			return TRUE
 
 /datum/action/item_action/update_button_icon()
+	if(flags_ui_actions & UI_ACTIONS_ITEM_CUSTOM) return //We don't want to update this if we have a custom icon.
 	button.overlays.Cut()
 	var/mutable_appearance/item_appearance = mutable_appearance(target.icon, target.icon_state, plane = ABOVE_HUD_PLANE)
 	for(var/overlay in target.overlays)
@@ -223,11 +232,16 @@
 			if(reload_screen)
 				client.add_to_screen(A.button)
 	else
+		var/L[0] //We will use this to make sure our group buttons aren't repeated.
 		for(var/datum/action/A in actions)
+			if(A.flags_ui_actions & UI_ACTIONS_ITEM_GROUP)
+				if(A.type in L) continue//We have this type already, continue processing.
+				else L += A.type //Add it and do the other stuff.
+
 			var/atom/movable/screen/action_button/B = A.button
 			if(reload_screen)
 				client.add_to_screen(B)
-			if(A.hidden)
+			if(A.flags_ui_actions & UI_ACTIONS_HIDDEN)
 				B.screen_loc = null
 				continue
 			button_number++

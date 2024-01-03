@@ -172,7 +172,7 @@
 	if(!link_smartgun(user))
 		set_far_sight(user, FALSE)
 		return PROCESS_KILL
-	if(!linked_smartgun.drain_battery(25 * delta_time))
+	if(!linked_smartgun.drain_battery(user, 25 * delta_time))
 		set_far_sight(user, FALSE)
 
 /datum/action/item_action/m56_goggles/far_sight/New()

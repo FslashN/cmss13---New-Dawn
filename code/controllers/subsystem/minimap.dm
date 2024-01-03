@@ -606,7 +606,7 @@ SUBSYSTEM_DEF(minimaps)
 /datum/action/minimap/observer
 	minimap_flags = MINIMAP_FLAG_ALL
 	marker_flags = NONE
-	hidden = TRUE
+	flags_ui_actions = UI_ACTIONS_UNIQUE|UI_ACTIONS_HIDDEN
 
 /datum/tacmap
 	var/allowed_flags = MINIMAP_FLAG_USCM

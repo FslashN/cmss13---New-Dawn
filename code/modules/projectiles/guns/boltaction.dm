@@ -9,10 +9,10 @@
 	name = "\improper Basira-Armstrong bolt-action hunting rifle"
 	desc = "Named after its eccentric designers, the Basira-Armstrong is a cheap but reliable civilian bolt-action rifle frequently found in the outer colonies. Despite its legally-mandated limited magazine capacity, its light weight and legendary accuracy makes it popular among hunters and competitive shooters."
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/colony.dmi'
-	cocked_sound = 'sound/weapons/gun_cocked2.ogg'
+	chamber_cycle_sound = 'sound/weapons/gun_cocked2.ogg'
 	fire_sound = 'sound/weapons/gun_boltaction.ogg'
-	var/open_bolt_sound ='sound/weapons/handling/gun_boltaction_open.ogg'
-	var/close_bolt_sound ='sound/weapons/handling/gun_boltaction_close.ogg'
+	chamber_open_sound ='sound/weapons/handling/gun_boltaction_open.ogg'
+	chamber_close_sound ='sound/weapons/handling/gun_boltaction_close.ogg'
 	icon_state = "boltaction"
 	item_state = "hunting"
 	flags_gun_features = GUN_CAN_POINTBLANK|GUN_WIELDED_FIRING_ONLY
@@ -20,25 +20,43 @@
 	current_mag = /obj/item/ammo_magazine/rifle/boltaction
 	projectile_casing = PROJECTILE_CASING_CARTRIDGE
 	civilian_usable_override = TRUE
-	var/has_openbolt_icon = TRUE /// If this gun should change icon states when the bolt is open
 
 	//=========// GUN STATS //==========//
+	malfunction_chance_base = GUN_MALFUNCTION_CHANCE_ZERO
+	cycle_chamber_delay = FIRE_DELAY_TIER_5
+
 	fire_delay = FIRE_DELAY_TIER_4
 	burst_amount = BURST_AMOUNT_TIER_1
-	cycle_chamber_delay = FIRE_DELAY_TIER_5
 	burst_delay = FIRE_DELAY_TIER_5
 
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_3
 	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_6
 	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
+	scatter_unwielded = SCATTER_AMOUNT_TIER_2
+
 	damage_mult = BULLET_DAMAGE_MULT_BASE + BULLET_DAMAGE_MULT_TIER_8
+	damage_falloff_mult = DAMAGE_FALLOFF_TIER_10
+	damage_buildup_mult = DAMAGE_BUILDUP_TIER_1
+	velocity_add = BASE_VELOCITY_BONUS
 	recoil = RECOIL_AMOUNT_TIER_4
+	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	movement_onehanded_acc_penalty_mult = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_1
+
+	effective_range_min = EFFECTIVE_RANGE_OFF
+	effective_range_max = EFFECTIVE_RANGE_OFF
+
+	fa_scatter_peak = FULL_AUTO_SCATTER_PEAK_BASE
+	fa_max_scatter = FULL_AUTO_SCATTER_MAX_BASE
+
+	recoil_buildup_limit = RECOIL_AMOUNT_TIER_1 / RECOIL_BUILDUP_VIEWPUNCH_MULTIPLIER
+
+	aim_slowdown = SLOWDOWN_ADS_RIFLE
+	wield_delay = WIELD_DELAY_NORMAL
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/rifle/boltaction/initialize_gun_lists()
-	if(!attachable_allowed)
-		attachable_allowed = list(
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/bayonet,
 			/obj/item/attachable/bayonet/co2,
 			/obj/item/attachable/bayonet/upp,
@@ -46,45 +64,11 @@
 			/obj/item/attachable/scope/mini,
 			/obj/item/attachable/scope/mini/hunting,
 			/obj/item/attachable/stock/hunting,
-		)
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/stock/hunting, /obj/item/attachable/scope/mini/hunting)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 5, "rail_y" = 18, "under_x" = 25, "under_y" = 14, "stock_x" = 18, "stock_y" = 10)
+		))
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/stock/hunting, /obj/item/attachable/scope/mini/hunting))
+	INHERITLIST(attachable_offset, 	list("muzzle_x" = 32, "muzzle_y" = 17,"rail_x" = 5, "rail_y" = 18, "under_x" = 25, "under_y" = 14, "stock_x" = 18, "stock_y" = 10))
 
 	..()
-
-
-/obj/item/weapon/gun/rifle/boltaction/update_icon() // needed for bolt action sprites
-	..()
-	icon_state = ( (flags_gun_receiver & GUN_CHAMBER_IS_OPEN) && has_openbolt_icon) ? icon_state + "_o" : icon_state
-
-/obj/item/weapon/gun/rifle/boltaction/cycle_chamber(mob/user)
-	if(cycle_chamber_cooldown > world.time)
-		return
-
-	cycle_chamber_cooldown = world.time + cycle_chamber_delay
-	flags_gun_receiver ^= GUN_CHAMBER_IS_OPEN
-
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-		to_chat(user, SPAN_DANGER("You open the bolt of [src]!"))
-		play_chamber_cycle_sound(user, open_bolt_sound, 15)
-		//We'e going to have nothing, a bullet loaded, or an empty casing to unload.
-		if(in_chamber)
-			eject_handful_to_turf(user)
-			in_chamber = null
-		else if(flags_gun_receiver & GUN_CHAMBER_EMPTY_CASING) //This should be mutually exclusive with in_chamber.
-			make_casing(projectile_casing)
-
-	else
-		to_chat(user, SPAN_DANGER("You close the bolt of [src]!"))
-		play_chamber_cycle_sound(user, close_bolt_sound, 65)
-		if(current_mag?.current_rounds) ready_in_chamber()
-
-	GUN_DISPLAY_ROUNDS_REMAINING
-	update_icon()
 
 //VVVVVVVVVVVVVVVVVHHHHHHHHHH=[----------------------------------------------------]=HHHHHHHHVVVVVVVVVVVVVVVVVVVVVVV
 //hhhhhhhhhhhhhhhhh===========[             VULTURE ANTI-MATERIAL RIFLE            ]=========hhhhhhhhhhhhhhhhhhhhhhh
@@ -105,10 +89,10 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi' // overriden with camos
 	icon_state = "vulture"
 	item_state = "vulture"
-	cocked_sound = 'sound/weapons/gun_cocked2.ogg'
+	chamber_cycle_sound = 'sound/weapons/gun_cocked2.ogg'
 	fire_sound = 'sound/weapons/gun_vulture_fire.ogg'
-	open_bolt_sound ='sound/weapons/handling/gun_vulture_bolt_eject.ogg'
-	close_bolt_sound ='sound/weapons/handling/gun_vulture_bolt_close.ogg'
+	chamber_open_sound ='sound/weapons/handling/gun_vulture_bolt_eject.ogg'
+	chamber_close_sound ='sound/weapons/handling/gun_vulture_bolt_close.ogg'
 	flags_equip_slot = SLOT_BACK|SLOT_BLOCK_SUIT_STORE
 	w_class = SIZE_LARGE
 	force = 5
@@ -119,7 +103,6 @@
 	map_specific_decoration = TRUE
 	current_mag = /obj/item/ammo_magazine/rifle/boltaction/vulture
 	civilian_usable_override = FALSE
-	has_openbolt_icon = FALSE
 
 	/// How far out people can tell the direction of the shot
 	projectile_type = /obj/projectile/vulture
@@ -132,13 +115,8 @@
 	cycle_chamber_delay = 1 SECONDS
 
 	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_7
-	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_10
 	scatter = SCATTER_AMOUNT_TIER_10
-	burst_scatter_mult = SCATTER_AMOUNT_TIER_6
-	scatter_unwielded = SCATTER_AMOUNT_TIER_2
 	damage_mult = BULLET_DAMAGE_MULT_BASE
-	recoil = RECOIL_AMOUNT_TIER_4
-	recoil_unwielded = RECOIL_AMOUNT_TIER_2
 	damage_falloff_mult = DAMAGE_FALLOFF_OFF
 	//=========// GUN STATS //==========//
 
@@ -146,35 +124,22 @@
 	bypass_trait = TRUE
 
 /obj/item/weapon/gun/rifle/boltaction/vulture/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(
+	INHERITLIST(starting_attachment_types, list(
 			/obj/item/attachable/barrel/sniper/vulture,
 			/obj/item/attachable/vulture_scope,
 			/obj/item/attachable/bipod/vulture,
 			/obj/item/attachable/stock/vulture,
-		)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
+		))
+	INHERITLIST(attachable_allowed, list(
 			/obj/item/attachable/barrel/sniper/vulture,
 			/obj/item/attachable/vulture_scope,
 			/obj/item/attachable/bipod/vulture,
 			/obj/item/attachable/stock/vulture,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("barrel_x" = 33, "barrel_y" = 19, "rail_x" = 11, "rail_y" = 24, "under_x" = 25, "under_y" = 14, "stock_x" = 11, "stock_y" = 15)
-
-	if(!actions_types)
-		actions_types = list(/datum/action/item_action/vulture)
+		))
+	INHERITLIST(attachable_offset, list("barrel_x" = 33, "barrel_y" = 19, "rail_x" = 11, "rail_y" = 24, "under_x" = 25, "under_y" = 14, "stock_x" = 11, "stock_y" = 15))
+	INHERITLIST(actions_types, list(/datum/action/item_action/vulture))
 
 	..()
-
-/obj/item/weapon/gun/rifle/boltaction/vulture/update_icon()
-	. = ..()
-	if(flags_gun_receiver & GUN_CHAMBER_IS_OPEN)
-		overlays += "vulture_bolt_open" //Does it not remove it?
 
 /obj/item/weapon/gun/rifle/boltaction/vulture/recalculate_user_attributes(mob/living/user)
 	if(!bypass_trait && !HAS_TRAIT(user, TRAIT_VULTURE_USER))

@@ -129,7 +129,7 @@
 /// A wrapper for use_ability that sends a signal
 /datum/action/xeno_action/proc/use_ability_wrapper(...)
 	// TODO: make hidden a part of can_use_action
-	if(!hidden && can_use_action() && use_ability(arglist(args)))
+	if(!(flags_ui_actions & UI_ACTIONS_HIDDEN) && can_use_action() && use_ability(arglist(args)))
 		SEND_SIGNAL(src, COMSIG_XENO_ACTION_USED, owner)
 		return TRUE
 
@@ -152,7 +152,7 @@
 /datum/action/xeno_action/activable/action_activate()
 	if(!owner)
 		return
-	if(hidden)
+	if(flags_ui_actions & UI_ACTIONS_HIDDEN)
 		return // There's no where we want a hidden action to be selectable right?
 	var/mob/living/carbon/xenomorph/xeno = owner
 	if(xeno.selected_ability == src)

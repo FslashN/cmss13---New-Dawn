@@ -79,7 +79,7 @@
 
 /obj/effect/essentials_set/kit/m60
 	spawned_gear_list = list(
-		/obj/item/weapon/gun/m60,
+		/obj/item/weapon/gun/machinegun/m60,
 		/obj/item/ammo_magazine/m60,
 		/obj/item/ammo_magazine/m60,
 		/obj/item/ammo_magazine/m60,

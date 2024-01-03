@@ -29,7 +29,7 @@
 //soundin: the .ogg to use.
 //vol: the initial volume of the sound, 0 is no sound at all, 75 is loud queen screech.
 //freq: the frequency of the sound. Setting it to 1 will assign it a random frequency
-//sound_range: the maximum theoretical range (in tiles) of the sound, by default is equal to the volume.
+//sound_range: the maximum theoretical range (in tiles) of the sound, by default is equal to a quarter of the volume.
 //vol_cat: the category of this sound, used in client volume. There are 3 volume categories: VOLUME_SFX (Sound effects), VOLUME_AMB (Ambience and Soundscapes) and VOLUME_ADM (Admin sounds and some other stuff)
 //channel: use this only when you want to force the sound to play on a specific channel
 //status: the regular 4 sound flags

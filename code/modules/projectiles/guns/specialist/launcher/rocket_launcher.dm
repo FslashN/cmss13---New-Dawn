@@ -9,6 +9,7 @@
 	icon = 'icons/obj/items/weapons/guns/guns_by_faction/uscm.dmi'
 	icon_state = "m5"
 	item_state = "m5"
+	force = 15
 	flags_equip_slot = NO_FLAGS
 	w_class = SIZE_HUGE
 	flags_item = TWOHANDED|NO_CRYO_STORE
@@ -19,12 +20,8 @@
 	var/skill_locked = TRUE
 
 	//=========// GUN STATS //==========//
-	force = 15
 	fire_delay = FIRE_DELAY_TIER_6 * 2
 
-	accuracy_mult = BASE_ACCURACY_MULT
-	scatter = SCATTER_AMOUNT_TIER_6
-	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_3
 
 	wield_delay = WIELD_DELAY_HORRIBLE
@@ -33,17 +30,9 @@
 	//=========// GUN STATS //==========//
 
 /obj/item/weapon/gun/launcher/rocket/initialize_gun_lists()
-
-	if(!matter)
-		matter = list("metal" = 10000)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(
-			/obj/item/attachable/magnetic_harness,
-		)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 6, "rail_y" = 19, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14)
+	INHERITLIST(matter, list("metal" = 10000))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/magnetic_harness))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 6, "rail_y" = 19, "under_x" = 19, "under_y" = 14, "stock_x" = 19, "stock_y" = 14))
 
 	..()
 
@@ -209,8 +198,6 @@
 	burst_amount = BURST_AMOUNT_TIER_4
 
 	accuracy_mult = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_4
-	scatter = SCATTER_AMOUNT_TIER_6
-	damage_mult = BULLET_DAMAGE_MULT_BASE
 	recoil = RECOIL_AMOUNT_TIER_3
 
 	aim_slowdown = SLOWDOWN_ADS_SUPERWEAPON
@@ -232,9 +219,7 @@
 	skill_locked = FALSE
 
 /obj/item/weapon/gun/launcher/rocket/anti_tank/initialize_gun_lists()
-
-	if(!attachable_allowed)
-		attachable_allowed = list()
+	INHERITLIST(attachable_allowed, list())
 
 	..()
 
@@ -331,15 +316,9 @@
 	flags_item = TWOHANDED
 
 /obj/item/weapon/gun/launcher/rocket/upp/initialize_gun_lists()
-
-	if(!starting_attachment_types)
-		starting_attachment_types = list(/obj/item/attachable/upp_rpg_breech)
-
-	if(!attachable_allowed)
-		attachable_allowed = list(/obj/item/attachable/upp_rpg_breech, /obj/item/attachable/magnetic_harness/hidden)
-
-	if(!attachable_offset)
-		attachable_offset = list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 6, "rail_y" = 19, "under_x" = 19, "under_y" = 14, "stock_x" = -6, "stock_y" = 16, "special_x" = 37, "special_y" = 16)
+	INHERITLIST(starting_attachment_types, list(/obj/item/attachable/upp_rpg_breech, /obj/item/attachable/magnetic_harness/hidden))
+	INHERITLIST(attachable_allowed, list(/obj/item/attachable/upp_rpg_breech, /obj/item/attachable/magnetic_harness/hidden))
+	INHERITLIST(attachable_offset, list("muzzle_x" = 33, "muzzle_y" = 18,"rail_x" = 6, "rail_y" = 19, "under_x" = 19, "under_y" = 14, "stock_x" = -6, "stock_y" = 16, "special_x" = 37, "special_y" = 16))
 
 	..()
 
